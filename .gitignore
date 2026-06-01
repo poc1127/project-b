@@ -1,0 +1,10 @@
+﻿*.xlsx
+*.xls
+*.csv
+.claude/
+history/
+memory/
+Reference Data/
+__pycache__/
+*.pyc
+.env
