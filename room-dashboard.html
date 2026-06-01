@@ -1,0 +1,1121 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ICMDA 2026 숙소배정 대시보드</title>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
+  :root{
+    --byytc:#fff2cc; --byytc-b:#e0c200;
+    --youus:#dbe9f5; --youus-b:#5b8fc9;
+    --booyoung:#f3e2d2; --booyoung-b:#c08b55;
+    --pool:#f0f0f0; --warn:#c00000; --ok:#2e7d32;
+    --line:#ccc;
+  }
+  *{box-sizing:border-box;}
+  body{font-family:"Segoe UI","Malgun Gothic",sans-serif;margin:0;background:#f7f7f9;color:#222;font-size:13px;}
+  header{background:#1f3b57;color:#fff;padding:10px 16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;position:sticky;top:0;z-index:50;}
+  header h1{font-size:16px;margin:0 12px 0 0;font-weight:600;}
+  header .spacer{flex:1;}
+  button,label.btn{background:#3a6ea5;color:#fff;border:none;border-radius:5px;padding:6px 11px;font-size:12px;cursor:pointer;}
+  button:hover,label.btn:hover{background:#2c597f;}
+  button.alt{background:#5a6b7b;}
+  button.go{background:#2e7d32;}
+  button:disabled{background:#9aa6b1;cursor:not-allowed;}
+  input[type=file]{display:none;}
+  #statsbar{display:flex;gap:14px;flex-wrap:wrap;padding:8px 16px;background:#fff;border-bottom:1px solid var(--line);font-size:12px;align-items:center;}
+  #statsbar .stat b{font-size:15px;}
+  #statsbar .stat{padding:2px 8px;border-right:1px solid #eee;}
+  .pill{display:inline-block;padding:1px 7px;border-radius:10px;font-size:11px;font-weight:600;}
+  .pill.warn{background:#fde0e0;color:var(--warn);}
+  .pill.ok{background:#e3f3e4;color:var(--ok);}
+  #main{display:flex;gap:12px;padding:12px;align-items:flex-start;}
+  #pool{width:260px;flex:none;background:var(--pool);border:1px solid var(--line);border-radius:8px;padding:8px;position:sticky;top:96px;max-height:calc(100vh - 110px);overflow:auto;}
+  #pool h2{font-size:13px;margin:2px 0 6px;}
+  #pool input.search{width:100%;padding:5px;margin-bottom:6px;border:1px solid var(--line);border-radius:4px;}
+  #venues{flex:1;display:flex;flex-direction:column;gap:18px;min-width:0;}
+  .venue{border:1px solid var(--line);border-radius:8px;background:#fff;}
+  .venue>h2{margin:0;padding:8px 12px;border-radius:8px 8px 0 0;font-size:14px;display:flex;align-items:center;gap:10px;}
+  .venue.byytc>h2{background:var(--byytc);border-bottom:2px solid var(--byytc-b);}
+  .venue.youus>h2{background:var(--youus);border-bottom:2px solid var(--youus-b);}
+  .venue.booyoung>h2{background:var(--booyoung);border-bottom:2px solid var(--booyoung-b);}
+  .venue>h2 .cap{font-size:12px;font-weight:500;}
+  .floorgrp{padding:6px 10px;}
+  .floorgrp h3{font-size:12px;color:#555;margin:8px 2px 4px;border-bottom:1px dashed #ddd;}
+  .rooms{display:grid;grid-template-columns:repeat(auto-fill,minmax(185px,1fr));gap:8px;}
+  .room{border:1px solid var(--line);border-radius:6px;padding:5px 6px;background:#fafafa;min-height:62px;}
+  .room.over{border-color:var(--warn);background:#fff5f5;}
+  .room.dragover{outline:2px dashed #3a6ea5;}
+  .room .rhdr{display:flex;justify-content:space-between;align-items:center;font-size:11px;color:#444;margin-bottom:3px;gap:4px;}
+  .room .rno{font-weight:700;color:#111;}
+  .room .tags{display:flex;gap:3px;flex-wrap:wrap;}
+  .tag{font-size:9px;padding:0 4px;border-radius:3px;border:1px solid #bbb;background:#fff;}
+  .tag.M{background:#e6f0fb;border-color:#9cc;} .tag.F{background:#fde9f1;border-color:#d9a;}
+  .tag.ondol{background:#fff0c8;border-color:#d4a;}
+  .tag.staff{background:#eee;}
+  .capbadge{font-weight:700;}
+  .capbadge.over{color:var(--warn);} .capbadge.full{color:#b8860b;} .capbadge.ok{color:var(--ok);}
+  .chip{display:flex;align-items:center;gap:4px;font-size:11px;padding:2px 5px;margin:2px 0;border-radius:4px;background:#eef2f6;border:1px solid #d6dee6;cursor:grab;}
+  .chip.sex-M{border-left:3px solid #3a6ea5;} .chip.sex-F{border-left:3px solid #c2557a;} .chip.sex-q{border-left:3px solid #999;}
+  .chip.mix{border-left:3px solid #8a6; }
+  .chip.locked{background:#fff7df;}
+  .chip .nm{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .chip .hc{color:#666;font-size:10px;}
+  .chip .lk{cursor:pointer;font-size:11px;}
+  .chip.badmatch{outline:1.5px solid var(--warn);}
+  .chip .grp{font-size:9px;color:#a60;}
+  #warnpanel{padding:6px 16px;background:#fff8f8;border-top:1px solid #f0d0d0;font-size:12px;max-height:130px;overflow:auto;}
+  #warnpanel h3{margin:4px 0;font-size:12px;color:var(--warn);}
+  #warnpanel .warnnote{color:#777;font-size:11px;margin:0 0 4px;}
+  #warnpanel li{margin:1px 0;line-height:1.45;}
+  .empty-hint{color:#888;padding:30px;text-align:center;}
+  .muted{color:#888;font-size:11px;}
+  /* ④ category badge on chips */
+  .chip .cat{font-size:9px;font-weight:700;color:#fff;padding:0 5px;border-radius:8px;flex:none;letter-spacing:.2px;}
+  .chip{border-left-width:4px;}
+  /* view tabs */
+  .viewtabs{display:inline-flex;gap:4px;margin-right:10px;}
+  .vtab{background:#27496b;}
+  .vtab.active{background:#fff;color:#1f3b57;font-weight:700;}
+  /* ②③④ timeline — compact, hotel-split, right buffer */
+  #timeline{padding:8px 14px;}
+  #tlbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:4px;}
+  #tlbar .search{width:160px;margin:0;}
+  #tlbar select{padding:4px;border:1px solid var(--line);border-radius:4px;}
+  #tlhead,.tlrow{display:grid;grid-template-columns:56px 58px 150px 90px 52px 1fr;align-items:center;}
+  #tlhead{position:sticky;top:52px;background:#f7f7f9;z-index:10;border-bottom:2px solid #bbb;font-size:10px;font-weight:700;}
+  .tlrow .idc{font-family:ui-monospace,Consolas,monospace;font-size:10px;color:#667;padding:0 5px;white-space:nowrap;overflow:hidden;border-right:1px solid #eee;}
+  .tlrow .catc{padding:0 4px;text-align:center;overflow:hidden;border-right:1px solid #eee;white-space:nowrap;}
+  .tlrow .roomc{padding:0 6px;overflow:hidden;border-right:1px solid #eee;white-space:nowrap;}
+  .tlrow .capc{padding:0 4px;text-align:center;border-right:1px solid #eee;white-space:nowrap;}
+  .tlrow .pill{display:inline-block;vertical-align:middle;font-size:9px;font-weight:700;line-height:15px;padding:0 7px;border-radius:8px;max-width:100%;overflow:hidden;text-overflow:ellipsis;}
+  .tlrow .pill.room{background:#e8eef5;color:#2b4a6b;}
+  .tlrow .pill.cap{background:#eaf1e8;color:#3c5a2b;}
+  .tlrow .pill.none{background:#eee;color:#999;}
+  .tlrow.dropmark{box-shadow:inset 0 2px 0 0 #3a6ea5;}
+  #tlhead .nights,.tlrow .track{display:grid;grid-template-columns:repeat(var(--ncols),1fr);}
+  #tlhead .nights div{padding:3px 1px;text-align:center;border-left:1px solid #e3e3e3;}
+  #tlhead .nights div.unofficial{background:#f3e6e6;color:#a55;}
+  #tlhead .nights div.buffer{background:#eef1f4;color:#789;}
+  #tlhead .lbl{padding:3px 6px;}
+  /* hotel split band */
+  .tlgroup{display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none;position:sticky;top:76px;z-index:9;font-size:11px;font-weight:700;padding:5px 10px;margin-top:4px;
+           border-top:2px solid rgba(0,0,0,.18);border-bottom:1px solid rgba(0,0,0,.12);transition:filter .12s,box-shadow .12s;}
+  .tlgroup:hover{filter:brightness(1.05);box-shadow:inset 0 0 0 2px rgba(58,110,165,.5);}
+  .tlgroup .chev{display:inline-block;width:12px;text-align:center;font-size:10px;transition:transform .15s;}
+  .tlgroup .chev.open{transform:rotate(90deg);}
+  .tlgroup .ghint{margin-left:auto;font-size:10px;font-weight:600;color:#1f3b57;background:rgba(255,255,255,.6);padding:1px 9px;border-radius:10px;opacity:0;transition:opacity .12s;}
+  .tlgroup:hover .ghint{opacity:.95;}
+  .tlgroup.byytc{background:var(--byytc);} .tlgroup.youus{background:var(--youus);}
+  .tlgroup.booyoung{background:var(--booyoung);} .tlgroup.unassigned{background:#e9e9ec;color:#666;}
+  .tlrow{border-bottom:1px solid #f0f0f0;}
+  .tlrow:hover{background:#f3f7fb;}
+  .tlrow .who{display:flex;align-items:center;gap:4px;padding:1px 6px;overflow:hidden;cursor:pointer;font-size:11px;}
+  .tlrow .who .nm{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .tlrow .cat{display:inline-block;vertical-align:middle;font-size:8px;font-weight:700;line-height:14px;color:#fff;padding:0 6px;border-radius:7px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .tlrow.dup{background:#fff7e6;}
+  .tlrow.dup:hover{background:#ffeecc;}
+  .tlrow .dupflag{margin-left:4px;font-size:10px;color:#c47f00;cursor:help;flex:none;}
+  .tlrow .track{position:relative;height:17px;background:
+     repeating-linear-gradient(to right,transparent,transparent calc(100%/var(--ncols) - 1px),#ececec calc(100%/var(--ncols) - 1px),#ececec calc(100%/var(--ncols)));}
+  .tlrow .track .unoff{position:absolute;top:0;bottom:0;background:#f7ecec;}
+  .tlrow .track .bufz{position:absolute;top:0;bottom:0;background:#eef1f4;}
+  .bar{position:absolute;top:2px;height:13px;border-radius:3px;display:flex;align-items:center;justify-content:center;
+       color:#fff;font-size:9px;font-weight:700;cursor:grab;user-select:none;box-shadow:0 1px 2px rgba(0,0,0,.25);z-index:2;}
+  .bar .h{position:absolute;top:0;bottom:0;width:7px;cursor:ew-resize;}
+  .bar .h.l{left:-1px;} .bar .h.r{right:-1px;}
+  .bar.none{background:#ccc !important;cursor:default;color:#555;font-weight:400;}
+  /* ⑤ detail modal */
+  .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;display:flex;align-items:center;justify-content:center;}
+  .card{background:#fff;border-radius:10px;max-width:560px;width:92%;max-height:86vh;overflow:auto;box-shadow:0 10px 40px rgba(0,0,0,.3);}
+  .card .chead{padding:12px 16px;color:#fff;display:flex;align-items:center;gap:10px;border-radius:10px 10px 0 0;}
+  .card .chead h2{margin:0;font-size:17px;} .card .chead .sub{opacity:.9;font-size:12px;}
+  .card .cedit{margin-left:auto;cursor:pointer;font-size:12px;font-weight:700;color:#fff;background:rgba(255,255,255,.22);border:1px solid rgba(255,255,255,.6);border-radius:6px;padding:3px 11px;}
+  .card .cedit:hover{background:rgba(255,255,255,.4);}
+  .card .cx{margin-left:auto;cursor:pointer;font-size:20px;line-height:1;background:none;border:none;color:#fff;padding:0 4px;}
+  .card .cbody{padding:12px 16px;display:grid;grid-template-columns:auto 1fr;gap:4px 14px;font-size:13px;}
+  .card .cbody .k{color:#777;white-space:nowrap;} .card .cbody .v{word-break:break-word;}
+  .card .cbody.edit{align-items:center;gap:6px 12px;}
+  .card .cbody.edit .k{font-size:12px;}
+  .card .cbody.edit input,.card .cbody.edit select,.card .cbody.edit textarea{width:100%;box-sizing:border-box;font:inherit;font-size:13px;padding:3px 6px;border:1px solid var(--line);border-radius:5px;background:#fff;}
+  .card .cbody.edit textarea{resize:vertical;}
+  .card .cfoot{display:flex;gap:8px;justify-content:flex-end;padding:10px 16px;border-top:1px solid #eee;position:sticky;bottom:0;background:#fff;border-radius:0 0 10px 10px;}
+  .card .cfoot button{padding:6px 16px;}
+  .card .sec{grid-column:1/-1;margin:8px 0 2px;font-weight:700;color:#1f3b57;border-bottom:1px solid #eee;}
+  /* loading overlay */
+  #loading{position:fixed;inset:0;background:rgba(255,255,255,.7);z-index:300;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;color:#1f3b57;font-weight:700;}
+  #loading .spin{width:46px;height:46px;border:5px solid #cdd8e3;border-top-color:#3a6ea5;border-radius:50%;animation:spin .8s linear infinite;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+  /* print */
+  #printarea{display:none;}
+  @media print{
+    header,#statsbar,#main,#warnpanel{display:none !important;}
+    #printarea{display:block;}
+    .pgroup{page-break-after:always;}
+    .pgroup h2{font-size:15px;border-bottom:2px solid #333;padding-bottom:3px;}
+    .pgroup h3{font-size:12px;margin:8px 0 3px;background:#eee;padding:2px 6px;}
+    table.proom{width:100%;border-collapse:collapse;margin-bottom:4px;font-size:11px;}
+    table.proom th,table.proom td{border:1px solid #444;padding:2px 5px;text-align:left;vertical-align:top;}
+    table.proom th{background:#ddd;}
+    table.proom td.rno{font-weight:700;width:48px;}
+    table.proom td.meta{width:120px;color:#333;}
+    @page{size:A4 portrait;margin:12mm;}
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>ICMDA 2026 숙소배정</h1>
+  <label class="btn">① 마스터 열기<input type="file" id="fileMaster" accept=".xlsx"></label>
+  <label class="btn alt">진행(JSON) 불러오기<input type="file" id="fileJson" accept=".json"></label>
+  <button class="go" id="btnAuto" disabled>② 자동 배정</button>
+  <button id="btnExcel" disabled>Excel 저장</button>
+  <button class="go" id="btnMaster" disabled>마스터 내보내기</button>
+  <button class="alt" id="btnJson" disabled>진행 저장(JSON)</button>
+  <button class="alt" id="btnPrint" disabled>인쇄 / PDF</button>
+  <span class="spacer"></span>
+  <span class="viewtabs">
+    <button id="tabRooms" class="vtab active">배정 보기</button>
+    <button id="tabTimeline" class="vtab">타임라인 보기</button>
+  </span>
+  <span id="srcname" style="font-size:11px;opacity:.8;"></span>
+</header>
+
+<div id="statsbar"><span class="empty-hint" style="padding:4px;">마스터 .xlsx 파일을 열어 시작하세요. (참가자 · 객실 탭 필요)</span></div>
+
+<div id="main">
+  <div id="pool">
+    <h2>미배정 <span id="poolcount"></span></h2>
+    <input class="search" id="poolsearch" placeholder="이름/ID 검색…">
+    <div id="poollist"></div>
+  </div>
+  <div id="venues"></div>
+</div>
+
+<div id="timeline" style="display:none;">
+  <div id="tlbar">
+    <input class="search" id="tlsearch" placeholder="이름/ID 검색…">
+    <select id="tlvenue"><option value="">전체 숙소</option></select>
+    <select id="tlcat"><option value="">전체 카테고리</option></select>
+    <span id="tlcount" class="muted"></span>
+    <span class="muted">· 막대 양끝을 끌어 숙박기간 조정, 가운데를 끌어 이동</span>
+  </div>
+  <div id="tlhead"></div>
+  <div id="tlrows"></div>
+</div>
+
+<div id="warnpanel"></div>
+<div id="printarea"></div>
+
+<div id="modal" class="modal-bg" style="display:none;"><div id="card" class="card"></div></div>
+
+<div id="loading" style="display:none;"><div class="spin"></div><div id="loadtxt">자동 배정 중…</div></div>
+
+<script>
+"use strict";
+/* ============================================================
+   ICMDA 2026 Room Assignment Dashboard (single file)
+   - reads the live master .xlsx (columns mapped by HEADER NAME)
+   - greedy auto-assign + manual drag/lock
+   - export updated Excel + resume JSON; print one layout per hotel
+   ============================================================ */
+
+const VEN = {
+  BYYTC: "부영청소년수련원",
+  YOUUS: "유어스호텔",
+  BOOY:  "부영호텔",          // 3rd venue (off-inventory; NOC pre-booked)
+};
+// ④ distinct category markers — colour + short label per 카테고리
+const CAT = {
+  "무료숙소신청 - 개인":{c:"#5b8fc9", ab:"개인"},
+  "무료숙소신청 - 가족":{c:"#56a85b", ab:"가족"},
+  "NOC 위원":{c:"#d4a017", ab:"NOC"},
+  "AFF":{c:"#d2691e", ab:"AFF"},
+  "중국":{c:"#c0392b", ab:"중국"},
+  "자원봉사팀":{c:"#e08a1e", ab:"자원봉사"},
+  "미디어팀":{c:"#2a9d8f", ab:"미디어"},
+  "찬양팀":{c:"#7e57c2", ab:"찬양"},
+};
+const catInfo = cat => CAT[cat] || {c:"#888", ab:(cat||"-").slice(0,3)};
+const state = {
+  parties: [],     // {id,name,kname,sex,partySex,hc,party,need,cat,team,group,pre,stay,arr,dep,…detail}
+  rooms: [],       // {id,hotel,bldg,floor,rno,type,gender,base,ext,total,period,ondol,note,key}
+  byId: {},        // partyId -> party
+  roomById: {},
+  assign: {},      // partyId -> roomKey | "BOOY" (off-inventory venue) | null
+  locked: {},      // partyId -> true
+  nightCols: [],   // ordered night labels
+  dates: [],       // extended timeline axis (nights + buffer)
+  view: "rooms",   // "rooms" | "timeline"
+  tlFilter: {q:"", venue:"", cat:""},
+  orderList: [],   // custom vertical order of party ids (timeline)
+  collapsed: {},   // venue -> true (timeline fold)
+};
+
+/* ---------- helpers ---------- */
+const $ = s => document.querySelector(s);
+const el = (t,c,txt)=>{const e=document.createElement(t); if(c)e.className=c; if(txt!=null)e.textContent=txt; return e;};
+const norm = v => (v==null? "" : String(v).trim());
+const isDate = h => /^\d+월\d+일$/.test(norm(h));
+
+function headerMap(aoa){           // row index 1 (2nd row) holds headers
+  const hdr = aoa[1]||[]; const m={};
+  hdr.forEach((h,i)=>{ const k=norm(h); if(k) m[k]=i; });
+  return m;
+}
+
+/* ---------- load master ---------- */
+function loadMaster(arrbuf){
+  const wb = XLSX.read(arrbuf,{type:"array",cellFormula:true,cellStyles:true});
+  const pSheet = wb.Sheets["참가자"], rSheet = wb.Sheets["객실"];
+  if(!pSheet||!rSheet){ alert("'참가자' 또는 '객실' 탭을 찾을 수 없습니다."); return; }
+  const pA = XLSX.utils.sheet_to_json(pSheet,{header:1,raw:true,defval:null});
+  const rA = XLSX.utils.sheet_to_json(rSheet,{header:1,raw:true,defval:null});
+  state.wb=wb; state.masterBuf=arrbuf;          // keep original workbook/bytes for versioned re-export
+  state.edited=false;
+
+  parseParticipants(pA);
+  parseRooms(rA);
+  // default assignment: respect 배정숙소 pre-locks
+  state.assign={}; state.locked={};
+  state.parties.forEach(p=>{
+    if(p.pre.indexOf("부영호텔")>=0){ state.assign[p.id]="BOOY"; state.locked[p.id]=true; }
+  });
+  $("#btnAuto").disabled=false; $("#btnExcel").disabled=false;
+  $("#btnJson").disabled=false; $("#btnPrint").disabled=false; $("#btnMaster").disabled=false;
+  populateFilters();
+  render();
+}
+
+function nextDay(label){                        // "6월30일" -> "7월1일"
+  const m=/(\d+)월(\d+)일/.exec(label||""); if(!m) return "";
+  let mo=+m[1], d=+m[2]+1; if(mo===6 && d>30){mo=7;d=1;} return `${mo}월${d}일`;
+}
+function parseParticipants(aoa){
+  const H = headerMap(aoa); state.pH=H;
+  const nightIdx = (aoa[1]||[]).map((h,i)=>({h:norm(h),i})).filter(o=>isDate(o.h));
+  state.nightIdx = nightIdx;
+  state.nightCols = nightIdx.map(o=>o.h);
+  const NC = state.nightCols;
+  // extended timeline axis: master nights + buffer days on the right (longer stays)
+  const EXTRA_DAYS = 4;
+  state.dates = NC.slice();
+  for(let i=0;i<EXTRA_DAYS && state.dates.length;i++) state.dates.push(nextDay(state.dates[state.dates.length-1]));
+  const g = (row,name)=> (H[name]!=null ? row[H[name]] : null);
+  const parties=[];
+  for(let r=2;r<aoa.length;r++){
+    const row=aoa[r]; if(!row) continue;
+    const id=norm(g(row,"참가자ID")); if(!id) continue;
+    const party={본인:0,배우자:0,자녀:0,기타:0};
+    ["본인","배우자","자녀","기타"].forEach(k=>{ const v=g(row,k); party[k]=(typeof v==="number")?v:(parseFloat(v)||0); });
+    const partySum=party.본인+party.배우자+party.자녀+party.기타;
+    const totCell=g(row,"총인원");                            // ① use 총인원 as headcount …
+    let hc=(typeof totCell==="number"&&totCell>0)?totCell
+          :(parseFloat(totCell)>0?parseFloat(totCell):partySum); // … fall back to party sum (identical when not cached)
+    if(hc<=0) hc=1;
+    // nights present + stay span (indices into nightCols)
+    let s=null,e=null; const nights=[];
+    nightIdx.forEach((o,k)=>{ if(norm(row[o.i])!==""){ nights.push(o.h); if(s===null)s=k; e=k; } });
+    const sex=norm(g(row,"성별"))||"?";
+    const isMulti = hc>1 || party.배우자>0 || party.자녀>0 || party.기타>0;
+    parties.push({
+      id, name:norm(g(row,"이름"))||id, kname:norm(g(row,"한글이름")),
+      sex, partySex: isMulti?"MIX":(sex==="M"?"M":sex==="F"?"F":"?"),
+      hc, party, partySum,
+      need:norm(g(row,"배정필요"))||"Yes",
+      cat:norm(g(row,"카테고리")), team:norm(g(row,"팀")), group:norm(g(row,"그룹ID")),
+      pre:norm(g(row,"배정숙소")),
+      stay:(s===null?null:{s,e}),
+      arr:(s===null?"":NC[s]), dep:(e===null?"":nextDay(NC[e])),
+      note:norm(g(row,"비고")), companions:norm(g(row,"동반자요약")), gubun:norm(g(row,"구분")),
+      dob:norm(g(row,"생년월일")), nat:norm(g(row,"국적")), email:norm(g(row,"이메일")),
+      aff:norm(g(row,"소속")), title:norm(g(row,"직책")), wb:norm(g(row,"WB등급")),
+      pay:norm(g(row,"결제상태")), event:norm(g(row,"참가예정행사")), review:norm(g(row,"검토필요")),
+      _row:r, _os:(s===null?null:{s,e}),       // sheet row index + original stay (for surgical export)
+    });
+  }
+  state.parties=parties; state.byId={}; parties.forEach(p=>state.byId[p.id]=p);
+  // default vertical order: by arrival night, then name
+  state.orderList = parties.slice()
+    .sort((a,b)=>(a.stay?a.stay.s:99)-(b.stay?b.stay.s:99)||a.name.localeCompare(b.name))
+    .map(p=>p.id);
+  state.collapsed={};
+}
+// stay helpers --------------------------------------------------------
+function stayNights(p){ return p.stay ? (p.stay.e-p.stay.s+1) : 0; }
+function refreshStay(p){                          // recompute arr/dep after a bar edit
+  const D=state.dates;
+  p.arr = p.stay ? D[p.stay.s] : "";
+  p.dep = p.stay ? nextDay(D[p.stay.e]) : "";
+}
+
+function parseRooms(aoa){
+  const H=headerMap(aoa); const rooms=[];
+  for(let r=2;r<aoa.length;r++){
+    const row=aoa[r]; if(!row) continue;
+    const id=norm(row[H["객실ID"]]); const hotel=norm(row[H["숙소"]]);
+    if(!id||!hotel) continue;
+    const num = x => { const v=row[H[x]]; return (typeof v==="number")?v:(parseFloat(v)||0); };
+    rooms.push({
+      id, key:id, hotel,
+      bldg:norm(row[H["동"]]), floor:norm(row[H["층"]]), rno:norm(row[H["호실"]]),
+      type:norm(row[H["객실유형"]]), gender:norm(row[H["성별구분"]]),
+      base:num("기준인원"), ext:num("추가인원"), total:num("총가능인원")||num("기준인원"),
+      period:norm(row[H["이용가능기간"]]), ondol:norm(row[H["필수온돌"]])==="Y",
+      note:norm(row[H["비고"]]),
+    });
+  }
+  state.rooms=rooms; state.roomById={}; rooms.forEach(x=>state.roomById[x.key]=x);
+}
+
+/* ---------- assignment model ---------- */
+function roomLoad(roomKey){
+  let n=0; for(const pid in state.assign){ if(state.assign[pid]===roomKey) n+=state.byId[pid].hc; } return n;
+}
+function roomOccupants(roomKey){
+  const out=[]; for(const pid in state.assign){ if(state.assign[pid]===roomKey) out.push(state.byId[pid]); }
+  return out.sort((a,b)=>a.name.localeCompare(b.name));
+}
+function roomOccExcept(roomKey,pid){ return roomOccupants(roomKey).filter(o=>o.id!==pid); }
+// realistic rule: a family (MIX) takes a whole room alone (label irrelevant);
+// individuals must match the room's M/F label and never mix M & F strangers.
+function compatible(room, party){               // HARD rule for auto-assign
+  const occ=roomOccExcept(room.key,party.id);
+  const load=occ.reduce((s,o)=>s+o.hc,0);
+  if(load+party.hc>room.total) return false;
+  const pf=party.partySex==="MIX", of=occ.some(o=>o.partySex==="MIX");
+  if(occ.length && (pf||of)) return false;       // families never share
+  if(pf) return occ.length===0;
+  if(room.gender==="Staff") return false;        // reserve staff rooms for manual
+  if(room.gender==="Male" && party.partySex==="F") return false;
+  if(room.gender==="Female" && party.partySex==="M") return false;
+  const sexes=new Set(occ.filter(o=>o.partySex==="M"||o.partySex==="F").map(o=>o.partySex));
+  if(party.partySex==="M"||party.partySex==="F") sexes.add(party.partySex);
+  return sexes.size<=1;
+}
+function matchIssue(room,party){                 // SOFT: message for warnings / highlight
+  if(!room) return null;
+  const occ=roomOccExcept(room.key,party.id);
+  if(occ.reduce((s,o)=>s+o.hc,0)+party.hc>room.total) return "정원 초과";
+  const pf=party.partySex==="MIX", of=occ.some(o=>o.partySex==="MIX");
+  if(occ.length && (pf||of)) return "가족은 단독 사용";
+  if(!pf){
+    if(room.gender==="Male" && party.partySex==="F") return "남성방에 여성";
+    if(room.gender==="Female" && party.partySex==="M") return "여성방에 남성";
+    const sexes=new Set(occ.filter(o=>o.partySex==="M"||o.partySex==="F").map(o=>o.partySex));
+    if(party.partySex==="M"||party.partySex==="F") sexes.add(party.partySex);
+    if(sexes.size>1) return "남녀 혼숙";
+  }
+  return null;
+}
+
+/* ---------- greedy auto-assign (validated against v16 data) ----------
+   Order: families first (big→small, need contiguous rooms), then teams,
+   then single individuals (size-1 fillers) last so they pack leftover seats. */
+const FAMTYPE=["Family","Triple","Suite"];
+function autoAssign(){
+  for(const pid in state.assign){ if(!state.locked[pid] && state.assign[pid]!=="BOOY") delete state.assign[pid]; }
+  const prefVenue = p => p.pre.indexOf("유어스")>=0?VEN.YOUUS
+        : (p.pre.indexOf("부영청소년")>=0||p.pre.indexOf("수련")>=0)?VEN.BYYTC : null;
+  let units = state.parties.filter(p=> !state.locked[p.id] && !state.assign[p.id] && p.need!=="No");
+  const rank = p => p.partySex==="MIX"?0 : p.team?1 : 2;
+  units.sort((a,b)=>{
+    const ra=rank(a),rb=rank(b); if(ra!==rb) return ra-rb;
+    if(a.partySex==="MIX"||b.partySex==="MIX"){ if(b.hc!==a.hc) return b.hc-a.hc; } // big families first
+    const ta=(a.team||a.group||""),tb=(b.team||b.group||""); if(ta!==tb) return ta.localeCompare(tb);
+    return a.id.localeCompare(b.id);
+  });
+  units.forEach(p=>{
+    const pv=prefVenue(p);
+    let cands=state.rooms.filter(rm=>(!pv||rm.hotel===pv) && compatible(rm,p));
+    if(!cands.length) cands=state.rooms.filter(rm=>compatible(rm,p));   // relax venue lock
+    if(!cands.length) return;                                          // -> stays in pool
+    const score = rm=>{
+      const occ=roomOccupants(rm.key); let s=0;
+      if(occ.length){
+        if(occ.some(o=>o.group&&o.group===p.group)) s-=1000;
+        if(occ.some(o=>o.team&&o.team===p.team)) s-=300;
+      }
+      if(p.team && rm.hotel===VEN.BYYTC) s-=40;
+      if(p.partySex==="MIX"){
+        if(FAMTYPE.some(t=>rm.type.indexOf(t)>=0)) s-=60;              // families → family-type first
+        s+=(rm.total-p.hc)*4;                                         // tight room for the family
+      }else{
+        if(rm.ondol) s-=15;                                           // use mandatory ondol
+        s+=(rm.total-(roomLoad(rm.key)+p.hc))*2;                      // best-fit (tight)
+      }
+      return s;
+    };
+    cands.sort((a,b)=>score(a)-score(b));
+    state.assign[p.id]=cands[0].key;
+  });
+  render();
+}
+
+/* ---------- rendering ---------- */
+function venueClass(hotel){ return hotel===VEN.BYYTC?"byytc":hotel===VEN.YOUUS?"youus":"booyoung"; }
+
+function render(){
+  renderStats();
+  const tl = state.view==="timeline";
+  $("#main").style.display = tl?"none":"flex";
+  $("#warnpanel").style.display = tl?"none":"block";
+  $("#timeline").style.display = tl?"block":"none";
+  $("#tabRooms").classList.toggle("active",!tl);
+  $("#tabTimeline").classList.toggle("active",tl);
+  if(tl){ renderTimeline(); }
+  else { renderPool(); renderVenues(); renderWarnings(); }
+}
+function setView(v){ state.view=v; render(); }
+function populateFilters(){
+  const vsel=$("#tlvenue"), csel=$("#tlcat");
+  vsel.length=1; csel.length=1;
+  [VEN.BYYTC,VEN.YOUUS,VEN.BOOY,"(미배정)"].forEach(v=>vsel.add(new Option(v,v)));
+  [...new Set(state.parties.map(p=>p.cat).filter(Boolean))].sort().forEach(c=>csel.add(new Option(c,c)));
+}
+
+function renderStats(){
+  const sb=$("#statsbar"); sb.innerHTML="";
+  const total=state.parties.reduce((s,p)=>s+p.hc,0);
+  const needP=state.parties.filter(p=>p.need!=="No").reduce((s,p)=>s+p.hc,0);
+  const noRoom=state.parties.filter(p=>p.need==="No").reduce((s,p)=>s+p.hc,0);
+  let assignedP=0, byBYYTC=0,byYOUUS=0,byBOOY=0, unassigned=0;
+  state.parties.forEach(p=>{
+    if(p.need==="No") return;
+    const a=state.assign[p.id];
+    if(!a){ unassigned+=p.hc; return; }
+    assignedP+=p.hc;
+    if(a==="BOOY") byBOOY+=p.hc;
+    else { const rm=state.roomById[a]; if(rm){ if(rm.hotel===VEN.BYYTC)byBYYTC+=p.hc; else byYOUUS+=p.hc; } }
+  });
+  const capBYYTC=state.rooms.filter(r=>r.hotel===VEN.BYYTC).reduce((s,r)=>s+r.total,0);
+  const capYOUUS=state.rooms.filter(r=>r.hotel===VEN.YOUUS).reduce((s,r)=>s+r.total,0);
+  const mk=(label,val)=>{const d=el("span","stat"); d.innerHTML=`${label} <b>${val}</b>`; return d;};
+  sb.append(
+    mk("총 인원",total),
+    mk("방 필요",needP),
+    mk("배정완료",assignedP),
+    mk("미배정", unassigned===0?'<span class="pill ok">0</span>':`<span class="pill warn">${unassigned}</span>`),
+    mk("방 불필요",noRoom),
+    mk(`부영수련원 ${byBYYTC}/`,capBYYTC),
+    mk(`유어스 ${byYOUUS}/`,capYOUUS),
+    mk("부영호텔(NOC)",byBOOY),
+  );
+}
+
+function chip(p){
+  const c=el("div","chip "+(p.partySex==="MIX"?"mix":p.partySex==="M"?"sex-M":p.partySex==="F"?"sex-F":"sex-q"));
+  c.draggable=true; c.dataset.pid=p.id;
+  if(state.locked[p.id]) c.classList.add("locked");
+  const room = state.assign[p.id] && state.assign[p.id]!=="BOOY" ? state.roomById[state.assign[p.id]] : null;
+  if(room && matchIssue(room,p)) c.classList.add("badmatch");
+  const ci=catInfo(p.cat);
+  const cat=el("span","cat", ci.ab); cat.style.background=ci.c; cat.title=p.cat||"";
+  const nm=el("span","nm", p.name + (p.kname?` (${p.kname})`:""));
+  nm.title = `${p.id} · ${p.cat} · ${p.partySex} · ${p.arr}~${p.dep}` + (p.pre?` · 사전:${p.pre}`:"");
+  const hc=el("span","hc", p.hc>1?`👪${p.hc}`:"");
+  if(p.hc>1) hc.title=`총 ${p.hc}명 (본인 ${p.party.본인}·배우자 ${p.party.배우자}·자녀 ${p.party.자녀}·기타 ${p.party.기타})`;
+  const lk=el("span","lk", state.locked[p.id]?"🔒":"🔓");
+  lk.title="잠금 토글(자동배정 제외)";
+  lk.onclick=ev=>{ ev.stopPropagation(); state.locked[p.id]=!state.locked[p.id]; render(); };
+  c.append(cat,nm,hc,lk);
+  c.addEventListener("dragstart",e=>{ e.dataTransfer.setData("text/pid",p.id); });
+  if(state.assign[p.id]){                              // assigned chip → single-click returns it to 미배정
+    c.style.cursor="pointer";
+    c.title=`${nm.title}\n클릭하면 미배정으로 이동`;
+    c.addEventListener("click",()=>{ delete state.assign[p.id]; render(); });
+  }else{
+    c.addEventListener("dblclick",()=>openCard(p));   // ⑤ detail card (pool chips)
+  }
+  return c;
+}
+
+function renderPool(){
+  const list=$("#poollist"); list.innerHTML="";
+  const q=($("#poolsearch").value||"").toLowerCase();
+  const un=state.parties.filter(p=>p.need!=="No" && !state.assign[p.id])
+        .filter(p=> !q || p.name.toLowerCase().includes(q)||p.id.toLowerCase().includes(q)||(p.kname||"").toLowerCase().includes(q))
+        .sort((a,b)=> (b.partySex==="MIX")-(a.partySex==="MIX") || a.name.localeCompare(b.name));
+  $("#poolcount").textContent = `(${un.reduce((s,p)=>s+p.hc,0)}명 / ${un.length}건)`;
+  if(!un.length){ list.append(el("div","empty-hint","미배정 없음 🎉")); }
+  un.forEach(p=>list.append(chip(p)));
+  makeDrop(list,null);   // drop back to pool = unassign
+}
+
+function makeDrop(node, roomKey){
+  node.addEventListener("dragover",e=>{ e.preventDefault(); node.classList.add("dragover"); });
+  node.addEventListener("dragleave",()=>node.classList.remove("dragover"));
+  node.addEventListener("drop",e=>{
+    e.preventDefault(); node.classList.remove("dragover");
+    const pid=e.dataTransfer.getData("text/pid"); if(!pid) return;
+    if(roomKey===null) delete state.assign[pid];
+    else state.assign[pid]=roomKey;
+    render();
+  });
+}
+
+function renderVenues(){
+  const root=$("#venues"); root.innerHTML="";
+  const order=[VEN.BYYTC,VEN.YOUUS,VEN.BOOY];
+  order.forEach(hotel=>{
+    const div=el("div","venue "+venueClass(hotel));
+    if(hotel===VEN.BOOY){
+      const occ=state.parties.filter(p=>state.assign[p.id]==="BOOY");
+      const h=el("h2"); h.innerHTML=`${hotel} <span class="cap">· 외부 예약(NOC) · ${occ.reduce((s,p)=>s+p.hc,0)}명</span>`;
+      div.append(h);
+      const wrap=el("div","floorgrp"); const rm=el("div","rooms");
+      const box=el("div","room"); box.style.minWidth="100%";
+      const hd=el("div","rhdr"); hd.innerHTML=`<span class="rno">개별 예약 (부영 리조트)</span><span class="capbadge">${occ.reduce((s,p)=>s+p.hc,0)}명</span>`;
+      box.append(hd);
+      occ.forEach(p=>box.append(chip(p)));
+      makeDrop(box,"BOOY"); rm.append(box); wrap.append(rm); div.append(wrap);
+      root.append(div); return;
+    }
+    const rooms=state.rooms.filter(r=>r.hotel===hotel);
+    const used=rooms.reduce((s,r)=>s+roomLoad(r.key),0);
+    const cap=rooms.reduce((s,r)=>s+r.total,0);
+    const h=el("h2"); h.innerHTML=`${hotel} <span class="cap">· ${rooms.length}실 · ${used}/${cap}명</span>`;
+    div.append(h);
+    // group by floor (부영) / by type (유어스, since floor blank)
+    const groups={};
+    rooms.forEach(r=>{ const key = hotel===VEN.BYYTC ? `${r.bldg||"-"}동 ${r.floor||"-"}` : (r.type||"기타"); (groups[key]=groups[key]||[]).push(r); });
+    Object.keys(groups).sort().forEach(gk=>{
+      const fg=el("div","floorgrp"); fg.append(el("h3",null,gk));
+      const grid=el("div","rooms");
+      groups[gk].sort((a,b)=> (a.rno||"").localeCompare(b.rno||"",undefined,{numeric:true}) || a.id.localeCompare(b.id))
+        .forEach(r=>grid.append(roomCard(r)));
+      fg.append(grid); div.append(fg);
+    });
+    root.append(div);
+  });
+}
+
+function roomCard(r){
+  const load=roomLoad(r.key);
+  const card=el("div","room"+(load>r.total?" over":""));
+  const hdr=el("div","rhdr");
+  const left=el("span"); left.innerHTML=`<span class="rno">${r.rno||r.id}</span>`;
+  const tags=el("span","tags");
+  if(r.gender==="Male")tags.append(el("span","tag M","남"));
+  if(r.gender==="Female")tags.append(el("span","tag F","여"));
+  if(r.gender==="Staff")tags.append(el("span","tag staff","Staff"));
+  if(r.ondol)tags.append(el("span","tag ondol","온돌"));
+  left.append(" ");
+  const cls = load>r.total?"over":load===r.total?"full":"ok";
+  const cap=el("span","capbadge "+cls,`${load}/${r.total}`);
+  hdr.append(left,tags,cap);
+  card.append(hdr);
+  card.title=`${r.type||""} ${r.gender||"미지정"} 기준${r.base}+추가${r.ext}=${r.total}`+(r.note?` · ${r.note}`:"");
+  roomOccupants(r.key).forEach(p=>card.append(chip(p)));
+  makeDrop(card,r.key);
+  return card;
+}
+
+function renderWarnings(){
+  const wp=$("#warnpanel"); wp.innerHTML="";
+  const issues=[];
+  const roomLabel=k=> k==="BOOY"?VEN.BOOY : (state.roomById[k]?`${state.roomById[k].rno||state.roomById[k].id}호`:k);
+  state.rooms.forEach(r=>{ const l=roomLoad(r.key); if(l>r.total) issues.push(`정원 초과 — ${r.hotel} ${r.rno||r.id}호: 정원 ${r.total}명인데 ${l}명이 배정되어 ${l-r.total}명 초과되었습니다.`); });
+  state.parties.forEach(p=>{
+    const a=state.assign[p.id]; if(!a||a==="BOOY") return;
+    const rm=state.roomById[a]; if(!rm) return;
+    const iss=matchIssue(rm,p);
+    if(iss && iss!=="정원 초과") issues.push(`${iss} — ${p.name} 님이 조건이 맞지 않는 ${rm.hotel} ${rm.rno||rm.id}호에 배정되어 있습니다.`);
+  });
+  // split groups across rooms (한 묶음으로 같이 묵어야 하는 그룹이 여러 방에 흩어진 경우)
+  const groupRooms={};
+  state.parties.forEach(p=>{ if(!p.group) return; const a=state.assign[p.id]; if(!a) return; (groupRooms[p.group]=groupRooms[p.group]||new Set()).add(a); });
+  Object.keys(groupRooms).forEach(g=>{ const set=groupRooms[g]; if(set.size>1){
+    const labels=[...set].map(roomLabel).join(", ");
+    issues.push(`묶음 분리 — '${g}' 그룹은 한 방에 함께 배정해야 하지만, 현재 ${set.size}개 방(${labels})에 나뉘어 있습니다. 같은 방(또는 인접 방)으로 모아주세요.`);
+  }});
+  const un=state.parties.filter(p=>p.need!=="No"&&!state.assign[p.id]).reduce((s,p)=>s+p.hc,0);
+  wp.append(el("h3",null,`경고 ${issues.length}건${un?` · 미배정 ${un}명`:""}`));
+  wp.append(el("div","warnnote","아래는 배정 점검 결과입니다 — 정원 초과, 성별/조건 불일치, 그리고 같은 묶음(그룹)이 여러 방에 흩어진 경우를 안내합니다."));
+  if(!issues.length){ wp.append(el("div",null,un?"용량/성별 충돌 없음. 미배정 인원을 수동 배치하세요.":"문제 없음 ✓")); return; }
+  const ul=el("ul"); ul.style.margin="2px 0"; issues.slice(0,40).forEach(t=>ul.append(el("li",null,t)));
+  if(issues.length>40) ul.append(el("li",null,`… 외 ${issues.length-40}건`));
+  wp.append(ul);
+}
+
+/* ---------- ②③ timeline view ---------- */
+function partyVenue(p){
+  const a=state.assign[p.id];
+  if(a==="BOOY") return VEN.BOOY;
+  if(a){ const rm=state.roomById[a]; return rm?rm.hotel:""; }
+  return "(미배정)";
+}
+function partyRoomInfo(p){
+  const a=state.assign[p.id];
+  if(a==="BOOY") return {rno:"부영", full:VEN.BOOY+" (팀룸)", cap:null};
+  if(a){ const rm=state.roomById[a]; if(rm){
+    const full=(rm.bldg?rm.bldg+"동 ":"")+(rm.floor?rm.floor+" ":"")+(rm.rno||rm.id)+(rm.type?" ("+rm.type+")":"");
+    return {rno:(rm.rno||rm.id), full, cap:rm.total};
+  }}
+  return {rno:"미배정", full:"미배정", cap:null};
+}
+function computeDups(){                       // flag rows sharing a name or email (duplicate participant)
+  const byName={}, byEmail={}; state.dupInfo={};
+  state.parties.forEach(p=>{
+    const nk=(p.name||"").trim().toUpperCase(); if(nk){(byName[nk]=byName[nk]||[]).push(p.id);}
+    const ek=(p.email||"").trim().toLowerCase(); if(ek){(byEmail[ek]=byEmail[ek]||[]).push(p.id);}
+  });
+  const add=ids=>{ if(ids.length>1) ids.forEach(id=>{
+    const others=ids.filter(x=>x!==id);
+    state.dupInfo[id]=Array.from(new Set([...(state.dupInfo[id]||[]),...others]));
+  }); };
+  Object.values(byName).forEach(add); Object.values(byEmail).forEach(add);
+  state.dups=new Set(Object.keys(state.dupInfo));
+}
+function renderTimeline(){
+  computeDups();
+  const D=state.dates; const n=D.length;
+  const off629 = D.indexOf("6월29일");                        // first official night
+  const planEnd = state.nightCols.length;                     // index where buffer (연장) zone starts
+  // header (ID + 참가자 + date axis)
+  const head=$("#tlhead"); head.innerHTML=""; head.style.setProperty("--ncols",n);
+  head.append(el("div","lbl","ID"), el("div","lbl","분류"), el("div","lbl","이름 / 팀"), el("div","lbl","객실"), el("div","lbl","수용"));
+  const hn=el("div","nights");
+  D.forEach((lab,i)=>{
+    const cls = (off629>=0&&i<off629)?"unofficial":(i>=planEnd?"buffer":null);
+    hn.append(el("div",cls,lab.replace("월","/").replace("일","")));
+  });
+  head.append(hn);
+  // filter
+  const f=state.tlFilter;
+  let rows=state.parties.filter(p=>{
+    if(f.q){ const q=f.q.toLowerCase(); if(!(p.name.toLowerCase().includes(q)||p.id.toLowerCase().includes(q)||(p.kname||"").toLowerCase().includes(q))) return false; }
+    if(f.venue && partyVenue(p)!==f.venue) return false;
+    if(f.cat && p.cat!==f.cat) return false;
+    return true;
+  });
+  $("#tlcount").textContent=`${rows.length}명 표시`;
+  const wrap=$("#tlrows"); wrap.innerHTML="";
+  if(!rows.length){ wrap.append(el("div","empty-hint","해당 조건의 참가자가 없습니다.")); return; }
+  // ② group by hotel (horizontal split) · ⑤ foldable · custom vertical order
+  const order=[VEN.BYYTC,VEN.YOUUS,VEN.BOOY,"(미배정)"];
+  const groups={}; rows.forEach(p=>{ const v=partyVenue(p); (groups[v]=groups[v]||[]).push(p); });
+  const pos={}; state.orderList.forEach((id,i)=>pos[id]=i);
+  let shown=0; const CAP=500;
+  order.forEach(v=>{
+    const list=groups[v]; if(!list||!list.length) return;
+    list.sort((a,b)=> (pos[a.id]??1e9)-(pos[b.id]??1e9));
+    const people=list.reduce((s,p)=>s+p.hc,0);
+    const vc = v===VEN.BYYTC?"byytc":v===VEN.YOUUS?"youus":v===VEN.BOOY?"booyoung":"unassigned";
+    const open = !state.collapsed[v];
+    const gh=el("div","tlgroup "+vc);
+    gh.append(el("span","chev"+(open?" open":""),"▶"),
+              el("span","glabel",`${v} — ${list.length}건 / ${people}명`),
+              el("span","ghint",open?"클릭하여 접기 ▲":"클릭하여 펼치기 ▼"));
+    gh.title="클릭하여 접기/펼치기";
+    gh.onclick=()=>{ state.collapsed[v]=open; renderTimeline(); };
+    wrap.append(gh);
+    if(!open) return;
+    list.forEach(p=>{ if(shown<CAP){ wrap.append(tlRow(p,n,off629,planEnd)); shown++; } });
+  });
+  if(shown<rows.length) wrap.append(el("div","muted",`… 외 ${rows.length-shown}명 (검색/필터로 좁혀 보세요)`));
+}
+// vertical reorder + cross-hotel move ---------------------------------
+function tlReorder(srcId,tgtId,after){
+  const L=state.orderList, si=L.indexOf(srcId); if(si<0) return;
+  L.splice(si,1); let ti=L.indexOf(tgtId); if(ti<0) ti=L.length-1;
+  L.splice(after?ti+1:ti,0,srcId);
+}
+function assignToHotel(p,hotel){
+  if(hotel==="(미배정)"){ delete state.assign[p.id]; return; }
+  if(hotel===VEN.BOOY){ state.assign[p.id]="BOOY"; return; }
+  let cands=state.rooms.filter(rm=>rm.hotel===hotel && compatible(rm,p));
+  if(!cands.length){ alert(`${hotel}에 ${p.name} 배치 가능한 방이 없습니다(성별/정원).`); return; }
+  cands.sort((a,b)=>(a.total-(roomLoad(a.key)+p.hc))-(b.total-(roomLoad(b.key)+p.hc)));
+  state.assign[p.id]=cands[0].key;
+}
+function tlRow(p,n,off629,planEnd){
+  const row=el("div","tlrow"); row.style.setProperty("--ncols",n);
+  const idc=el("div","idc",p.id);                                   // ⑤ unique-ID column
+  const ci=catInfo(p.cat); const catc=el("div","catc");
+  const cb=el("span","cat",ci.ab); cb.style.background=ci.c; cb.title=p.cat||""; catc.append(cb);
+  const who=el("div","who");
+  const nm=el("span","nm",p.name+(p.hc>1?` 👪${p.hc}`:""));
+  who.append(nm); who.title="끌어서 순서 변경 · 더블클릭: 상세";
+  if(state.dups && state.dups.has(p.id)){
+    row.classList.add("dup");
+    const others=(state.dupInfo[p.id]||[]).map(id=>state.byId[id]?`${state.byId[id].name}(${id})`:id).join(", ");
+    const d=el("span","dupflag","⚠"); d.title=`중복 의심 — 동일 이름/이메일: ${others}`; who.append(d);
+  }
+  who.addEventListener("dblclick",()=>openCard(p));
+  // vertical drag-reorder (handle = who cell)
+  who.draggable=true; who.style.cursor="grab";
+  who.addEventListener("dragstart",e=>{ e.dataTransfer.setData("text/tlpid",p.id); e.dataTransfer.effectAllowed="move"; });
+  row.addEventListener("dragover",e=>{ if([...e.dataTransfer.types].includes("text/tlpid")) e.preventDefault(); });
+  row.addEventListener("drop",e=>{
+    const src=e.dataTransfer.getData("text/tlpid"); if(!src||src===p.id) return;
+    e.preventDefault();
+    const rect=row.getBoundingClientRect(); const after=e.clientY>rect.top+rect.height/2;
+    const sp=state.byId[src]; const tgtVen=partyVenue(p);
+    if(partyVenue(sp)!==tgtVen) assignToHotel(sp,tgtVen);   // dropped into another hotel → move there
+    tlReorder(src,p.id,after);
+    renderTimeline();
+  });
+  const track=el("div","track");
+  if(off629>0){ const u=el("div","unoff"); u.style.left="0"; u.style.width=`calc(${off629}/${n}*100%)`; track.append(u); }
+  if(planEnd<n){ const bz=el("div","bufz"); bz.style.left=`calc(${planEnd}/${n}*100%)`; bz.style.right="0"; track.append(bz); }
+  if(p.stay){
+    const bar=el("div","bar"); bar.style.background=catInfo(p.cat).c;
+    const place=()=>{ bar.style.left=`calc(${p.stay.s}/${n}*100%)`; bar.style.width=`calc(${(p.stay.e-p.stay.s+1)}/${n}*100%)`; bar.textContent=`${stayNights(p)}박`; };
+    place();
+    bar.title="끝을 끌어 기간조정 · 가운데 끌어 이동 · 더블클릭: 상세";
+    bar.addEventListener("dblclick",()=>openCard(p));                // ④ modal on bar double-click
+    const hl=el("div","h l"), hr=el("div","h r"); bar.append(hl,hr);
+    enableBarDrag(p,bar,hl,hr,track,n,place);
+    track.append(bar);
+  }else{
+    const b=el("div","bar none"); b.style.left="0"; b.style.width="100%"; b.textContent="숙박 없음 · 클릭하여 추가"; track.append(b);
+    track.style.cursor="pointer";
+    track.addEventListener("click",ev=>{
+      const rect=track.getBoundingClientRect();
+      const idx=Math.max(0,Math.min(n-1,Math.floor((ev.clientX-rect.left)/(rect.width/n))));
+      p.stay={s:idx,e:idx}; refreshStay(p); renderTimeline();
+    });
+  }
+  const ri=partyRoomInfo(p);
+  const roomc=el("div","roomc"); const rpill=el("span","pill "+(ri.cap==null?"none":"room"),ri.rno); rpill.title=ri.full; roomc.append(rpill);
+  const capc=el("div","capc"); capc.append(el("span","pill "+(ri.cap==null?"none":"cap"), ri.cap==null?"—":ri.cap+"인"));
+  row.append(idc,catc,who,roomc,capc,track);
+  return row;
+}
+function enableBarDrag(p,bar,hl,hr,track,n,place){
+  const start=ev=>{
+    ev.preventDefault();
+    const mode = ev.target===hl?"L":ev.target===hr?"R":"M";
+    const rect=track.getBoundingClientRect(); const cw=rect.width/n;
+    const s0=p.stay.s, e0=p.stay.e, x0=ev.clientX;
+    const move=e=>{
+      const d=Math.round((e.clientX-x0)/cw);
+      let s=s0,e2=e0;
+      if(mode==="L") s=Math.min(Math.max(0,s0+d),e0);
+      else if(mode==="R") e2=Math.max(Math.min(n-1,e0+d),s0);
+      else { let sh=d; if(s0+sh<0)sh=-s0; if(e0+sh>n-1)sh=n-1-e0; s=s0+sh; e2=e0+sh; }
+      p.stay.s=s; p.stay.e=e2; place();
+    };
+    const up=()=>{ document.removeEventListener("pointermove",move); document.removeEventListener("pointerup",up);
+      refreshStay(p); renderStats(); };
+    document.addEventListener("pointermove",move); document.addEventListener("pointerup",up);
+  };
+  bar.addEventListener("pointerdown",start);
+}
+
+/* ---------- ⑤ detail card ---------- */
+function openCard(p){
+  const card=$("#card"); const ci=catInfo(p.cat);
+  const venue=partyVenue(p); const a=state.assign[p.id];
+  let roomTxt=venue;
+  if(a && a!=="BOOY"){ const rm=state.roomById[a]; if(rm) roomTxt=`${rm.hotel} · ${rm.bldg?rm.bldg+"동 ":""}${rm.floor?rm.floor+" ":""}${rm.rno||rm.id} (${rm.type||""})`; }
+  const rows=[
+    ["참가행사",p.event],
+    ["sec","■ 인적사항"],
+    ["성별",{M:"남",F:"여","?":"미상"}[p.sex]||p.sex],["생년월일",p.dob],["국적",p.nat],
+    ["이메일",p.email],["소속",p.aff],["직책",p.title],
+    ["WB등급",p.wb],["결제상태",p.pay],
+    ["sec","■ 숙박"],
+    ["도착일",p.arr],["출발일(체크아웃)",p.dep],["숙박",p.stay?`${stayNights(p)}박`:"없음"],
+    ["방 필요",p.need],["사전 배정(원본)",p.pre],["현재 배정",roomTxt],
+    ["sec","■ 인원/동반"],
+    ["총인원",`${p.hc}명 (본인 ${p.party.본인}·배우자 ${p.party.배우자}·자녀 ${p.party.자녀}·기타 ${p.party.기타})`],
+    ["동반자요약",p.companions],["비고",p.note],
+  ];
+  let body="";
+  rows.forEach(([k,v])=>{
+    if(k==="sec"){ body+=`<div class="sec">${v}</div>`; return; }
+    if(v==null||v==="") return;
+    body+=`<div class="k">${k}</div><div class="v">${String(v).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/\n/g,"<br>")}</div>`;
+  });
+  card.innerHTML=
+    `<div class="chead" style="background:${ci.c}">
+       <div><h2>${p.name||p.id}${p.kname?` <span style="font-weight:400">(${p.kname})</span>`:""}</h2>
+       <div class="sub">${p.id} · ${p.cat||""}${p.team?" · "+p.team:""}${p.group?" · 묶음 "+p.group:""}</div></div>
+       <button class="cedit" id="cardEditBtn">✏ 수정</button>
+       <button class="cx" onclick="closeCard()">×</button>
+     </div><div class="cbody">${body}</div>`;
+  $("#cardEditBtn").onclick=()=>editCard(p);
+  $("#modal").style.display="flex";
+}
+function closeCard(){ $("#modal").style.display="none"; }
+
+/* ---------- ⑤b editable card ---------- */
+const SEX_OPTS=[["M","남"],["F","여"],["?","미상"]];
+// state-key → master '참가자' header (for surgical write-back)
+const FIELD_HDR={name:"이름",kname:"한글이름",sex:"성별",dob:"생년월일",nat:"국적",email:"이메일",
+  aff:"소속",title:"직책",wb:"WB등급",pay:"결제상태",cat:"카테고리",team:"팀",group:"그룹ID",
+  need:"배정필요",note:"비고",companions:"동반자요약"};
+function editCard(p){
+  const card=$("#card"); const ci=catInfo(p.cat);
+  const opt=(arr,cur)=>arr.map(o=>{const v=Array.isArray(o)?o[0]:o,t=Array.isArray(o)?o[1]:o;return `<option value="${esc(v)}"${String(cur)===String(v)?" selected":""}>${esc(t)}</option>`;}).join("");
+  const txt=(k,v)=>`<input data-f="${k}" value="${esc(v??"")}">`;
+  const numI=(k,v)=>`<input type="number" min="0" data-f="${k}" value="${v||0}" style="width:64px">`;
+  const area=(k,v)=>`<textarea data-f="${k}" rows="2">${esc(v??"")}</textarea>`;
+  // date axis options (night labels) for 도착/마지막 박; 출발 shown as checkout label
+  const dates=state.dates;
+  const arrSel=`<select data-f="stayS"><option value="">숙박 없음</option>${dates.map((d,i)=>`<option value="${i}"${p.stay&&p.stay.s===i?" selected":""}>${esc(d)}</option>`).join("")}</select>`;
+  const depSel=`<select data-f="stayE">${dates.map((d,i)=>`<option value="${i}"${p.stay&&p.stay.e===i?" selected":""}>${esc(nextDay(d))} (체크아웃)</option>`).join("")}</select>`;
+  // 현재 배정: venue + room
+  const a=state.assign[p.id];
+  const curVen = a==="BOOY"?VEN.BOOY : (a&&state.roomById[a]?state.roomById[a].hotel:"");
+  const venSel=`<select data-f="venue" id="edVenue">
+      <option value="">미배정</option>
+      <option value="${esc(VEN.BYYTC)}"${curVen===VEN.BYYTC?" selected":""}>${esc(VEN.BYYTC)}</option>
+      <option value="${esc(VEN.YOUUS)}"${curVen===VEN.YOUUS?" selected":""}>${esc(VEN.YOUUS)}</option>
+      <option value="${esc(VEN.BOOY)}"${curVen===VEN.BOOY?" selected":""}>${esc(VEN.BOOY)} (외부예약)</option></select>`;
+  const roomSelHtml=ven=>{
+    if(ven!==VEN.BYYTC&&ven!==VEN.YOUUS) return `<select data-f="room" id="edRoom" disabled><option value="">—</option></select>`;
+    const rs=state.rooms.filter(r=>r.hotel===ven);
+    return `<select data-f="room" id="edRoom"><option value="">(방 선택 / 자동)</option>${rs.map(r=>{
+      const load=roomLoad(r.key);
+      return `<option value="${esc(r.key)}"${a===r.key?" selected":""}>${esc(r.rno||r.id)} · ${esc(r.type||"")} (${load}/${r.total}${r.gender?" · "+esc(r.gender):""})</option>`;
+    }).join("")}</select>`;
+  };
+  const catOpts=`<option value=""></option>${opt(Object.keys(CAT),p.cat)}${CAT[p.cat]?"":(p.cat?`<option value="${esc(p.cat)}" selected>${esc(p.cat)}</option>`:"")}`;
+  const F=[
+    ["sec","■ 인적사항"],
+    ["이름",txt("name",p.name)],["한글이름",txt("kname",p.kname)],
+    ["성별",`<select data-f="sex">${opt(SEX_OPTS,p.sex)}</select>`],
+    ["생년월일",txt("dob",p.dob)],["국적",txt("nat",p.nat)],["이메일",txt("email",p.email)],
+    ["소속",txt("aff",p.aff)],["직책",txt("title",p.title)],["WB등급",txt("wb",p.wb)],["결제상태",txt("pay",p.pay)],
+    ["카테고리",`<select data-f="cat">${catOpts}</select>`],["팀",txt("team",p.team)],["그룹ID(묶음)",txt("group",p.group)],
+    ["sec","■ 숙박"],
+    ["방 필요",`<select data-f="need">${opt([["Yes","Yes"],["No","No"]],p.need)}</select>`],
+    ["도착일(첫 박)",arrSel],["출발일(체크아웃)",depSel],
+    ["사전 배정(원본)",txt("pre",p.pre)],
+    ["현재 배정 · 숙소",venSel],["현재 배정 · 객실",`<span id="edRoomWrap">${roomSelHtml(curVen)}</span>`],
+    ["sec","■ 인원/동반"],
+    ["본인",numI("본인",p.party.본인)],["배우자",numI("배우자",p.party.배우자)],
+    ["자녀",numI("자녀",p.party.자녀)],["기타",numI("기타",p.party.기타)],
+    ["동반자요약",area("companions",p.companions)],["비고",area("note",p.note)],
+  ];
+  let body="";
+  F.forEach(([k,v])=>{ if(k==="sec"){body+=`<div class="sec">${v}</div>`;return;} body+=`<div class="k">${k}</div><div class="v">${v}</div>`; });
+  card.innerHTML=
+    `<div class="chead" style="background:${ci.c}">
+       <div><h2>${esc(p.name||p.id)} <span style="font-weight:400;opacity:.85">· 수정 중</span></h2>
+       <div class="sub">${esc(p.id)} · 변경 후 저장을 누르세요</div></div>
+       <button class="cx" onclick="closeCard()">×</button>
+     </div><div class="cbody edit">${body}</div>
+     <div class="cfoot"><button class="go" id="cardSaveBtn">저장</button><button class="alt" id="cardCancelBtn">취소</button></div>`;
+  // venue change → repopulate room select
+  $("#edVenue").onchange=e=>{ $("#edRoomWrap").innerHTML=roomSelHtml(e.target.value); };
+  $("#cardSaveBtn").onclick=()=>saveCard(p);
+  $("#cardCancelBtn").onclick=()=>openCard(p);
+}
+function saveCard(p){
+  const card=$("#card");
+  const val=k=>{ const elx=card.querySelector(`[data-f="${k}"]`); return elx?elx.value:undefined; };
+  const before={}; Object.keys(FIELD_HDR).forEach(k=>before[k]=p[k]??"");
+  const bparty={...p.party};
+  // text/detail fields
+  ["name","kname","dob","nat","email","aff","title","wb","pay","team","group","pre","companions","note"].forEach(k=>{ const v=val(k); if(v!==undefined) p[k]=v.trim(); });
+  p.sex=val("sex")||"?";
+  p.cat=(val("cat")||"").trim();
+  p.need=val("need")||"Yes";
+  // headcount breakdown → recompute hc (총인원 is derived)
+  ["본인","배우자","자녀","기타"].forEach(k=>{ p.party[k]=Math.max(0,parseInt(val(k),10)||0); });
+  p.partySum=p.party.본인+p.party.배우자+p.party.자녀+p.party.기타;
+  p.hc=p.partySum>0?p.partySum:1;
+  const isMulti = p.hc>1 || p.party.배우자>0 || p.party.자녀>0 || p.party.기타>0;
+  p.partySex = isMulti?"MIX":(p.sex==="M"?"M":p.sex==="F"?"F":"?");
+  // stay span
+  const sv=val("stayS");
+  if(sv===""||sv==null){ p.stay=null; }
+  else { let s=+sv, e=+val("stayE"); if(isNaN(e)||e<s) e=s; p.stay={s,e}; }
+  refreshStay(p);
+  // assignment
+  const ven=val("venue"); const room=val("room");
+  if(!ven){ delete state.assign[p.id]; }
+  else if(ven===VEN.BOOY){ state.assign[p.id]="BOOY"; }
+  else if(room){ state.assign[p.id]=room; }
+  else { assignToHotel(p,ven); }   // no specific room → auto-pick
+  // record which master columns the user actually changed (surgical export)
+  p._edits=p._edits||new Set();
+  Object.entries(FIELD_HDR).forEach(([k,h])=>{ if(String(p[k]??"")!==String(before[k])) p._edits.add(h); });
+  ["본인","배우자","자녀","기타"].forEach(k=>{ if((p.party[k]||0)!==(bparty[k]||0)) p._edits.add(k); });
+  state.edited=true;
+  render();
+  openCard(p);
+}
+const esc=s=>String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+
+/* ---------- export Excel ---------- */
+function exportExcel(){
+  const wb=XLSX.utils.book_new();
+  const res=[["참가자ID","이름","한글이름","인원","성별","카테고리","팀","배정숙소","건물/유형","호실","도착","출발","잠금"]];
+  state.parties.forEach(p=>{
+    const a=state.assign[p.id]; let venue="",loc="",rno="";
+    if(a==="BOOY"){venue=VEN.BOOY;loc="개별예약";}
+    else if(a){ const rm=state.roomById[a]; if(rm){venue=rm.hotel; loc=(rm.bldg?rm.bldg+"동 ":"")+(rm.floor?rm.floor+" ":"")+(rm.type||""); rno=rm.rno||rm.id;} }
+    else if(p.need==="No"){venue="(방 불필요)";}
+    res.push([p.id,p.name,p.kname,p.hc,p.partySex,p.cat,p.team,venue,loc.trim(),rno,p.arr,p.dep, state.locked[p.id]?"Y":""]);
+  });
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(res),"배정결과");
+  // per-room roster
+  const ros=[["숙소","건물","층","호실","유형","성별","정원","배정","점유자"]];
+  const order=[VEN.BYYTC,VEN.YOUUS];
+  order.forEach(h=>state.rooms.filter(r=>r.hotel===h).forEach(r=>{
+    const occ=roomOccupants(r.key);
+    ros.push([r.hotel,r.bldg,r.floor,r.rno||r.id,r.type,r.gender,r.total,roomLoad(r.key),
+      occ.map(o=>o.name+(o.hc>1?`(${o.hc})`:"")).join(", ")]);
+  }));
+  const booy=state.parties.filter(p=>state.assign[p.id]==="BOOY");
+  if(booy.length) ros.push([VEN.BOOY,"","","개별","","",booy.reduce((s,p)=>s+p.hc,0),booy.reduce((s,p)=>s+p.hc,0),booy.map(o=>o.name).join(", ")]);
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(ros),"객실roster");
+  XLSX.writeFile(wb,"ICMDA 숙소배정 결과.xlsx");
+}
+
+/* ---------- export updated MASTER (versioned) ---------- */
+function bumpMasterName(name){
+  const stem=(name||"ICMDA Master Data.xlsx").replace(/\.xlsx$/i,"");
+  const m=/^(.*?)v\s*(\d+)\s*$/i.exec(stem);
+  return m ? `${m[1]}v${(+m[2])+1}.xlsx` : `${stem} v2.xlsx`;
+}
+function xCell(ws,r,c){ const x=ws[XLSX.utils.encode_cell({r,c})]; return x?x.v:null; }
+function xSet(ws,r,c,v,t){
+  const addr=XLSX.utils.encode_cell({r,c});
+  if(v===""||v==null){ delete ws[addr]; return; }
+  ws[addr]={t:t||(typeof v==="number"?"n":"s"),v};
+}
+function exportMaster(){
+  if(!state.masterBuf){ alert("먼저 ① 마스터 파일을 여세요."); return; }
+  const wb=XLSX.read(state.masterBuf,{type:"array",cellFormula:true,cellStyles:true});  // fresh copy from original
+  const ws=wb.Sheets["참가자"]; const H=state.pH; const HR=1;     // header row = 2nd row
+  const range=XLSX.utils.decode_range(ws['!ref']);
+  // add room-detail columns at the right
+  let c=range.e.c+1; const NC={동:c++,층:c++,호실:c++,객실ID:c++};
+  xSet(ws,HR,NC.동,"배정동"); xSet(ws,HR,NC.층,"배정층"); xSet(ws,HR,NC.호실,"배정호실"); xSet(ws,HR,NC.객실ID,"배정객실ID");
+  const nrm=v=>v==null?"":String(v).trim();
+  const offN=state.nightCols.indexOf("6월29일");
+  let changed=0; const beyond=[];
+  state.parties.forEach(p=>{
+    const r=p._row, ed=p._edits||new Set();
+    // detail fields — write only what the user edited in the modal
+    Object.entries(FIELD_HDR).forEach(([k,h])=>{ if(ed.has(h)&&H[h]!=null){ xSet(ws,r,H[h],nrm(p[k])); changed++; } });
+    ["본인","배우자","자녀","기타"].forEach(k=>{ if(ed.has(k)&&H[k]!=null){ xSet(ws,r,H[k],p.party[k]||0,"n"); changed++; } });
+    // assignment → 배정숙소 (venue) + room-detail columns
+    const a=state.assign[p.id];
+    if(a){
+      const ven=partyVenue(p);
+      if(H["배정숙소"]!=null && nrm(ven)!==nrm(xCell(ws,r,H["배정숙소"]))){ xSet(ws,r,H["배정숙소"],ven); changed++; }
+      let bd="",fl="",rn="",rid="";
+      if(a==="BOOY"){ rid="개별예약(부영호텔)"; }
+      else if(state.roomById[a]){ const rm=state.roomById[a]; bd=rm.bldg||""; fl=rm.floor||""; rn=rm.rno||rm.id; rid=rm.id; }
+      xSet(ws,r,NC.동,bd); xSet(ws,r,NC.층,fl); xSet(ws,r,NC.호실,rn); xSet(ws,r,NC.객실ID,rid);
+    }
+    // stay → night columns (surgical: only if span changed). 도착일/출발일/숙박일수 are formulas → untouched.
+    const os=p._os, ns=p.stay;
+    const stayChanged=(!!os!==!!ns)||(os&&ns&&(os.s!==ns.s||os.e!==ns.e));
+    if(stayChanged){
+      state.nightIdx.forEach((o,k)=>{
+        let mark=""; if(ns&&k>=ns.s&&k<=ns.e) mark=(offN>=0&&k<offN)?"✓*":"✓";
+        xSet(ws,r,o.i,mark);
+      });
+      if(ns&&ns.e>=state.nightCols.length) beyond.push(`${p.name}(${p.id})`);
+      changed++;
+    }
+  });
+  range.e.c=Math.max(range.e.c,NC.객실ID); ws['!ref']=XLSX.utils.encode_range(range);
+  const outName=bumpMasterName(state.masterName);
+  XLSX.writeFile(wb,outName);
+  let msg=`'${outName}' 저장 완료 — 변경 ${changed}건.\n· 배정동/배정층/배정호실/배정객실ID 열을 추가했습니다.\n· 총인원·도착일·출발일·숙박일수는 수식이라 그대로 두었습니다.`;
+  if(beyond.length) msg+=`\n\n⚠ 마스터 박 범위를 벗어난 연장 숙박은 기록할 칸이 없어 누락: ${beyond.join(", ")}`;
+  msg+=`\n\n※ 버전 규칙: 이전 파일은 history/ 폴더로 옮기고 기록하세요(브라우저에서 자동 이동 불가). 셀 서식/색상은 보존되지 않을 수 있습니다.`;
+  alert(msg);
+}
+
+/* ---------- progress JSON ---------- */
+function saveJson(){
+  const stays={}; state.parties.forEach(p=>{ stays[p.id]=p.stay?[p.stay.s,p.stay.e]:null; });
+  const data={kind:"icmda-room-assign",ver:3,assign:state.assign,locked:state.locked,stays,
+              orderList:state.orderList,collapsed:state.collapsed};
+  const blob=new Blob([JSON.stringify(data,null,1)],{type:"application/json"});
+  const a=el("a"); a.href=URL.createObjectURL(blob); a.download="숙소배정 진행.json"; a.click();
+}
+function loadJson(text){
+  try{
+    const d=JSON.parse(text);
+    if(d.assign) state.assign=d.assign; if(d.locked) state.locked=d.locked;
+    if(d.stays) state.parties.forEach(p=>{ if(p.id in d.stays){ const v=d.stays[p.id]; p.stay=v?{s:v[0],e:v[1]}:null; refreshStay(p); } });
+    if(Array.isArray(d.orderList)) state.orderList=d.orderList;
+    if(d.collapsed) state.collapsed=d.collapsed;
+    render();
+  }catch(e){ alert("JSON 읽기 실패: "+e.message); }
+}
+
+/* ---------- print ---------- */
+function buildPrint(){
+  const pa=$("#printarea"); pa.innerHTML="";
+  [VEN.BYYTC,VEN.YOUUS].forEach(hotel=>{
+    const rooms=state.rooms.filter(r=>r.hotel===hotel);
+    if(!rooms.length) return;
+    const g=el("div","pgroup");
+    const used=rooms.reduce((s,r)=>s+roomLoad(r.key),0), cap=rooms.reduce((s,r)=>s+r.total,0);
+    g.append(el("h2",null,`${hotel}  (배정 ${used} / 정원 ${cap}명, ${rooms.length}실)`));
+    // group consistently: 부영 by 동/층, 유어스 by 유형
+    const groups={};
+    rooms.forEach(r=>{ const k= hotel===VEN.BYYTC ? `${r.bldg||"-"}동 ${r.floor||"-"}` : (r.type||"기타"); (groups[k]=groups[k]||[]).push(r); });
+    Object.keys(groups).sort().forEach(gk=>{
+      g.append(el("h3",null,gk));
+      const t=el("table","proom");
+      t.innerHTML="<tr><th>호실</th><th>유형 / 성별</th><th>정원</th><th>점유</th><th>투숙자 (인원 · 도착~출발)</th></tr>";
+      groups[gk].sort((a,b)=>(a.rno||"").localeCompare(b.rno||"",undefined,{numeric:true})).forEach(r=>{
+        const occ=roomOccupants(r.key);
+        const tr=el("tr");
+        tr.append(el("td","rno",r.rno||r.id));
+        tr.append(el("td","meta",`${r.type||""}${r.gender?" / "+r.gender:""}${r.ondol?" / 온돌":""}`));
+        tr.append(el("td",null,String(r.total)));
+        tr.append(el("td",null,String(roomLoad(r.key))));
+        tr.append(el("td",null, occ.map(o=>`${o.name}${o.hc>1?`(${o.hc})`:""}${o.arr?` [${o.arr}~${o.dep}]`:""}`).join(" · ")||"—"));
+        t.append(tr);
+      });
+      g.append(t);
+    });
+    pa.append(g);
+  });
+  const booy=state.parties.filter(p=>state.assign[p.id]==="BOOY");
+  if(booy.length){
+    const g=el("div","pgroup"); g.append(el("h2",null,`${VEN.BOOY} (개별 예약 · ${booy.reduce((s,p)=>s+p.hc,0)}명)`));
+    const t=el("table","proom"); t.innerHTML="<tr><th>이름</th><th>인원</th><th>도착~출발</th><th>비고</th></tr>";
+    booy.sort((a,b)=>a.name.localeCompare(b.name)).forEach(p=>{
+      const tr=el("tr"); tr.append(el("td",null,p.name),el("td",null,String(p.hc)),el("td",null,`${p.arr}~${p.dep}`),el("td",null,p.note||""));
+      t.append(tr);
+    });
+    g.append(t); pa.append(g);
+  }
+}
+
+/* ---------- wire up ---------- */
+$("#fileMaster").addEventListener("change",e=>{
+  const f=e.target.files[0]; if(!f) return;
+  $("#srcname").textContent=f.name; state.masterName=f.name;
+  const rd=new FileReader(); rd.onload=()=>loadMaster(rd.result); rd.readAsArrayBuffer(f);
+});
+$("#fileJson").addEventListener("change",e=>{
+  const f=e.target.files[0]; if(!f) return;
+  const rd=new FileReader(); rd.onload=()=>loadJson(rd.result); rd.readAsText(f);
+});
+$("#btnAuto").onclick=()=>{                       // show spinner, then run (let the browser paint first)
+  $("#loading").style.display="flex";
+  setTimeout(()=>{ try{ autoAssign(); } finally{ $("#loading").style.display="none"; } },30);
+};
+$("#btnExcel").onclick=exportExcel;
+$("#btnMaster").onclick=exportMaster;
+$("#btnJson").onclick=saveJson;
+$("#btnPrint").onclick=()=>{ buildPrint(); window.print(); };
+$("#poolsearch").addEventListener("input",renderPool);
+// view tabs + timeline filters + modal
+$("#tabRooms").onclick=()=>setView("rooms");
+$("#tabTimeline").onclick=()=>setView("timeline");
+$("#tlsearch").addEventListener("input",e=>{ state.tlFilter.q=e.target.value; renderTimeline(); });
+$("#tlvenue").addEventListener("change",e=>{ state.tlFilter.venue=e.target.value; renderTimeline(); });
+$("#tlcat").addEventListener("change",e=>{ state.tlFilter.cat=e.target.value; renderTimeline(); });
+$("#modal").addEventListener("click",e=>{ if(e.target.id==="modal") closeCard(); });
+document.addEventListener("keydown",e=>{ if(e.key==="Escape") closeCard(); });
+</script>
+</body>
+</html>

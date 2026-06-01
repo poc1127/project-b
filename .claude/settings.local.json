@@ -1,0 +1,23 @@
+{
+  "env": {
+    "PYTHONIOENCODING": "utf-8"
+  },
+  "permissions": {
+    "allow": [
+      "Bash(python:*)",
+      "Bash(python3:*)",
+      "Bash(py:*)",
+      "Bash(pip:*)",
+      "Bash(pip3:*)",
+      "Bash(ls:*)",
+      "Bash(cat:*)",
+      "Bash(mkdir:*)",
+      "Bash(rm:*)",
+      "Bash(mv:*)",
+      "Bash(cp:*)",
+      "PowerShell($src = Get-Content \"c:\\\\Users\\\\sunjeung.kim\\\\Desktop\\\\Claude\\\\Project_B\\\\room-dashboard.html\"; $js = $src[215..1117] -join \"`n\"; $tmp = Join-Path $env:TEMP \"rd_check.js\"; Set-Content -Path $tmp -Value $js -Encoding utf8; $node = \\(Get-Command node -ErrorAction SilentlyContinue\\); if\\($node\\){ & node --check $tmp; if\\($?\\){ \"SYNTAX OK\" } } else { \"NODE NOT FOUND\" })",
+      "PowerShell($src = Get-Content \"c:\\\\Users\\\\sunjeung.kim\\\\Desktop\\\\Claude\\\\Project_B\\\\room-dashboard.html\"; $js = \\($src[215..1117] -join \"`n\"\\); foreach\\($pair in @\\(@\\('{','}'\\),@\\('\\(','\\)'\\),@\\('[',']'\\)\\)\\){ $o=\\([regex]::Matches\\($js,[regex]::Escape\\($pair[0]\\)\\)\\).Count; $c=\\([regex]::Matches\\($js,[regex]::Escape\\($pair[1]\\)\\)\\).Count; \"{0} {1}  open={2} close={3}  diff={4}\" -f $pair[0],$pair[1],$o,$c,\\($o-$c\\) }; \"backticks: \" + \\(\\([regex]::Matches\\($js,'`'\\)\\).Count\\))"
+    ],
+    "deny": []
+  }
+}
