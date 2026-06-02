@@ -462,6 +462,8 @@
   .chip .drag:active{cursor:grabbing;color:var(--primary);}
   .chip.dragging{opacity:.4;}
   .tlrow.dragging{opacity:.4;}
+  /* while any pointer-drag is in progress, kill text selection so sweeping the pointer over names/labels doesn't highlight them */
+  body.dragging-active,body.dragging-active *{user-select:none !important;-webkit-user-select:none !important;}
   /* lightweight pill ghost for timeline grip-drag (rows are too wide to clone) */
   .tlghost{display:flex;align-items:center;gap:6px;background:var(--primary);color:#fff;font-size:12px;font-weight:600;
            padding:6px 12px;border-radius:999px;white-space:nowrap;border:1px solid rgba(255,255,255,.25);animation:ghostin .12s ease-out;}
@@ -591,21 +593,37 @@
     .venue,.floorgrp{scroll-margin-top:104px;}
   }
 
-  /* print */
+  /* print — visual styles are global so the on-screen preview matches; only layout/page rules stay in @media print */
   #printarea{display:none;}
+  .pgroup h2{font-size:15px;border-bottom:2px solid #333;padding-bottom:3px;}
+  .pgroup h3{font-size:12px;margin:8px 0 3px;background:#eee;padding:2px 6px;}
+  table.proom{width:100%;border-collapse:collapse;margin-bottom:4px;font-size:11px;}
+  table.proom th,table.proom td{border:1px solid var(--text2);padding:2px 5px;text-align:left;vertical-align:top;}
+  table.proom th{background:#ddd;}
+  table.proom td.rno{font-weight:700;width:48px;}
+  table.proom td.meta{width:120px;color:#333;}
   @media print{
-    header,#statsbar,#main,#warnpanel{display:none !important;}
+    header,#statsbar,#main,#warnpanel,#printprev,#modal,#dlgbg{display:none !important;}
     #printarea{display:block;}
     .pgroup{page-break-after:always;}
-    .pgroup h2{font-size:15px;border-bottom:2px solid #333;padding-bottom:3px;}
-    .pgroup h3{font-size:12px;margin:8px 0 3px;background:#eee;padding:2px 6px;}
-    table.proom{width:100%;border-collapse:collapse;margin-bottom:4px;font-size:11px;}
-    table.proom th,table.proom td{border:1px solid var(--text2);padding:2px 5px;text-align:left;vertical-align:top;}
-    table.proom th{background:#ddd;}
-    table.proom td.rno{font-weight:700;width:48px;}
-    table.proom td.meta{width:120px;color:#333;}
     @page{size:A4 portrait;margin:12mm;}
   }
+  /* print preview modal — shows the built #printarea content before the OS print/PDF dialog */
+  #printprev{position:fixed;inset:0;background:rgba(20,28,38,.5);z-index:480;display:flex;align-items:center;justify-content:center;padding:16px;}
+  #printprev .pp-box{background:#fff;border-radius:14px;width:100%;max-width:860px;max-height:92vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 18px 50px rgba(20,30,45,.3);}
+  #printprev .pp-head{flex:none;padding:14px 20px;font-size:15px;font-weight:700;color:var(--ink);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;}
+  #printprev .pp-sub{font-size:11.5px;font-weight:500;color:var(--text-muted);}
+  #printprev .pp-x{margin-left:auto;cursor:pointer;font-size:20px;line-height:1;background:none;border:none;color:var(--text-muted);padding:2px 4px;}
+  #printprev .pp-x:hover{color:var(--text);}
+  #printprev .pp-scroll{flex:1 1 auto;overflow:auto;min-height:0;background:#e9edf1;padding:20px;display:flex;justify-content:center;}
+  #printprev .psheet{background:#fff;width:100%;max-width:780px;padding:26px 30px;box-shadow:0 2px 12px rgba(0,0,0,.14);color:#111;height:max-content;}
+  #printprev .psheet .pgroup+.pgroup{margin-top:22px;border-top:2px dashed #c4ccd4;padding-top:18px;}
+  #printprev .pp-foot{flex:none;padding:14px 20px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end;}
+  #printprev .pp-foot button{padding:9px 18px;min-height:44px;border-radius:8px;font-weight:600;}
+  #printprev .pp-foot .alt{background:var(--bg);color:var(--text2);border:1px solid var(--border);}
+  #printprev .pp-foot .alt:hover{background:#e3e8ef;}
+  #printprev .pp-foot .pp-go{background:var(--primary);color:#fff;}
+  #printprev .pp-foot .pp-go:hover{background:var(--primary-hover);}
 </style>
 </head>
 <body>
@@ -714,6 +732,14 @@
 
 <div id="warnpanel"></div>
 <div id="printarea"></div>
+<!-- print preview: shown when 인쇄/PDF is clicked; 인쇄 진행 → window.print() -->
+<div id="printprev" style="display:none">
+  <div class="pp-box">
+    <div class="pp-head">인쇄 미리보기 <span class="pp-sub">방 배치표 · A4 세로</span><button class="pp-x" onclick="closePrintPrev()" aria-label="닫기">×</button></div>
+    <div class="pp-scroll"><div class="psheet" id="ppBody"></div></div>
+    <div class="pp-foot"><button class="alt" onclick="closePrintPrev()">취소</button><button class="pp-go" onclick="window.print()">인쇄 / PDF</button></div>
+  </div>
+</div>
 
 <!-- screen-reader live region: assignment / validation / selection changes -->
 <div id="live" class="sr-only" aria-live="polite" aria-atomic="true"></div>
@@ -792,7 +818,7 @@ const state = {
   colW: [74,58,150,78,84,52],  // resizable widths: ID(+손잡이)·분류·이름/팀·호텔·객실번호·수용 (track = 1fr)
   pick: null,      // tap-to-assign: id of the party currently 'picked up'
   tlSel: new Set(),// timeline multi-select: party ids selected for group drag
-  tlSort: {key:null, dir:"asc"},  // timeline sort: key "id"|"name" (null = manual drag order), dir asc|desc
+  tlSort: {key:null, dir:"asc"},  // timeline sort: key "id"|"name"|"room"|"cap" (null = manual drag order), dir asc|desc
 };
 
 /* ---------- helpers ---------- */
@@ -908,6 +934,12 @@ function buildLegend(){
 let dragFired=false;                 // set briefly after a real drag, to swallow the trailing click
 const DRAG={pid:null, ghost:null, target:null, raf:null, vy:0, scn:null, lastXY:null, onScroll:null};
 
+// toggle the page-wide no-select state for the duration of a drag; also drop any selection already begun
+function setDragging(on){
+  document.body.classList.toggle("dragging-active", on);
+  if(on){ const s=window.getSelection&&window.getSelection(); if(s&&s.removeAllRanges) s.removeAllRanges(); }
+}
+
 function scrollParent(node){          // nearest vertically-scrollable ancestor (else null = window/page)
   for(let n=node; n && n!==document.body && n!==document.documentElement; n=n.parentElement){
     const s=getComputedStyle(n);
@@ -958,7 +990,7 @@ function beginDrag(downEvt, p, chipNode){
     if(!started){
       if(Math.abs(e.clientX-sx)<5 && Math.abs(e.clientY-sy)<5) return;   // movement threshold ⇒ it's a drag
       started=true; DRAG.pid=p.id;
-      chipNode.classList.add("dragging");
+      chipNode.classList.add("dragging"); setDragging(true);
       const g=chipNode.cloneNode(true); g.id="dragghost"; g.classList.remove("dragging");
       g.removeAttribute("role"); g.removeAttribute("tabindex");
       document.body.appendChild(g); DRAG.ghost=g;
@@ -979,7 +1011,7 @@ function beginDrag(downEvt, p, chipNode){
     if(!started) return;
     DRAG.vy=0; if(DRAG.raf){cancelAnimationFrame(DRAG.raf); DRAG.raf=null;}
     const tgt=DRAG.target; setDragTarget(null);
-    chipNode.classList.remove("dragging");
+    chipNode.classList.remove("dragging"); setDragging(false);
     if(DRAG.ghost){ DRAG.ghost.remove(); DRAG.ghost=null; }
     DRAG.pid=null; DRAG.lastXY=null;
     dragFired=true; setTimeout(()=>dragFired=false,400);    // swallow the click that follows pointerup
@@ -1348,7 +1380,7 @@ function chip(p){
   // pointer-drag: from the ⠿ grip (all pointer types) and from the chip body (mouse/pen only,
   // so touch swipes on the body still scroll the list and taps still select).
   grip.addEventListener("pointerdown",e=>{ if(e.button)return; e.preventDefault(); e.stopPropagation(); beginDrag(e,p,c); });
-  c.addEventListener("pointerdown",e=>{ if(e.pointerType==="touch"||e.button) return; if(e.target===lk||e.target===grip) return; beginDrag(e,p,c); });
+  c.addEventListener("pointerdown",e=>{ if(e.pointerType==="touch"||e.button) return; if(e.target.closest(".lk,.drag")) return; beginDrag(e,p,c); });
   attachLongPress(c,()=>openCard(p));                  // ⑤ touch: long-press opens detail
   // single-click = pick-up / unassign · double-click = detail modal.
   // The single action is deferred briefly so a 2nd click can cancel it (otherwise render() would
@@ -1701,7 +1733,7 @@ function renderTimeline(){
   applyColW();
   ["ID","분류","이름 / 팀","호텔","객실번호","수용"].forEach((t,ci)=>{
     const lbl=el("div","lbl"+(ci===2?"":" ctr"),t);
-    const sortKey = ci===0?"id":ci===2?"name":null;   // ID·이름 columns are click-to-sort
+    const sortKey = ci===0?"id":ci===2?"name":ci===4?"room":ci===5?"cap":null;   // ID·이름·객실번호·수용 columns are click-to-sort
     if(sortKey){
       lbl.classList.add("sortable"); lbl.title="클릭하여 정렬 (오름차순/내림차순 전환)";
       const ar = state.tlSort.key===sortKey ? (state.tlSort.dir==="asc"?ico('chevronUp'):ico('chevronDown')) : ico('sort');
@@ -1823,14 +1855,24 @@ function tlReorderMulti(ids,tgtId,after){
   rest.splice(after?ti+1:ti,0,...moving);
   state.orderList=rest;
 }
-// click-to-sort the timeline by ID or 이름; rewrites orderList so grouping/drag keep working
+// click-to-sort the timeline by ID·이름·객실번호·수용; rewrites orderList so grouping/drag keep working
 function applyTlSort(key){
   const dir = (state.tlSort.key===key && state.tlSort.dir==="asc") ? "desc" : "asc";
   state.tlSort={key,dir};
   const sign = dir==="asc"?1:-1;
-  const cmp = key==="id"
-    ? (a,b)=> sign*a.id.localeCompare(b.id,undefined,{numeric:true})
-    : (a,b)=> sign*((a.name||"").localeCompare(b.name||"",undefined,{sensitivity:"base"})) || a.id.localeCompare(b.id,undefined,{numeric:true});
+  const tb=(a,b)=>a.id.localeCompare(b.id,undefined,{numeric:true});           // stable tie-break by ID
+  let cmp;
+  if(key==="id"){
+    cmp=(a,b)=> sign*a.id.localeCompare(b.id,undefined,{numeric:true});
+  }else if(key==="name"){
+    cmp=(a,b)=> sign*((a.name||"").localeCompare(b.name||"",undefined,{sensitivity:"base"})) || tb(a,b);
+  }else{                                                                       // room | cap: 미배정·팀룸 (cap==null) always sort last
+    const ri={}; state.parties.forEach(p=>ri[p.id]=partyRoomInfo(p));
+    if(key==="room") cmp=(a,b)=>{ const x=ri[a.id],y=ri[b.id],ea=x.cap==null,eb=y.cap==null;
+      return (ea||eb)?(ea-eb||tb(a,b)):(sign*String(x.rno).localeCompare(String(y.rno),undefined,{numeric:true})||tb(a,b)); };
+    else cmp=(a,b)=>{ const x=ri[a.id],y=ri[b.id],ea=x.cap==null,eb=y.cap==null;
+      return (ea||eb)?(ea-eb||tb(a,b)):(sign*(x.cap-y.cap)||tb(a,b)); };
+  }
   state.orderList = state.parties.slice().sort(cmp).map(p=>p.id);
   renderTimeline();
 }
@@ -1867,7 +1909,7 @@ function tlGripStart(p,grip,row,ev){
       const sel=state.tlSel.has(p.id)&&state.tlSel.size>1;
       ghost=el("div","tlghost"); ghost.innerHTML = sel?`${ico('grip')} ${state.tlSel.size}명 이동`:`${ico('grip')} ${esc(p.id)} ${esc(p.name)}`;
       ghost.id="dragghost"; document.body.appendChild(ghost);
-      row.classList.add("dragging");
+      row.classList.add("dragging"); setDragging(true);
       DRAG.pid=p.id; DRAG.onScroll=evalTgt; DRAG.vy=0; DRAG.raf=requestAnimationFrame(autoScrollTick);
     }
     e.preventDefault();
@@ -1881,7 +1923,7 @@ function tlGripStart(p,grip,row,ev){
     DRAG.vy=0; DRAG.pid=null; DRAG.onScroll=null; DRAG.lastXY=null;
     if(DRAG.raf){ cancelAnimationFrame(DRAG.raf); DRAG.raf=null; }
     if(ghost){ ghost.remove(); ghost=null; }
-    row.classList.remove("dragging");
+    row.classList.remove("dragging"); setDragging(false);
     const dest=tgt, da=after; clear();
     if(!moved){ toggleTlSel(p.id,row); return; }           // tap (no drag) → toggle selection
     if(!dest) return;
@@ -1970,7 +2012,7 @@ function enableBarDrag(p,bar,hl,hr,track,n,place){
     const s0=p.stay.s, e0=p.stay.e, x0=ev.clientX, pid=ev.pointerId;
     const left0=s0*cw, width0=(e0-s0+1)*cw, right0=left0+width0;   // start geometry in px
     const lbl=bar.querySelector(".barlbl");
-    bar.classList.add("dragging");                                 // follow the pointer in px, transition off
+    bar.classList.add("dragging"); setDragging(true);             // follow the pointer in px, transition off
     try{ bar.setPointerCapture(pid); }catch(e){}   // own the gesture so the browser can't reclaim it (pointercancel) mid-drag
     const move=e=>{
       if(e.pointerId!==pid) return;
@@ -1985,7 +2027,7 @@ function enableBarDrag(p,bar,hl,hr,track,n,place){
       if(e.pointerId!==pid) return;
       bar.removeEventListener("pointermove",move); bar.removeEventListener("pointerup",up); bar.removeEventListener("pointercancel",up);
       try{ bar.releasePointerCapture(pid); }catch(_){}
-      bar.classList.remove("dragging");
+      bar.classList.remove("dragging"); setDragging(false);
       place();                                       // settle onto the day grid — the CSS transition eases it into place
       refreshStay(p); renderStats();
     };
@@ -2384,7 +2426,10 @@ function confirmMaster(){
         +`현재 배정 ${assigned}명. 수식 열(총인원·도착일·출발일·숙박일수)은 그대로 둡니다. 계속할까요?`,
     onOk:()=>withLoading("마스터 내보내는 중…",exportMaster)});
 }
-function doPrint(){ buildPrint(); window.print(); }
+function doPrint(){ buildPrint(); openPrintPrev(); }
+function openPrintPrev(){ $("#ppBody").innerHTML=$("#printarea").innerHTML; $("#printprev").style.display="flex"; }   // clone built content for on-screen preview
+function closePrintPrev(){ $("#printprev").style.display="none"; }
+$("#printprev").addEventListener("click",e=>{ if(e.target.id==="printprev") closePrintPrev(); });   // tap backdrop = close
 function onMasterFile(e){ const f=e.target.files[0]; if(f) loadFile(f); e.target.value=""; }  // allow re-picking the same file
 function loadFile(f){
   if(!/\.xlsx$/i.test(f.name)){ toast("`.xlsx` 파일만 열 수 있습니다.","warn"); return; }
