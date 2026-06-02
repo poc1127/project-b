@@ -83,13 +83,15 @@
   #tlbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:4px;}
   #tlbar .search{width:160px;margin:0;}
   #tlbar select{padding:4px;border:1px solid var(--line);border-radius:4px;}
-  #tlhead,.tlrow{display:grid;grid-template-columns:56px 58px 150px 90px 52px 1fr;align-items:center;}
+  #tlhead,.tlrow{display:grid;grid-template-columns:56px 58px 150px 78px 64px 52px 1fr;align-items:center;}
   #tlhead{position:sticky;top:52px;background:#f7f7f9;z-index:10;border-bottom:2px solid #bbb;font-size:10px;font-weight:700;}
   .tlrow .idc{font-family:ui-monospace,Consolas,monospace;font-size:10px;color:#667;padding:0 5px;white-space:nowrap;overflow:hidden;border-right:1px solid #eee;}
   .tlrow .catc{padding:0 4px;text-align:center;overflow:hidden;border-right:1px solid #eee;white-space:nowrap;}
-  .tlrow .roomc{padding:0 6px;overflow:hidden;border-right:1px solid #eee;white-space:nowrap;}
-  .tlrow .capc{padding:0 4px;text-align:center;border-right:1px solid #eee;white-space:nowrap;}
-  .tlrow .pill{display:inline-block;vertical-align:middle;font-size:9px;font-weight:700;line-height:15px;padding:0 7px;border-radius:8px;max-width:100%;overflow:hidden;text-overflow:ellipsis;}
+  .tlrow .venc{display:flex;align-items:center;justify-content:center;padding:0 4px;overflow:hidden;border-right:1px solid #eee;white-space:nowrap;}
+  .tlrow .roomc{display:flex;align-items:center;justify-content:center;padding:0 4px;overflow:hidden;border-right:1px solid #eee;white-space:nowrap;}
+  .tlrow .capc{display:flex;align-items:center;justify-content:center;padding:0 4px;border-right:1px solid #eee;white-space:nowrap;}
+  .tlrow .pill{flex:none;display:inline-block;vertical-align:middle;height:16px;line-height:16px;font-size:9px;font-weight:700;padding:0 7px;border-radius:8px;max-width:100%;overflow:hidden;text-overflow:ellipsis;}
+  .tlrow .pill.ven{background:#eee6f2;color:#553b6b;}
   .tlrow .pill.room{background:#e8eef5;color:#2b4a6b;}
   .tlrow .pill.cap{background:#eaf1e8;color:#3c5a2b;}
   .tlrow .pill.none{background:#eee;color:#999;}
@@ -646,14 +648,15 @@ function partyVenue(p){
   if(a){ const rm=state.roomById[a]; return rm?rm.hotel:""; }
   return "(미배정)";
 }
+function venShort(hotel){ return hotel===VEN.BYYTC?"부영청소년":hotel===VEN.YOUUS?"유어스":hotel===VEN.BOOY?"부영호텔":hotel; }
 function partyRoomInfo(p){
   const a=state.assign[p.id];
-  if(a==="BOOY") return {rno:"부영", full:VEN.BOOY+" (팀룸)", cap:null};
+  if(a==="BOOY") return {ven:VEN.BOOY, vshort:"부영호텔", rno:"팀룸", full:VEN.BOOY+" (팀룸)", cap:null};
   if(a){ const rm=state.roomById[a]; if(rm){
     const full=(rm.bldg?rm.bldg+"동 ":"")+(rm.floor?rm.floor+" ":"")+(rm.rno||rm.id)+(rm.type?" ("+rm.type+")":"");
-    return {rno:(rm.rno||rm.id), full, cap:rm.total};
+    return {ven:rm.hotel, vshort:venShort(rm.hotel), rno:(rm.rno||rm.id), full, cap:rm.total};
   }}
-  return {rno:"미배정", full:"미배정", cap:null};
+  return {ven:null, vshort:"미배정", rno:"미배정", full:"미배정", cap:null};
 }
 function computeDups(){                       // flag rows sharing a name or email (duplicate participant)
   const byName={}, byEmail={}; state.dupInfo={};
