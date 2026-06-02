@@ -944,12 +944,12 @@ function headerMap(aoa){           // row index 1 (2nd row) holds headers
 
 /* ---------- load master ---------- */
 function loadMaster(arrbuf){
-  const wb = XLSX.read(arrbuf,{type:"array",cellFormula:true,cellStyles:true});
+  const wb = XLSX.read(arrbuf,{type:"array",cellFormula:true});   // styles not consumed (raw:true read; export discards them)
   const pSheet = wb.Sheets["참가자"], rSheet = wb.Sheets["객실"];
   if(!pSheet||!rSheet){ toast("'참가자' 또는 '객실' 탭을 찾을 수 없습니다.","err",6000); return; }
   const pA = XLSX.utils.sheet_to_json(pSheet,{header:1,raw:true,defval:null});
   const rA = XLSX.utils.sheet_to_json(rSheet,{header:1,raw:true,defval:null});
-  state.wb=wb; state.masterBuf=arrbuf;          // keep original workbook/bytes for versioned re-export
+  state.masterBuf=arrbuf;                       // keep original bytes for versioned re-export
   state.edited=false;
 
   parseParticipants(pA);
@@ -1087,13 +1087,14 @@ function roomOccupants(roomKey){
 function roomOccExcept(roomKey,pid){ return roomOccupants(roomKey).filter(o=>o.id!==pid); }
 // realistic rule: a family (MIX) takes a whole room alone (label irrelevant);
 // individuals must match the room's M/F label and never mix M & F strangers.
-function compatible(room, party){               // HARD rule for auto-assign
-  const occ=roomOccExcept(room.key,party.id);
+function compatible(room, party, idx){           // HARD rule for auto-assign
+  const occ = idx ? (idx[room.key]||[]).filter(o=>o.id!==party.id) : roomOccExcept(room.key,party.id);
   const load=occ.reduce((s,o)=>s+o.hc,0);
   if(load+party.hc>room.total) return false;
   const pf=party.partySex==="MIX", of=occ.some(o=>o.partySex==="MIX");
   if(occ.length && (pf||of)) return false;       // families never share
   if(pf) return occ.length===0;
+  if(idx && party.partySex!=="M" && party.partySex!=="F") return false;   // auto-assign only (idx set): unknown sex → leave in pool for manual placement
   if(room.gender==="Staff") return false;        // reserve staff rooms for manual
   if(room.gender==="Male" && party.partySex==="F") return false;
   if(room.gender==="Female" && party.partySex==="M") return false;
@@ -1108,6 +1109,7 @@ function matchIssue(room,party){                 // SOFT: message for warnings /
   const pf=party.partySex==="MIX", of=occ.some(o=>o.partySex==="MIX");
   if(occ.length && (pf||of)) return "가족은 단독 사용";
   if(!pf){
+    if(party.partySex!=="M" && party.partySex!=="F") return "성별 미상 — 수동 배정";   // unknown sex: surface for manual review
     if(room.gender==="Male" && party.partySex==="F") return "남성방에 여성";
     if(room.gender==="Female" && party.partySex==="M") return "여성방에 남성";
     const sexes=new Set(occ.filter(o=>o.partySex==="M"||o.partySex==="F").map(o=>o.partySex));
@@ -1123,6 +1125,11 @@ function matchIssue(room,party){                 // SOFT: message for warnings /
 const FAMTYPE=["Family","Triple","Suite"];
 function autoAssign(){
   for(const pid in state.assign){ if(!state.locked[pid] && state.assign[pid]!=="BOOY") delete state.assign[pid]; }
+  // Loop-local occupancy index, seeded from the assignments that survive the prune above (locked
+  // parties on real rooms; BOOY is off-inventory so it is skipped). Updated incrementally as each
+  // unit is placed, so compatible()/score() read O(occupants) instead of rescanning state.assign.
+  const occL={}, loadL={};
+  for(const pid in state.assign){ const k=state.assign[pid]; if(k && k!=="BOOY"){ (occL[k]=occL[k]||[]).push(state.byId[pid]); loadL[k]=(loadL[k]||0)+state.byId[pid].hc; } }
   const prefVenue = p => p.pre.indexOf("유어스")>=0?VEN.YOUUS
         : (p.pre.indexOf("부영청소년")>=0||p.pre.indexOf("수련")>=0)?VEN.BYYTC : null;
   let units = state.parties.filter(p=> !state.locked[p.id] && !state.assign[p.id] && p.need!=="No");
@@ -1135,11 +1142,11 @@ function autoAssign(){
   });
   units.forEach(p=>{
     const pv=prefVenue(p);
-    let cands=state.rooms.filter(rm=>(!pv||rm.hotel===pv) && compatible(rm,p));
-    if(!cands.length) cands=state.rooms.filter(rm=>compatible(rm,p));   // relax venue lock
-    if(!cands.length) return;                                          // -> stays in pool
+    let cands=state.rooms.filter(rm=>(!pv||rm.hotel===pv) && compatible(rm,p,occL));
+    if(!cands.length) cands=state.rooms.filter(rm=>compatible(rm,p,occL));   // relax venue lock
+    if(!cands.length) return;                                               // -> stays in pool
     const score = rm=>{
-      const occ=roomOccupants(rm.key); let s=0;
+      const occ=occL[rm.key]||[]; let s=0;
       if(occ.length){
         if(occ.some(o=>o.group&&o.group===p.group)) s-=1000;
         if(occ.some(o=>o.team&&o.team===p.team)) s-=300;
@@ -1150,12 +1157,16 @@ function autoAssign(){
         s+=(rm.total-p.hc)*4;                                         // tight room for the family
       }else{
         if(rm.ondol) s-=15;                                           // use mandatory ondol
-        s+=(rm.total-(roomLoad(rm.key)+p.hc))*2;                      // best-fit (tight)
+        s+=(rm.total-((loadL[rm.key]||0)+p.hc))*2;                    // best-fit (tight)
       }
       return s;
     };
-    cands.sort((a,b)=>score(a)-score(b));
-    state.assign[p.id]=cands[0].key;
+    // score each candidate once, then sort by the cached value (avoid O(C·logC) re-evaluation inside the comparator)
+    const scored=cands.map(rm=>({rm,s:score(rm)}));
+    scored.sort((a,b)=>a.s-b.s);
+    const key=scored[0].rm.key;
+    state.assign[p.id]=key;
+    (occL[key]=occL[key]||[]).push(p); loadL[key]=(loadL[key]||0)+p.hc;     // keep the index live for the next unit
   });
   render();
 }
@@ -1167,7 +1178,8 @@ function render(){
   setEmpty(false);                 // a master is loaded → leave the import screen, reveal the dashboard
   _occ=buildOcc();                 // one occupancy pass shared by stats/venues/warnings this render
   try{
-    renderStats();
+    const issues = state.rooms.length ? computeIssues() : [];   // compute once; shared by the stats badge + warning panel
+    renderStats(issues);
     const tl = state.view==="timeline";
     $("#main").style.display = tl?"none":"flex";
     $("#warnpanel").style.display = tl?"none":"block";
@@ -1179,7 +1191,7 @@ function render(){
     $("#tabRooms").setAttribute("role","tab");     $("#tabRooms").setAttribute("aria-selected",String(!tl));
     $("#tabTimeline").setAttribute("role","tab");  $("#tabTimeline").setAttribute("aria-selected",String(tl));
     if(tl){ renderTimeline(); }
-    else { renderPool(); renderVenues(); renderWarnings(); }
+    else { renderPool(); renderVenues(); renderWarnings(issues); }
     $("#venues").classList.toggle("picking", !tl && !!state.pick);
     syncTop();
   } finally { _occ=null; }         // snapshot is valid only for this synchronous pass
@@ -1192,7 +1204,8 @@ function populateFilters(){
   [...new Set(state.parties.map(p=>p.cat).filter(Boolean))].sort().forEach(c=>csel.add(new Option(c,c)));
 }
 
-function renderStats(){
+function renderStats(issues){
+  if(issues===undefined) issues = state.rooms.length?computeIssues():[];   // standalone callers (e.g. refreshStay) still compute their own
   const sb=$("#statsbar"); sb.innerHTML="";
   const total=state.parties.reduce((s,p)=>s+p.hc,0);
   const needP=state.parties.filter(p=>p.need!=="No").reduce((s,p)=>s+p.hc,0);
@@ -1228,7 +1241,7 @@ function renderStats(){
     mk("부영호텔(NOC)",byBOOY),
   );
   // surfaced warning badge → jumps to the detail warning panel (DESIGN-5)
-  const issueN=state.rooms.length?computeIssues().length:0;
+  const issueN=issues.length;
   const warn=el("span","stat warnjump"); warn.tabIndex=0; warn.setAttribute("role","button");
   warn.setAttribute("aria-label",`경고 ${issueN}건 — 경고 패널로 이동`);
   warn.innerHTML = issueN ? `<span class="pill warn">⚠ 경고 ${issueN}건</span>` : `<span class="pill ok">경고 0</span>`;
@@ -1289,16 +1302,15 @@ function chip(p){
   const single=()=>{
     if(state.assign[p.id]){ delete state.assign[p.id]; state.pick=null; render(); announceAssign(`${p.name} 미배정으로 이동`); }   // assigned → back to 미배정
     else {                                                                  // pool → pick up / cancel
-      state.pick=(state.pick===p.id?null:p.id);
-      announce(state.pick? `${p.name} 선택됨 — 방을 누르면 배정됩니다` : "선택 해제");
-      render();
+      const want=(state.pick===p.id?null:p.id);
+      setPick(want, want? `${p.name} 선택됨 — 방을 누르면 배정됩니다` : "선택 해제");
     }
   };
   let ctimer=null;
   c.addEventListener("click",e=>{
     e.stopPropagation(); if(lpFired||dragFired) return;
     if(ctimer) return;                                 // this is the 2nd click → let dblclick handle it
-    ctimer=setTimeout(()=>{ ctimer=null; single(); }, 230);
+    ctimer=setTimeout(()=>{ ctimer=null; if(!document.body.contains(c)) return; single(); }, 230);   // chip gone (a render replaced it) → drop the stale deferred action
   });
   c.addEventListener("dblclick",e=>{                   // ⑤ detail modal
     e.stopPropagation();
@@ -1318,6 +1330,30 @@ function chip(p){
   return c;
 }
 
+// Pick/deselect without a full render(): only pool chips are pickable, so the picked chip always
+// lives in #poollist. We update just that chip, the venue drop-highlight, and the pool hint banner.
+function makePickHint(){
+  const ph=el("div","pickhint");
+  ph.append(el("span",null,`✅ ${state.byId[state.pick].name} 선택됨 — 방을 누르면 배정됩니다.`));
+  const cx=el("button","pickcancel","✕ 취소"); cx.type="button"; cx.setAttribute("aria-label","선택 취소(Esc)");
+  cx.onclick=ev=>{ ev.stopPropagation(); setPick(null,"선택 해제"); };
+  ph.append(cx);
+  return ph;
+}
+function setPick(next, msg){
+  const prev=state.pick;
+  state.pick=next;
+  if(state.view!=="timeline"){                         // timeline has no pool/venue picking UI
+    const list=$("#poollist");
+    [prev,next].forEach(id=>{ if(!id||!list) return; const c=list.querySelector(`.chip[data-pid="${id}"]`);
+      if(c){ const on=state.pick===id; c.classList.toggle("picked",on); c.setAttribute("aria-pressed",on?"true":"false");
+        if(state.byId[id]) c.setAttribute("aria-label",ariaForChip(state.byId[id])); } });
+    $("#venues").classList.toggle("picking", !!state.pick);
+    if(list){ const ex=list.querySelector(".pickhint"); if(ex) ex.remove();
+      if(state.pick && state.byId[state.pick]) list.insertBefore(makePickHint(), list.firstChild); }
+  }
+  if(msg) announce(msg);
+}
 function renderPool(){
   const list=$("#poollist"); list.innerHTML="";
   const q=($("#poolsearch").value||"").toLowerCase();
@@ -1325,14 +1361,7 @@ function renderPool(){
         .filter(p=> !q || p.name.toLowerCase().includes(q)||p.id.toLowerCase().includes(q)||(p.kname||"").toLowerCase().includes(q))
         .sort((a,b)=> (b.partySex==="MIX")-(a.partySex==="MIX") || a.name.localeCompare(b.name));
   $("#poolcount").textContent = `(${un.reduce((s,p)=>s+p.hc,0)}명 / ${un.length}건)`;
-  if(state.pick && state.byId[state.pick]){
-    const ph=el("div","pickhint");
-    ph.append(el("span",null,`✅ ${state.byId[state.pick].name} 선택됨 — 방을 누르면 배정됩니다.`));
-    const cx=el("button","pickcancel","✕ 취소"); cx.type="button"; cx.setAttribute("aria-label","선택 취소(Esc)");
-    cx.onclick=ev=>{ ev.stopPropagation(); state.pick=null; announce("선택 해제"); render(); };
-    ph.append(cx);
-    list.append(ph);
-  }
+  if(state.pick && state.byId[state.pick]) list.append(makePickHint());
   // distinguish "pool is genuinely empty" from "search filtered everything out"
   if(!un.length){ list.append(el("div","empty-hint", q?`'${$("#poolsearch").value}' 검색 결과가 없습니다`:"미배정 없음 🎉")); }
   un.forEach(p=>list.append(chip(p)));
@@ -1346,7 +1375,7 @@ function makeDrop(node, roomKey){
   node.dataset.dropkey = roomKey===null ? "__pool__" : roomKey;
   const doDrop=()=>{
     if(!state.pick) return false;
-    if(roomKey===null){ state.pick=null; announce("선택 해제"); render(); }   // tap the pool = cancel
+    if(roomKey===null){ setPick(null,"선택 해제"); }   // tap the pool = cancel
     else { applyDrop(state.pick, roomKey); }                                 // applyDrop clears pick + announces
     return true;
   };
@@ -1512,9 +1541,9 @@ function jumpToWarnings(){
     w.classList.add("flash"); setTimeout(()=>w.classList.remove("flash"),1200);
   });
 }
-function renderWarnings(){
+function renderWarnings(issues){
   const wp=$("#warnpanel"); wp.innerHTML="";
-  const issues=computeIssues();
+  if(issues===undefined) issues=computeIssues();
   const un=state.parties.filter(p=>p.need!=="No"&&!state.assign[p.id]).reduce((s,p)=>s+p.hc,0);
   const wh=el("h3");
   wh.append(el("span","pill "+(issues.length?"warn":"ok"),`경고 ${issues.length}건`));
@@ -1568,11 +1597,12 @@ function applyColW(){
   tl.style.setProperty("--c2", (w[0]+w[1])+"px");
 }
 function syncTop(){                                   // keep panels sized to the space below header/statsbar at any width
-  const h=document.querySelector("header"), sb=$("#statsbar");
-  const hh=h?h.offsetHeight:52;
-  document.documentElement.style.setProperty("--headerh",hh+"px");   // pool sticky offset (rooms view)
-  document.documentElement.style.setProperty("--topoff",(hh+(sb?sb.offsetHeight:0))+"px");  // timeline panel height
-  const th=$("#tlhead"); if(th&&th.offsetHeight) document.documentElement.style.setProperty("--tlheadh",th.offsetHeight+"px");
+  const h=document.querySelector("header"), sb=$("#statsbar"), th=$("#tlhead");
+  const hh=h?h.offsetHeight:52, sbh=sb?sb.offsetHeight:0, thh=th?th.offsetHeight:0;   // read all heights before any write (no layout thrash)
+  const ds=document.documentElement.style;
+  ds.setProperty("--headerh",hh+"px");              // pool sticky offset (rooms view)
+  ds.setProperty("--topoff",(hh+sbh)+"px");         // timeline panel height
+  if(thh) ds.setProperty("--tlheadh",thh+"px");     // only when the timeline header is visible (matches prior guard)
   applyColW();   // re-evaluate the night-track floor for the new width
 }
 const UIKEY="icmda_ui";
@@ -1647,8 +1677,8 @@ function renderTimeline(){
   $("#timeline").classList.toggle("cardmode", narrow);
   $("#tlhint").style.display = narrow?"none":"";
   if(narrow){ renderTLCards(rows, off629, planEnd, n); return; }
-  const wrap=$("#tlrows"); wrap.innerHTML="";
-  if(!rows.length){ wrap.append(el("div","empty-hint","해당 조건의 참가자가 없습니다.")); return; }
+  const wrap=$("#tlrows"); const frag=document.createDocumentFragment();
+  if(!rows.length){ wrap.replaceChildren(el("div","empty-hint","해당 조건의 참가자가 없습니다.")); return; }
   // ② group by hotel (horizontal split) · ⑤ foldable · custom vertical order
   const order=[VEN.BYYTC,VEN.YOUUS,VEN.BOOY,"(미배정)"];
   const groups={}; rows.forEach(p=>{ const v=partyVenue(p); (groups[v]=groups[v]||[]).push(p); });
@@ -1666,18 +1696,19 @@ function renderTimeline(){
               el("span","ghint",open?"클릭하여 접기 ▲":"클릭하여 펼치기 ▼"));
     gh.title="클릭하여 접기/펼치기";
     gh.onclick=()=>{ state.collapsed[v]=open; saveUI(); renderTimeline(); };
-    wrap.append(gh);
+    frag.append(gh);
     if(!open) return;
-    list.forEach((p,ri)=>{ if(shown<CAP){ const r=tlRow(p,n,off629,planEnd); if(ri%2) r.classList.add("alt"); wrap.append(r); shown++; } });
+    list.forEach((p,ri)=>{ if(shown<CAP){ const r=tlRow(p,n,off629,planEnd); if(ri%2) r.classList.add("alt"); frag.append(r); shown++; } });
   });
-  if(shown<rows.length) wrap.append(el("div","muted",`… 외 ${rows.length-shown}명 (검색/필터로 좁혀 보세요)`));
+  if(shown<rows.length) frag.append(el("div","muted",`… 외 ${rows.length-shown}명 (검색/필터로 좁혀 보세요)`));
+  wrap.replaceChildren(frag);
   updateGanttFades();
   updateTlSelHint();
 }
 /* ---------- timeline: per-person card fallback (narrow screens) ---------- */
 function renderTLCards(rows, off629, planEnd, n){
-  const wrap=$("#tlcards"); wrap.innerHTML="";
-  if(!rows.length){ wrap.append(el("div","empty-hint","해당 조건의 참가자가 없습니다.")); return; }
+  const wrap=$("#tlcards"); const frag=document.createDocumentFragment();
+  if(!rows.length){ wrap.replaceChildren(el("div","empty-hint","해당 조건의 참가자가 없습니다.")); return; }
   const order=[VEN.BYYTC,VEN.YOUUS,VEN.BOOY,"(미배정)"];
   const groups={}; rows.forEach(p=>{ const v=partyVenue(p); (groups[v]=groups[v]||[]).push(p); });
   const pos={}; state.orderList.forEach((id,i)=>pos[id]=i);
@@ -1691,10 +1722,11 @@ function renderTLCards(rows, off629, planEnd, n){
     const gh=el("div","tlgroup "+vc);
     gh.append(el("span","chev"+(open?" open":""),"▶"), el("span","glabel",`${v} — ${list.length}건 / ${people}명`));
     gh.onclick=()=>{ state.collapsed[v]=open; saveUI(); renderTimeline(); };
-    wrap.append(gh);
+    frag.append(gh);
     if(!open) return;
-    list.forEach(p=>wrap.append(tlCard(p,n,off629,planEnd)));
+    list.forEach(p=>frag.append(tlCard(p,n,off629,planEnd)));
   });
+  wrap.replaceChildren(frag);
 }
 function tlCard(p,n){
   const ri=partyRoomInfo(p), ci=catInfo(p.cat);
@@ -1816,8 +1848,9 @@ function assignToHotel(p,hotel){
   if(hotel===VEN.BOOY){ state.assign[p.id]="BOOY"; return; }
   let cands=state.rooms.filter(rm=>rm.hotel===hotel && compatible(rm,p));
   if(!cands.length){ toast(`${hotel}에 ${p.name} 배치 가능한 방이 없습니다 (성별/정원).`,"warn"); return; }
-  cands.sort((a,b)=>(a.total-(roomLoad(a.key)+p.hc))-(b.total-(roomLoad(b.key)+p.hc)));
-  state.assign[p.id]=cands[0].key;
+  const scored=cands.map(rm=>({rm,fit:rm.total-(roomLoad(rm.key)+p.hc)}));   // roomLoad once per candidate, not 2× per comparison
+  scored.sort((a,b)=>a.fit-b.fit);
+  state.assign[p.id]=scored[0].rm.key;
 }
 function tlRow(p,n,off629,planEnd){
   const row=el("div","tlrow"); row.style.setProperty("--ncols",n); row.dataset.pid=p.id;
@@ -2150,7 +2183,7 @@ function xSet(ws,r,c,v,t){
 }
 function exportMaster(){
   if(!state.masterBuf){ toast("먼저 ① 마스터 파일을 여세요.","warn"); return; }
-  const wb=XLSX.read(state.masterBuf,{type:"array",cellFormula:true,cellStyles:true});  // fresh copy from original
+  const wb=XLSX.read(state.masterBuf,{type:"array",cellFormula:true});  // fresh copy from original (cellFormula kept to round-trip 도착일/출발일/숙박일수/총인원)
   const ws=wb.Sheets["참가자"]; const H=state.pH; const HR=1;     // header row = 2nd row
   const range=XLSX.utils.decode_range(ws['!ref']);
   const origEndC=range.e.c;                 // last original column (before we append room-detail cols)
@@ -2377,7 +2410,7 @@ $("#modal").addEventListener("click",e=>{ if(e.target.id==="modal") closeCard();
 document.addEventListener("keydown",e=>{
   if(e.key!=="Escape") return;
   if(!$("#sheet").hidden){ closeSheet(); return; }
-  if(state.pick){ state.pick=null; announce("선택 해제"); render(); return; }
+  if(state.pick){ setPick(null,"선택 해제"); return; }
   if(state.tlSel.size){ clearTlSel(); return; }   // clear timeline multi-select
   closeCard();
 });
@@ -2385,7 +2418,7 @@ document.addEventListener("keydown",e=>{
 document.addEventListener("click",e=>{
   if(!state.pick) return;
   if(e.target.closest(".chip,.room,#poollist,.pickhint,.vtab,#mobilebar,#jumpbar,#sheet,.venue>h2,.floorgrp>h3")) return;
-  state.pick=null; announce("선택 해제"); render();
+  setPick(null,"선택 해제");
 });
 
 // edge-fade affordances for horizontal scrollers (gantt + mobile statsbar)
@@ -2408,9 +2441,10 @@ $("#statsbar").addEventListener("scroll",updateStatsFades,{passive:true});
 loadUI();   // restore column widths, collapsed groups, and last view
 buildLegend();   // static category key (DESIGN-4)
 if(!state.masterBuf) setEmpty(true);   // show the import/start screen until a master is loaded
-let _rsT=null;
+let _rsT=null, _rzRAF=null;
 window.addEventListener("resize",()=>{
-  syncTop(); updateGanttFades(); updateStatsFades();
+  if(_rzRAF) cancelAnimationFrame(_rzRAF);                                  // coalesce layout reads/writes to one per frame
+  _rzRAF=requestAnimationFrame(()=>{ _rzRAF=null; syncTop(); updateGanttFades(); updateStatsFades(); });
   // debounced timeline re-render so the gantt↔card threshold (560px) is honoured on rotate/resize
   if(state.view==="timeline"){ clearTimeout(_rsT); _rsT=setTimeout(renderTimeline,150); }
 });
