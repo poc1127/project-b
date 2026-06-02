@@ -586,7 +586,7 @@
     <!-- ① data input -->
     <span class="tgroup" role="group" aria-label="1단계 데이터 입력">
       <span class="tglabel" aria-hidden="true">① 입력</span>
-      <label class="btn" title="참가자·객실 데이터가 담긴 마스터 .xlsx 파일을 불러옵니다.">① 마스터 열기<input type="file" id="fileMaster" accept=".xlsx"></label>
+      <label class="btn" title="참가자·객실 데이터가 담긴 마스터 .xlsx 파일을 불러옵니다.">① 마스터 열기<input type="file" id="fileMaster" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"></label>
     </span>
     <!-- ② primary action -->
     <span class="tgroup" role="group" aria-label="2단계 자동 배정">
@@ -634,7 +634,7 @@
         </div>
         <div class="ss-h">여기로 파일을 끌어다 놓으세요</div>
         <div class="ss-p"><b>참가자 · 객실</b> 탭이 있는 <b>.xlsx</b> 파일</div>
-        <label class="ss-btn" title="마스터 .xlsx 열기">① 마스터 파일 열기<input type="file" id="ssFile" accept=".xlsx"></label>
+        <label class="ss-btn" title="마스터 .xlsx 열기">① 마스터 파일 열기<input type="file" id="ssFile" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"></label>
         <div class="ss-or">또는 파일 선택 버튼을 누르세요</div>
       </div>
     </div>
@@ -697,7 +697,7 @@
 
 <!-- mobile fixed bottom action bar: two primary actions + 더보기 -->
 <div id="mobilebar">
-  <label class="mbtn" id="mbMaster" title="마스터 .xlsx 열기">① 마스터<input type="file" id="mbFileMaster" accept=".xlsx"></label>
+  <label class="mbtn" id="mbMaster" title="마스터 .xlsx 열기">① 마스터<input type="file" id="mbFileMaster" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"></label>
   <button class="mbtn go" id="mbAuto" disabled>② 자동 배정</button>
   <button class="mbtn more" id="mbMore" aria-haspopup="true" aria-expanded="false" aria-controls="sheet">⋯ 더보기</button>
 </div>
@@ -1064,10 +1064,23 @@ function parseRooms(aoa){
 }
 
 /* ---------- assignment model ---------- */
+// Occupancy snapshot: roomKey -> occupant array (sorted by name). Built once per render/export
+// pass and consulted by roomLoad/roomOccupants so they answer in O(occupants) instead of scanning
+// the whole assign map. NON-null only during a synchronous render()/export pass (no assign mutation
+// happens then); always reset to null afterwards so auto-assign/manual paths never read stale data.
+let _occ=null;
+function buildOcc(){                              // single O(P) pass over the assignment map
+  const occ={};
+  for(const pid in state.assign){ const k=state.assign[pid]; if(k && k!=="BOOY"){ (occ[k]=occ[k]||[]).push(state.byId[pid]); } }
+  for(const k in occ) occ[k].sort((a,b)=>a.name.localeCompare(b.name));   // match roomOccupants' contract once
+  return occ;
+}
 function roomLoad(roomKey){
+  if(_occ){ const o=_occ[roomKey]; let n=0; if(o) for(let i=0;i<o.length;i++) n+=o[i].hc; return n; }
   let n=0; for(const pid in state.assign){ if(state.assign[pid]===roomKey) n+=state.byId[pid].hc; } return n;
 }
 function roomOccupants(roomKey){
+  if(_occ) return _occ[roomKey]||[];             // already sorted by buildOcc; callers treat it read-only
   const out=[]; for(const pid in state.assign){ if(state.assign[pid]===roomKey) out.push(state.byId[pid]); }
   return out.sort((a,b)=>a.name.localeCompare(b.name));
 }
@@ -1152,21 +1165,24 @@ function venueClass(hotel){ return hotel===VEN.BYYTC?"byytc":hotel===VEN.YOUUS?"
 
 function render(){
   setEmpty(false);                 // a master is loaded → leave the import screen, reveal the dashboard
-  renderStats();
-  const tl = state.view==="timeline";
-  $("#main").style.display = tl?"none":"flex";
-  $("#warnpanel").style.display = tl?"none":"block";
-  $("#timeline").style.display = tl?"flex":"none";   // flex column (gantt/cards fill remaining height)
-  $("#tabRooms").classList.toggle("active",!tl);
-  $("#tabTimeline").classList.toggle("active",tl);
-  // tab semantics for assistive tech (idempotent each render)
-  const vt=document.querySelector(".viewtabs"); if(vt) vt.setAttribute("role","tablist");
-  $("#tabRooms").setAttribute("role","tab");     $("#tabRooms").setAttribute("aria-selected",String(!tl));
-  $("#tabTimeline").setAttribute("role","tab");  $("#tabTimeline").setAttribute("aria-selected",String(tl));
-  if(tl){ renderTimeline(); }
-  else { renderPool(); renderVenues(); renderWarnings(); }
-  $("#venues").classList.toggle("picking", !tl && !!state.pick);
-  syncTop();
+  _occ=buildOcc();                 // one occupancy pass shared by stats/venues/warnings this render
+  try{
+    renderStats();
+    const tl = state.view==="timeline";
+    $("#main").style.display = tl?"none":"flex";
+    $("#warnpanel").style.display = tl?"none":"block";
+    $("#timeline").style.display = tl?"flex":"none";   // flex column (gantt/cards fill remaining height)
+    $("#tabRooms").classList.toggle("active",!tl);
+    $("#tabTimeline").classList.toggle("active",tl);
+    // tab semantics for assistive tech (idempotent each render)
+    const vt=document.querySelector(".viewtabs"); if(vt) vt.setAttribute("role","tablist");
+    $("#tabRooms").setAttribute("role","tab");     $("#tabRooms").setAttribute("aria-selected",String(!tl));
+    $("#tabTimeline").setAttribute("role","tab");  $("#tabTimeline").setAttribute("aria-selected",String(tl));
+    if(tl){ renderTimeline(); }
+    else { renderPool(); renderVenues(); renderWarnings(); }
+    $("#venues").classList.toggle("picking", !tl && !!state.pick);
+    syncTop();
+  } finally { _occ=null; }         // snapshot is valid only for this synchronous pass
 }
 function setView(v){ state.view=v; state.pick=null; saveUI(); render(); }
 function populateFilters(){
@@ -2106,11 +2122,13 @@ function exportExcel(){
   // per-room roster
   const ros=[["숙소","건물","층","호실","유형","성별","정원","배정","점유자"]];
   const order=[VEN.BYYTC,VEN.YOUUS];
+  _occ=buildOcc();                                 // O(occupants) room lookups for the roster
   order.forEach(h=>state.rooms.filter(r=>r.hotel===h).forEach(r=>{
     const occ=roomOccupants(r.key);
     ros.push([r.hotel,r.bldg,r.floor,r.rno||r.id,r.type,r.gender,r.total,roomLoad(r.key),
       occ.map(o=>o.name+(o.hc>1?`(${o.hc})`:"")).join(", ")]);
   }));
+  _occ=null;
   const booy=state.parties.filter(p=>state.assign[p.id]==="BOOY");
   if(booy.length) ros.push([VEN.BOOY,"","","개별","","",booy.reduce((s,p)=>s+p.hc,0),booy.reduce((s,p)=>s+p.hc,0),booy.map(o=>o.name).join(", ")]);
   XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(ros),"객실roster");
@@ -2203,6 +2221,7 @@ function exportMaster(){
 /* ---------- print ---------- */
 function buildPrint(){
   const pa=$("#printarea"); pa.innerHTML="";
+  _occ=buildOcc();                                 // O(occupants) room lookups while building the printout
   [VEN.BYYTC,VEN.YOUUS].forEach(hotel=>{
     const rooms=state.rooms.filter(r=>r.hotel===hotel);
     if(!rooms.length) return;
@@ -2230,6 +2249,7 @@ function buildPrint(){
     });
     pa.append(g);
   });
+  _occ=null;
   const booy=state.parties.filter(p=>state.assign[p.id]==="BOOY");
   if(booy.length){
     const g=el("div","pgroup"); g.append(el("h2",null,`${VEN.BOOY} (개별 예약 · ${booy.reduce((s,p)=>s+p.hc,0)}명)`));
