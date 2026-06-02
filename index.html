@@ -38,6 +38,9 @@
   header .tbdiv{width:1px;align-self:stretch;background:rgba(255,255,255,.25);margin:2px 4px;}
   header .toolbtns{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
   input[type=file]{display:none;}
+  /* inline-SVG icons (replace emoji): inherit text colour, scale with font-size, render identically across OSes */
+  .ico{width:1em;height:1em;display:inline-block;vertical-align:-.14em;flex:none;}
+  .mbtn .ico,.sbtn .ico,.rsbtn .ico,.legitem .ico{vertical-align:middle;}
   #statsbar{display:flex;gap:14px;flex-wrap:wrap;padding:8px 16px;background:#fff;border-bottom:1px solid var(--line);font-size:12px;align-items:center;}
   #statsbar .stat b{font-size:15px;}
   #statsbar .stat{padding:2px 8px;border-right:1px solid #eee;}
@@ -77,7 +80,8 @@
   .chip.mix{border-left:3px solid #8a6; }
   .chip.locked{background:#fff7df;}
   .chip .nm{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-  .chip .hc{color:#666;font-size:10px;}
+  .chip .hc{color:#666;font-size:10px;display:inline-flex;align-items:center;gap:2px;}
+  .chip .hc .ico{width:13px;height:13px;}
   .chip .lk{cursor:pointer;font-size:11px;}
   .chip.badmatch{outline:1.5px solid var(--warn);}
   .chip .grp{font-size:9px;color:#a60;}
@@ -182,7 +186,8 @@
   #tlhead .lbl.ctr{justify-content:center;}
   #tlhead .lbl.sortable{cursor:pointer;}
   #tlhead .lbl.sortable:hover{background:#e9eef4;}
-  #tlhead .lbl .sortar{margin-left:3px;font-size:8px;color:var(--primary);flex:none;}
+  #tlhead .lbl .sortar{margin-left:3px;color:var(--primary);flex:none;display:inline-flex;align-items:center;}
+  #tlhead .lbl .sortar .ico{width:12px;height:12px;}
   #tlhead .lbl .colgrip{position:absolute;top:0;right:-3px;width:7px;height:100%;cursor:col-resize;z-index:5;touch-action:none;}
   #tlhead .lbl .colgrip:hover,#tlhead .lbl .colgrip.drag{background:rgba(207,70,49,.35);}
   /* hotel split band */
@@ -211,6 +216,13 @@
   .tlrow.selected{background:#e3edff;}
   .tlrow.selected .idc,.tlrow.selected .catc,.tlrow.selected .who{background:#e3edff;}
   .tlrow.selected .who{box-shadow:1px 0 0 0 #9bbcf0;}
+  /* 호텔·객실번호·수용 follow the same row-state fills as the 이름 column */
+  .tlrow .venc,.tlrow .roomc,.tlrow .capc{background:#fff;}   /* base white — these sit in the scrolling pane, which isn't white */
+  .tlrow.alt .venc,.tlrow.alt .roomc,.tlrow.alt .capc{background:#eef2f6;}
+  .tlrow:hover .venc,.tlrow:hover .roomc,.tlrow:hover .capc{background:#f3f7fb;}
+  .tlrow.dup .venc,.tlrow.dup .roomc,.tlrow.dup .capc{background:#fff7e6;}
+  .tlrow.dup:hover .venc,.tlrow.dup:hover .roomc,.tlrow.dup:hover .capc{background:#ffeecc;}
+  .tlrow.selected .venc,.tlrow.selected .roomc,.tlrow.selected .capc{background:#e3edff;}
   #tlhead .lbl:nth-child(1){position:sticky;left:0;z-index:12;background:var(--bg);}
   #tlhead .lbl:nth-child(2){position:sticky;left:var(--c1,56px);z-index:12;background:var(--bg);}
   #tlhead .lbl:nth-child(3){position:sticky;left:var(--c2,114px);z-index:12;background:var(--bg);box-shadow:1px 0 0 0 #ccc;}
@@ -223,6 +235,7 @@
   .tlrow.dup{background:#fff7e6;}
   .tlrow.dup:hover{background:#ffeecc;}
   .tlrow .dupflag{margin-left:4px;font-size:10px;color:var(--warning);cursor:help;flex:none;}
+  .dupflag .ico{width:13px;height:13px;}
   .tlrow .track{position:relative;height:17px;background:
      repeating-linear-gradient(to right,transparent,transparent calc(100%/var(--ncols) - 1px),#ececec calc(100%/var(--ncols) - 1px),#ececec calc(100%/var(--ncols)));}
   .tlrow .track .unoff{position:absolute;top:0;bottom:0;background:#f7ecec;}
@@ -237,9 +250,9 @@
   /* ⑤ detail modal */
   .modal-bg{position:fixed;inset:0;background:rgba(15,23,35,.5);z-index:200;display:flex;align-items:center;justify-content:center;padding:16px;animation:modalin .15s ease;}
   @keyframes modalin{from{opacity:0;}to{opacity:1;}}
-  .card{background:#fff;border-radius:14px;max-width:540px;width:100%;max-height:88vh;overflow:auto;box-shadow:0 18px 50px rgba(15,23,35,.32);animation:cardpop .2s cubic-bezier(.2,.7,.3,1);}
+  .card{background:#fff;border-radius:14px;max-width:540px;width:100%;max-height:88vh;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 18px 50px rgba(15,23,35,.32);animation:cardpop .2s cubic-bezier(.2,.7,.3,1);}
   @keyframes cardpop{from{opacity:0;transform:translateY(14px) scale(.97);}to{opacity:1;transform:none;}}
-  .card .chead{padding:16px 20px;color:#fff;display:flex;align-items:center;gap:12px;border-radius:14px 14px 0 0;position:sticky;top:0;z-index:1;}
+  .card .chead{padding:16px 20px;color:#fff;display:flex;align-items:center;gap:12px;border-radius:14px 14px 0 0;flex:none;}
   .card .chead .htitle{flex:1;min-width:0;}
   .card .chead h2{margin:0;font-size:18px;font-weight:700;line-height:1.25;word-break:break-word;}
   .card .chead .sub{margin-top:3px;opacity:.92;font-size:12px;font-weight:500;}
@@ -247,19 +260,20 @@
   .card .cedit:hover{background:rgba(255,255,255,.34);}
   .card .cx{cursor:pointer;font-size:20px;line-height:1;background:none;border:none;color:#fff;opacity:.85;padding:2px 4px;flex:none;}
   .card .cx:hover{opacity:1;}
-  .card .cbody{padding:16px 22px 20px;display:grid;grid-template-columns:max-content 1fr;gap:10px 20px;font-size:13px;align-items:baseline;}
+  .card .cbody{padding:16px 22px 20px;display:grid;grid-template-columns:max-content 1fr;gap:10px 20px;font-size:13px;align-items:baseline;flex:1 1 auto;overflow:auto;min-height:0;}
   .card .cbody .k{color:var(--text-muted);white-space:nowrap;font-size:12px;} .card .cbody .v{color:#26323f;font-weight:500;word-break:break-word;}
-  .card .cbody.edit{align-items:center;gap:9px 16px;}
+  .card .cbody.edit{align-items:center;gap:6px 16px;}
   .card .cbody.edit .k{font-size:12px;color:var(--text-muted);}
-  .card .cbody.edit input,.card .cbody.edit select,.card .cbody.edit textarea{width:100%;box-sizing:border-box;font:inherit;font-size:13px;padding:6px 8px;border:1px solid var(--line);border-radius:7px;background:#fff;}
+  .card .cbody.edit input,.card .cbody.edit select,.card .cbody.edit textarea{width:100%;box-sizing:border-box;font:inherit;font-size:13px;padding:5px 8px;border:1px solid var(--line);border-radius:7px;background:#fff;}
   .card .cbody.edit input:focus,.card .cbody.edit select:focus,.card .cbody.edit textarea:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px rgba(207,70,49,.15);}
   .card .cbody.edit textarea{resize:vertical;}
-  .card .cfoot{display:flex;gap:8px;justify-content:flex-end;padding:12px 20px;border-top:1px solid #eef0f3;position:sticky;bottom:0;background:#fff;border-radius:0 0 14px 14px;}
+  .card .cbody.edit .sec{margin-top:12px;}                    /* tighter section spacing in edit mode */
+  .card .cfoot{display:flex;gap:8px;justify-content:flex-end;padding:12px 20px;border-top:1px solid #eef0f3;flex:none;background:#fff;border-radius:0 0 14px 14px;}
   .card .cfoot button{padding:8px 18px;border-radius:8px;}
   .card .cfoot .cdanger{margin-right:auto;background:#fff;color:var(--danger);border:1px solid #e3b4ae;}
   .card .cfoot .cdanger:hover{background:#fdecea;border-color:#d49a93;}
   .card .sec{grid-column:1/-1;display:flex;align-items:center;gap:8px;margin:18px 0 4px;padding-bottom:7px;border-bottom:1px solid #edf0f3;font-weight:700;font-size:12.5px;letter-spacing:.02em;color:var(--ink);}
-  .card .sec::before{content:"";width:4px;height:14px;border-radius:2px;background:var(--primary);flex:none;}
+  .card .sec::before{content:"";width:4px;height:14px;border-radius:2px;background:var(--catc,var(--primary));flex:none;}
   .card .cbody>.sec:first-child{margin-top:0;}
   /* long-press row context action sheet (timeline) */
   #rowsheet{position:fixed;inset:0;z-index:210;background:rgba(15,23,35,.45);display:flex;align-items:flex-end;justify-content:center;animation:modalin .15s ease;}
@@ -295,12 +309,19 @@
   @media (max-width:640px){ #toasts{bottom:calc(74px + env(safe-area-inset-bottom));} }   /* clear the mobile action bar */
   @keyframes toastin{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:none;}}
   /* ===== confirm / info dialog — its own layer, above the detail modal & sheet ===== */
-  #dlgbg{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:460;display:flex;align-items:center;justify-content:center;padding:16px;}
-  #dlg{background:#fff;border-radius:11px;max-width:440px;width:100%;box-shadow:0 12px 44px rgba(0,0,0,.32);overflow:hidden;}
-  #dlg .dh{padding:13px 16px;font-size:15px;font-weight:700;color:var(--ink);border-bottom:1px solid #eee;}
-  #dlg .db{padding:14px 16px;font-size:13px;line-height:1.55;white-space:pre-line;color:#333;max-height:58vh;overflow:auto;}
-  #dlg .df{display:flex;gap:8px;justify-content:flex-end;padding:10px 16px;border-top:1px solid #eee;flex-wrap:wrap;}
-  #dlg .df button{padding:8px 16px;min-height:44px;}
+  #dlgbg{position:fixed;inset:0;background:rgba(20,28,38,.5);z-index:460;display:flex;align-items:center;justify-content:center;padding:16px;animation:dlgfade .16s ease-out;}
+  #dlg{background:#fff;border-radius:14px;max-width:430px;width:100%;box-shadow:0 18px 50px rgba(20,30,45,.30);overflow:hidden;animation:dlgpop .18s cubic-bezier(.2,.7,.3,1);}
+  #dlg .dh{padding:20px 22px 0;font-size:16px;font-weight:700;color:var(--ink);}
+  #dlg .db{padding:10px 22px 2px;font-size:13px;line-height:1.6;white-space:pre-line;color:var(--text2);max-height:58vh;overflow:auto;}
+  #dlg .df{display:flex;gap:8px;justify-content:flex-end;padding:18px 22px 20px;flex-wrap:wrap;}
+  #dlg .df button{padding:9px 18px;min-height:44px;border-radius:8px;font-weight:600;}
+  #dlg .df .alt{background:var(--bg);color:var(--text2);border:1px solid var(--border);}
+  #dlg .df .alt:hover{background:#e3e8ef;}
+  #dlg .df #dlgOk:hover{background:var(--primary-hover);}        /* coral confirm */
+  #dlg .df #dlgOk.go:hover{background:#266a47;}                  /* green confirm */
+  #dlg .df button:focus-visible{outline:2px solid var(--ink);outline-offset:2px;}
+  @keyframes dlgpop{from{opacity:0;transform:translateY(8px) scale(.985);}to{opacity:1;transform:none;}}
+  @keyframes dlgfade{from{opacity:0;}to{opacity:1;}}
   /* ===== toolbar grouping (DESIGN-1): cluster actions by function ===== */
   .toolbtns{align-items:center;gap:6px;}
   .tgroup{display:inline-flex;align-items:center;gap:6px;}
@@ -663,7 +684,7 @@
     <div id="poollist" role="group" aria-label="미배정 인원 목록"></div>
   </div>
   <div id="jumpbar" aria-label="객실 그룹으로 이동">
-    <select id="jumpsel" aria-label="숙소·층으로 이동"><option value="">↧ 숙소·층으로 이동…</option></select>
+    <select id="jumpsel" aria-label="숙소·층으로 이동"><option value="">숙소·층으로 이동…</option></select>
   </div>
   <div id="venues"></div>
 </div>
@@ -707,7 +728,7 @@
 <div id="mobilebar">
   <label class="mbtn" id="mbMaster" title="마스터 .xlsx 열기">① 마스터<input type="file" id="mbFileMaster" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"></label>
   <button class="mbtn go" id="mbAuto" disabled>② 자동 배정</button>
-  <button class="mbtn more" id="mbMore" aria-haspopup="true" aria-expanded="false" aria-controls="sheet">⋯ 더보기</button>
+  <button class="mbtn more" id="mbMore" aria-haspopup="true" aria-expanded="false" aria-controls="sheet"><span class="ic" data-ico="more"></span> 더보기</button>
 </div>
 
 <!-- 더보기 bottom sheet: the remaining (secondary) actions -->
@@ -715,9 +736,9 @@
   <div class="sheet-panel" role="document">
     <div class="sheet-grip"></div>
     <h3>더보기</h3>
-    <button class="sbtn" id="shExcel" disabled><span class="ic">📊</span> 배정 결과 저장</button>
-    <button class="sbtn" id="shMaster" disabled><span class="ic">📤</span> 마스터 업데이트 (v+1)</button>
-    <button class="sbtn" id="shPrint" disabled><span class="ic">🖨</span> 인쇄 / PDF</button>
+    <button class="sbtn" id="shExcel" disabled><span class="ic" data-ico="download"></span> 배정 결과 저장</button>
+    <button class="sbtn" id="shMaster" disabled><span class="ic" data-ico="upload"></span> 마스터 업데이트 (v+1)</button>
+    <button class="sbtn" id="shPrint" disabled><span class="ic" data-ico="printer"></span> 인쇄 / PDF</button>
   </div>
 </div>
 
@@ -777,6 +798,31 @@ const state = {
 /* ---------- helpers ---------- */
 const $ = s => document.querySelector(s);
 const el = (t,c,txt)=>{const e=document.createElement(t); if(c)e.className=c; if(txt!=null)e.textContent=txt; return e;};
+// ---- icon set: inline SVG, Lucide-style (24×24, currentColor, 2px). One look for every action/UI glyph; replaces emoji. ----
+const ICONS={
+  download:'<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>',
+  upload:'<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>',
+  printer:'<polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/>',
+  more:'<circle cx="5" cy="12" r="1.5" fill="currentColor"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/><circle cx="19" cy="12" r="1.5" fill="currentColor"/>',
+  users:'<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
+  lock:'<rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',
+  unlock:'<rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/>',
+  check:'<polyline points="20 6 9 17 4 12"/>',
+  checkCircle:'<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>',
+  building:'<rect x="4" y="2" width="16" height="20" rx="2" ry="2"/><path d="M9 22v-4h6v4"/><line x1="8" y1="6" x2="8" y2="6"/><line x1="12" y1="6" x2="12" y2="6"/><line x1="16" y1="6" x2="16" y2="6"/><line x1="8" y1="10" x2="8" y2="10"/><line x1="12" y1="10" x2="12" y2="10"/><line x1="16" y1="10" x2="16" y2="10"/><line x1="8" y1="14" x2="8" y2="14"/><line x1="12" y1="14" x2="12" y2="14"/><line x1="16" y1="14" x2="16" y2="14"/>',
+  search:'<circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>',
+  pencil:'<path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/>',
+  checkSquare:'<polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>',
+  trash:'<polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/>',
+  undo:'<polyline points="9 14 4 9 9 4"/><path d="M20 20v-7a4 4 0 0 0-4-4H4"/>',
+  alert:'<path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>',
+  x:'<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>',
+  grip:'<circle cx="9" cy="6" r="1.4" fill="currentColor"/><circle cx="9" cy="12" r="1.4" fill="currentColor"/><circle cx="9" cy="18" r="1.4" fill="currentColor"/><circle cx="15" cy="6" r="1.4" fill="currentColor"/><circle cx="15" cy="12" r="1.4" fill="currentColor"/><circle cx="15" cy="18" r="1.4" fill="currentColor"/>',
+  chevronUp:'<polyline points="18 15 12 9 6 15"/>',
+  chevronDown:'<polyline points="6 9 12 15 18 9"/>',
+  sort:'<polyline points="7 15 12 20 17 15"/><polyline points="7 9 12 4 17 9"/>',
+};
+const ico = name => '<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+(ICONS[name]||"")+'</svg>';
 const norm = v => (v==null? "" : String(v).trim());
 const isDate = h => /^\d+월\d+일$/.test(norm(h));
 
@@ -849,7 +895,7 @@ function buildLegend(){
     g.append(it);
   });
   const extra=el("div","legitem"); extra.style.gridColumn="1/-1"; extra.style.color="#666";
-  extra.textContent="🔒 잠금(자동배정 제외) · 🔓 해제 · 남/여/혼 = 성별";
+  extra.innerHTML=`${ico('lock')} 잠금(자동배정 제외) · ${ico('unlock')} 해제 · 남/여/혼 = 성별`;
   g.append(extra);
 }
 
@@ -965,7 +1011,7 @@ function loadMaster(arrbuf){
   // surface any room whose 객실ID isn't tied to a single hotel (data-integrity warning)
   if(state.roomDupIds && state.roomDupIds.length){
     const list=state.roomDupIds.map(d=>`${d.id} (${d.hotels.join(" / ")})`).join(", ");
-    toast(`⚠ 객실ID가 한 숙소에 고유하지 않습니다 — 방-숙소 연결이 모호합니다: ${list}`,"err",9000);
+    toast(`객실ID가 한 숙소에 고유하지 않습니다 — 방-숙소 연결이 모호합니다: ${list}`,"err",9000);
   }
   // default assignment: respect 배정숙소 pre-locks
   state.assign={}; state.locked={}; state.tlSel.clear(); state.deletedRows=[];
@@ -1237,7 +1283,7 @@ function renderStats(issues){
     `<span class="frac frac-${lvl(used,cap)}" title="${pct(used,cap)}% 사용">/${cap}</span>`);
   // 미배정 is the number a coordinator acts on → emphasised block (red when >0, green ✓ when clear)
   const un=el("span","stat "+(unassigned?"alert":"clear"));
-  un.innerHTML = unassigned ? `미배정 <b>${unassigned}</b>명` : `미배정 <b>0</b> ✓`;
+  un.innerHTML = unassigned ? `미배정 <b>${unassigned}</b>명` : `미배정 <b>0</b> ${ico('check')}`;
   sb.append(
     mk("총 인원",total),
     mk("방 필요",needP),
@@ -1252,7 +1298,7 @@ function renderStats(issues){
   const issueN=issues.length;
   const warn=el("span","stat warnjump"); warn.tabIndex=0; warn.setAttribute("role","button");
   warn.setAttribute("aria-label",`경고 ${issueN}건 — 경고 패널로 이동`);
-  warn.innerHTML = issueN ? `<span class="pill warn">⚠ 경고 ${issueN}건</span>` : `<span class="pill ok">경고 0</span>`;
+  warn.innerHTML = issueN ? `<span class="pill warn">${ico('alert')} 경고 ${issueN}건</span>` : `<span class="pill ok">경고 0</span>`;
   warn.title="클릭하면 경고 패널로 이동합니다";
   warn.onclick=jumpToWarnings;
   warn.onkeydown=e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); jumpToWarnings(); } };
@@ -1277,7 +1323,7 @@ function chip(p){
   if(state.locked[p.id]) c.classList.add("locked");
   const room = state.assign[p.id] && state.assign[p.id]!=="BOOY" ? state.roomById[state.assign[p.id]] : null;
   if(room && matchIssue(room,p)) c.classList.add("badmatch");
-  const grip=el("span","drag","⠿"); grip.setAttribute("aria-hidden","true"); grip.title="끌어서 이동(드래그)";
+  const grip=el("span","drag"); grip.innerHTML=ico('grip'); grip.setAttribute("aria-hidden","true"); grip.title="끌어서 이동(드래그)";
   const ci=catInfo(p.cat);
   // slim 1-char category badge (colour carries the rest; the legend + hover decode it) → more room for names
   const cat=el("span","cat", (ci.ab||"-").slice(0,1)); cat.style.background=ci.c; cat.title="분류: "+(p.cat||ci.ab); cat.setAttribute("aria-hidden","true");
@@ -1286,9 +1332,9 @@ function chip(p){
   const nm=el("span","nm", p.name + (p.kname?` (${p.kname})`:""));
   // full name first so a truncated name is recoverable on hover (DESIGN-3)
   nm.title = `${p.name}${p.kname?` (${p.kname})`:""} · ${p.id} · ${p.cat} · ${p.arr}~${p.dep}` + (p.pre?` · 사전:${p.pre}`:"");
-  const hc=el("span","hc", p.hc>1?`👪${p.hc}`:"");
+  const hc=el("span","hc"); if(p.hc>1) hc.innerHTML=ico('users')+p.hc;
   if(p.hc>1) hc.title=`총 ${p.hc}명 (본인 ${p.party.본인}·배우자 ${p.party.배우자}·자녀 ${p.party.자녀}·기타 ${p.party.기타})`;
-  const lk=el("span","lk", state.locked[p.id]?"🔒":"🔓");
+  const lk=el("span","lk"); lk.innerHTML=ico(state.locked[p.id]?'lock':'unlock');
   lk.setAttribute("role","button"); lk.tabIndex=0;
   lk.setAttribute("aria-pressed", state.locked[p.id]?"true":"false");
   lk.setAttribute("aria-label", (state.locked[p.id]?"잠금 해제":"잠금")+" — "+p.name+" (자동배정 제외)");
@@ -1342,8 +1388,8 @@ function chip(p){
 // lives in #poollist. We update just that chip, the venue drop-highlight, and the pool hint banner.
 function makePickHint(){
   const ph=el("div","pickhint");
-  ph.append(el("span",null,`✅ ${state.byId[state.pick].name} 선택됨 — 방을 누르면 배정됩니다.`));
-  const cx=el("button","pickcancel","✕ 취소"); cx.type="button"; cx.setAttribute("aria-label","선택 취소(Esc)");
+  const ps=el("span"); ps.innerHTML=`${ico('checkCircle')} ${esc(state.byId[state.pick].name)} 선택됨 — 방을 누르면 배정됩니다.`; ph.append(ps);
+  const cx=el("button","pickcancel"); cx.innerHTML=`${ico('x')} 취소`; cx.type="button"; cx.setAttribute("aria-label","선택 취소(Esc)");
   cx.onclick=ev=>{ ev.stopPropagation(); setPick(null,"선택 해제"); };
   ph.append(cx);
   return ph;
@@ -1371,7 +1417,7 @@ function renderPool(){
   $("#poolcount").textContent = `(${un.reduce((s,p)=>s+p.hc,0)}명 / ${un.length}건)`;
   if(state.pick && state.byId[state.pick]) list.append(makePickHint());
   // distinguish "pool is genuinely empty" from "search filtered everything out"
-  if(!un.length){ list.append(el("div","empty-hint", q?`'${$("#poolsearch").value}' 검색 결과가 없습니다`:"미배정 없음 🎉")); }
+  if(!un.length){ const eh=el("div","empty-hint"); eh.innerHTML = q?`'${esc($("#poolsearch").value)}' 검색 결과가 없습니다`:`${ico('checkCircle')} 미배정 없음`; list.append(eh); }
   un.forEach(p=>list.append(chip(p)));
   makeDrop(list,null);   // drop back to pool = unassign
 }
@@ -1558,7 +1604,7 @@ function renderWarnings(issues){
   if(un) wh.append(el("span","pill warn",`미배정 ${un}명`));
   wp.append(wh);
   wp.append(el("div","warnnote","아래는 배정 점검 결과입니다 — 정원 초과, 성별/조건 불일치, 그리고 같은 묶음(그룹)이 여러 방에 흩어진 경우를 안내합니다."));
-  if(!issues.length){ wp.append(el("div",null,un?"용량/성별 충돌 없음. 미배정 인원을 수동 배치하세요.":"문제 없음 ✓")); return; }
+  if(!issues.length){ const d=el("div"); d.innerHTML=un?"용량/성별 충돌 없음. 미배정 인원을 수동 배치하세요.":`문제 없음 ${ico('check')}`; wp.append(d); return; }
   const ul=el("ul"); ul.style.margin="2px 0"; issues.slice(0,40).forEach(t=>ul.append(el("li",null,t)));
   if(issues.length>40) ul.append(el("li",null,`… 외 ${issues.length-40}건`));
   wp.append(ul);
@@ -1658,8 +1704,8 @@ function renderTimeline(){
     const sortKey = ci===0?"id":ci===2?"name":null;   // ID·이름 columns are click-to-sort
     if(sortKey){
       lbl.classList.add("sortable"); lbl.title="클릭하여 정렬 (오름차순/내림차순 전환)";
-      const ar = state.tlSort.key===sortKey ? (state.tlSort.dir==="asc"?"▲":"▼") : "↕";
-      lbl.append(el("span","sortar",ar));
+      const ar = state.tlSort.key===sortKey ? (state.tlSort.dir==="asc"?ico('chevronUp'):ico('chevronDown')) : ico('sort');
+      const sa=el("span","sortar"); sa.innerHTML=ar; lbl.append(sa);
       lbl.addEventListener("click",e=>{ if(!e.target.classList.contains("colgrip")) applyTlSort(sortKey); });
     }
     lbl.append(makeColGrip(ci)); head.append(lbl);
@@ -1741,8 +1787,8 @@ function tlCard(p,n){
   const card=el("div","tlcard"+(state.dups&&state.dups.has(p.id)?" dup":""));
   const top=el("div","top");
   const cb=el("span","cat",ci.ab); cb.style.background=ci.c;
-  top.append(cb, el("span","nm",p.name+(p.hc>1?` 👪${p.hc}`:"")));
-  if(state.dups&&state.dups.has(p.id)){ const d=el("span","dupflag","⚠");
+  const nm0=el("span","nm"); nm0.innerHTML=esc(p.name)+(p.hc>1?` ${ico('users')}${p.hc}`:""); top.append(cb, nm0);
+  if(state.dups&&state.dups.has(p.id)){ const d=el("span","dupflag"); d.innerHTML=ico('alert');
     d.title="중복 의심 — 동일 이름/이메일"; top.append(d); }
   top.append(el("span","idc",p.id));
   card.append(top);
@@ -1819,7 +1865,7 @@ function tlGripStart(p,grip,row,ev){
       if(Math.abs(e.clientX-x0)+Math.abs(e.clientY-y0)<=5) return;   // movement threshold ⇒ it's a drag
       moved=true;
       const sel=state.tlSel.has(p.id)&&state.tlSel.size>1;
-      ghost=el("div","tlghost", sel?`⠿ ${state.tlSel.size}명 이동`:`⠿ ${p.id} ${p.name}`);
+      ghost=el("div","tlghost"); ghost.innerHTML = sel?`${ico('grip')} ${state.tlSel.size}명 이동`:`${ico('grip')} ${esc(p.id)} ${esc(p.name)}`;
       ghost.id="dragghost"; document.body.appendChild(ghost);
       row.classList.add("dragging");
       DRAG.pid=p.id; DRAG.onScroll=evalTgt; DRAG.vy=0; DRAG.raf=requestAnimationFrame(autoScrollTick);
@@ -1865,18 +1911,18 @@ function tlRow(p,n,off629,planEnd){
   if(state.tlSel.has(p.id)) row.classList.add("selected");
   // ⑤ unique-ID column — now also hosts the drag handle (⠿) in front of the ID
   const idc=el("div","idc");
-  const grip=el("span","tlgrip","⠿"); grip.title="끌어서 순서/숙소 이동 · 탭하여 다중 선택";
+  const grip=el("span","tlgrip"); grip.innerHTML=ico('grip'); grip.title="끌어서 순서/숙소 이동 · 탭하여 다중 선택";
   grip.addEventListener("pointerdown",ev=>tlGripStart(p,grip,row,ev));
   idc.append(grip, el("span","idtxt",p.id));
   const ci=catInfo(p.cat); const catc=el("div","catc");
   const cb=el("span","cat",ci.ab); cb.style.background=ci.c; cb.title=p.cat||""; catc.append(cb);
   const who=el("div","who");
-  const nm=el("span","nm",p.name+(p.hc>1?` 👪${p.hc}`:""));
+  const nm=el("span","nm"); nm.innerHTML=esc(p.name)+(p.hc>1?` ${ico('users')}${p.hc}`:"");
   who.append(nm); who.title="더블클릭/길게 누르기: 상세";
   if(state.dups && state.dups.has(p.id)){
     row.classList.add("dup");
     const others=(state.dupInfo[p.id]||[]).map(id=>state.byId[id]?`${state.byId[id].name}(${id})`:id).join(", ");
-    const d=el("span","dupflag","⚠"); d.title=`중복 의심 — 동일 이름/이메일: ${others}`; who.append(d);
+    const d=el("span","dupflag"); d.innerHTML=ico('alert'); d.title=`중복 의심 — 동일 이름/이메일: ${others}`; who.append(d);
   }
   who.addEventListener("dblclick",()=>openCard(p));
   attachLongPress(who,()=>openRowSheet(p,row));          // touch: long-press opens the row action sheet
@@ -1950,7 +1996,7 @@ function enableBarDrag(p,bar,hl,hr,track,n,place){
 
 /* ---------- ⑤ detail card ---------- */
 function openCard(p){
-  const card=$("#card"); const ci=catInfo(p.cat);
+  const card=$("#card"); const ci=catInfo(p.cat); card.style.setProperty("--catc",ci.c);
   const venue=partyVenue(p); const a=state.assign[p.id];
   let roomTxt=venue;
   if(a && a!=="BOOY"){ const rm=state.roomById[a]; if(rm) roomTxt=`${rm.hotel} · ${rm.bldg?rm.bldg+"동 ":""}${rm.floor?rm.floor+" ":""}${rm.rno||rm.id} (${rm.type||""})`; }
@@ -1989,21 +2035,21 @@ function closeCard(){ $("#modal").style.display="none"; }
 function openRowSheet(p,row){
   const sh=$("#rowsheet"), panel=sh.querySelector(".rs-panel");
   const cur=partyVenue(p);
-  const venBtn=(label,hotel)=>`<button class="rsbtn${cur===hotel?" cur":""}" data-act="venue" data-h="${esc(hotel)}"><span class="ic">🏨</span>${esc(label)}${cur===hotel?" ✓":""}</button>`;
+  const venBtn=(label,hotel)=>`<button class="rsbtn${cur===hotel?" cur":""}" data-act="venue" data-h="${esc(hotel)}"><span class="ic">${ico('building')}</span>${esc(label)}${cur===hotel?ico('check'):""}</button>`;
   panel.innerHTML=
     `<div class="rs-grip"></div>
      <div class="rs-head">${esc(p.name||p.id)} <span class="rs-sub">${esc(p.id)}${p.cat?" · "+esc(p.cat):""}</span></div>
-     <button class="rsbtn" data-act="detail"><span class="ic">🔍</span>상세 보기</button>
-     <button class="rsbtn" data-act="edit"><span class="ic">✎</span>수정</button>
+     <button class="rsbtn" data-act="detail"><span class="ic">${ico('search')}</span>상세 보기</button>
+     <button class="rsbtn" data-act="edit"><span class="ic">${ico('pencil')}</span>수정</button>
      <div class="rs-sec">숙소 이동</div>
      <div class="rs-venues">
        ${venBtn(VEN.BYYTC,VEN.BYYTC)}
        ${venBtn(VEN.YOUUS,VEN.YOUUS)}
        ${venBtn(VEN.BOOY+"(NOC)",VEN.BOOY)}
-       <button class="rsbtn${cur==null?" cur":""}" data-act="venue" data-h=""><span class="ic">↩</span>미배정${cur==null?" ✓":""}</button>
+       <button class="rsbtn${cur==null?" cur":""}" data-act="venue" data-h=""><span class="ic">${ico('undo')}</span>미배정${cur==null?ico('check'):""}</button>
      </div>
-     <button class="rsbtn" data-act="select"><span class="ic">☑</span>${state.tlSel.has(p.id)?"다중 선택에서 빼기":"다중 선택에 추가"}</button>
-     <button class="rsbtn danger" data-act="delete"><span class="ic">🗑</span>삭제</button>`;
+     <button class="rsbtn" data-act="select"><span class="ic">${ico('checkSquare')}</span>${state.tlSel.has(p.id)?"다중 선택에서 빼기":"다중 선택에 추가"}</button>
+     <button class="rsbtn danger" data-act="delete"><span class="ic">${ico('trash')}</span>삭제</button>`;
   sh.hidden=false;
   const close=()=>{ sh.hidden=true; sh.onclick=null; panel.onclick=null; document.removeEventListener("keydown",onKey); };
   const onKey=e=>{ if(e.key==="Escape"){ e.stopPropagation(); close(); } };
@@ -2032,7 +2078,7 @@ const FIELD_HDR={name:"이름",kname:"한글이름",sex:"성별",dob:"생년월�
   aff:"소속",title:"직책",wb:"WB등급",pay:"결제상태",cat:"카테고리",team:"팀",group:"그룹ID",
   need:"배정필요",note:"비고",companions:"동반자요약"};
 function editCard(p){
-  const card=$("#card"); const ci=catInfo(p.cat);
+  const card=$("#card"); const ci=catInfo(p.cat); card.style.setProperty("--catc",ci.c);
   const opt=(arr,cur)=>arr.map(o=>{const v=Array.isArray(o)?o[0]:o,t=Array.isArray(o)?o[1]:o;return `<option value="${esc(v)}"${String(cur)===String(v)?" selected":""}>${esc(t)}</option>`;}).join("");
   const txt=(k,v)=>`<input data-f="${k}" value="${esc(v??"")}">`;
   const numI=(k,v)=>`<input type="number" min="0" data-f="${k}" value="${v||0}" style="width:64px">`;
@@ -2253,7 +2299,7 @@ function exportMaster(){
   let msg=`'${outName}' 저장 완료 — 변경 ${changed}건.\n· 배정동/배정층/배정호실/배정객실ID 열을 추가했습니다.\n· 총인원·도착일·출발일·숙박일수는 수식이라 그대로 두었습니다.`;
   if(capChanged) msg+=`\n· 객실 수용(추가인원·총가능인원) ${capChanged}건을 '객실' 탭에 반영했습니다.`;
   if(delCount) msg+=`\n· 삭제한 기록 ${delCount}건의 행을 '참가자' 탭에서 비웠습니다.`;
-  if(beyond.length) msg+=`\n\n⚠ 마스터 박 범위를 벗어난 연장 숙박은 기록할 칸이 없어 누락: ${beyond.join(", ")}`;
+  if(beyond.length) msg+=`\n\n마스터 박 범위를 벗어난 연장 숙박은 기록할 칸이 없어 누락: ${beyond.join(", ")}`;
   msg+=`\n\n※ 버전 규칙: 이전 파일은 history/ 폴더로 옮기고 기록하세요(브라우저에서 자동 이동 불가). 셀 서식/색상은 보존되지 않을 수 있습니다.`;
   toast(`마스터 업데이트 완료 — '${outName}' (변경 ${changed}건)`,"ok",5000);
   dialog({title:"마스터 업데이트 완료", body:msg});   // detail (version rule + any warnings) in a dismissible dialog
@@ -2325,8 +2371,8 @@ function confirmAuto(){
   const un=state.parties.filter(p=>need(p)&&!state.locked[p.id]&&!state.assign[p.id]).reduce((s,p)=>s+p.hc,0);
   const movable=state.parties.filter(p=>need(p)&&!state.locked[p.id]&&state.assign[p.id]&&state.assign[p.id]!=="BOOY").reduce((s,p)=>s+p.hc,0);
   dialog({title:"② 자동 배정", danger:true, okText:"자동 배정 실행",
-    body:`성별·정원·온돌·묶음 규칙에 따라 미배정 ${un}명을 방에 배치합니다.\n`
-        +`잠기지 않은 기존 배정 ${movable}명도 재배치될 수 있습니다. (🔒 잠긴 인원은 그대로)\n\n계속할까요?`,
+    body:`성별·정원·온돌·묶음 규칙에 따라 미배정 ${un}명을 방에 배치합니다. `
+        +`잠기지 않은 기존 배정 ${movable}명도 재배치될 수 있습니다. (잠긴 인원은 그대로) 계속할까요?`,
     onOk:runAuto});
 }
 // master export has real side effects (version bump, files to move) → confirm first
@@ -2334,8 +2380,8 @@ function confirmMaster(){
   if(!state.masterBuf){ toast("먼저 ① 마스터 파일을 여세요.","warn"); return; }
   const assigned=state.parties.filter(p=>p.need!=="No"&&state.assign[p.id]).reduce((s,p)=>s+p.hc,0);
   dialog({title:"마스터 업데이트 (v+1)", okText:"업데이트",
-    body:`배정 결과(배정숙소·배정동/층/호실)를 원본 마스터에 반영해 새 버전(v{N})으로 저장합니다.\n`
-        +`현재 배정 ${assigned}명. 수식 열(총인원·도착일·출발일·숙박일수)은 그대로 둡니다.\n\n계속할까요?`,
+    body:`배정 결과(배정숙소·배정동/층/호실)를 원본 마스터에 반영해 새 버전(v{N})으로 저장합니다. `
+        +`현재 배정 ${assigned}명. 수식 열(총인원·도착일·출발일·숙박일수)은 그대로 둡니다. 계속할까요?`,
     onOk:()=>withLoading("마스터 내보내는 중…",exportMaster)});
 }
 function doPrint(){ buildPrint(); window.print(); }
@@ -2446,6 +2492,7 @@ function updateStatsFades(){ updateFades("#statsbar","#statsbarwrap"); }
 $("#gantt").addEventListener("scroll",updateGanttFades,{passive:true});
 $("#statsbar").addEventListener("scroll",updateStatsFades,{passive:true});
 
+document.querySelectorAll("[data-ico]").forEach(n=>{ n.innerHTML=ico(n.dataset.ico); });   // inject SVG icons into static toolbar buttons
 loadUI();   // restore column widths, collapsed groups, and last view
 buildLegend();   // static category key (DESIGN-4)
 if(!state.masterBuf) setEmpty(true);   // show the import/start screen until a master is loaded
