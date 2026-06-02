@@ -85,6 +85,11 @@
   .chip .lk{cursor:pointer;font-size:11px;}
   .chip.badmatch{outline:1.5px solid var(--warn);}
   .chip .grp{font-size:9px;color:#a60;}
+  /* drag-to-reorder within a room: crisp insertion line above/below the occupant under the pointer */
+  .chip.dropmark{position:relative;}
+  .chip.dropmark::after{content:"";position:absolute;left:-2px;right:-2px;height:0;border-top:2px solid var(--primary);z-index:4;pointer-events:none;box-shadow:0 0 4px rgba(207,70,49,.6);}
+  .chip.dropmark.dm-before::after{top:-3px;}
+  .chip.dropmark.dm-after::after{bottom:-3px;}
   /* tap-to-assign: picked chip, room drop-target cue, hint banner */
   .chip.picked{outline:2px solid var(--ok);box-shadow:0 0 0 2px #b6e0b8;background:#eef7ee;}
   #venues.picking .room{outline:1px dashed #79b27c;cursor:pointer;}
@@ -111,9 +116,10 @@
   .viewtabs.disabled .vtab{cursor:default;}
   .viewtabs.disabled .vtab.active{background:rgba(255,255,255,.4);color:#cdd9e4;box-shadow:none;}
   /* import / start screen (shown until a master loads) */
-  #startscreen{display:flex;align-items:center;justify-content:center;box-sizing:border-box;
+  #startscreen{display:flex;align-items:center;justify-content:center;box-sizing:border-box;position:relative;
     min-height:calc(100vh - var(--headerh,56px));padding:32px 24px;}
   #startscreen[hidden]{display:none;}
+  .ss-version{position:absolute;right:16px;bottom:13px;font-size:11px;color:var(--text-faint);letter-spacing:.02em;font-variant-numeric:tabular-nums;}
   .ss-hero{display:grid;grid-template-columns:1.05fr .95fr;width:100%;max-width:840px;
     background:var(--surface);border:1px solid var(--border);border-radius:18px;
     box-shadow:0 14px 40px rgba(20,30,45,.08);overflow:hidden;}
@@ -406,6 +412,7 @@
     .ss-hero{grid-template-columns:1fr;}
     .ss-import{order:1;padding:22px 18px 6px;}
     .ss-intro{order:2;border-right:none;border-top:1px solid var(--border);padding:26px 22px;}
+    .ss-version{display:none;}   /* version stamp is desktop-only */
     .ss-title{font-size:21px;}
     #statsbar{gap:6px;padding:6px 10px;flex-wrap:nowrap;overflow-x:auto;}
     #statsbar .stat{border-right:none;padding:2px 6px;white-space:nowrap;}
@@ -686,6 +693,7 @@
       </div>
     </div>
   </div>
+  <div class="ss-version" id="ssVersion" title="index.html 빌드 버전"></div>
 </div>
 
 <div id="main">
@@ -777,6 +785,9 @@
 
 <script>
 "use strict";
+// ⚑ index.html build version — shown bottom-right on the start screen. BUMP ON EACH DEPLOY.
+//   Format: vYYYY.MM.DD-N  (N = same-day build counter; reset to 1 on a new date).
+const APP_VERSION = "v2026.06.02-1";
 /* ============================================================
    ICMDA 2026 Room Assignment Dashboard (single file)
    - reads the live master .xlsx (columns mapped by HEADER NAME)
@@ -819,6 +830,7 @@ const state = {
   pick: null,      // tap-to-assign: id of the party currently 'picked up'
   tlSel: new Set(),// timeline multi-select: party ids selected for group drag
   tlSort: {key:null, dir:"asc"},  // timeline sort: key "id"|"name"|"room"|"cap" (null = manual drag order), dir asc|desc
+  roomOrder: {},   // roomKey -> [pid,...] manual occupant order inside a room (drag-to-reorder); absent = sort by name
 };
 
 /* ---------- helpers ---------- */
@@ -980,16 +992,45 @@ function applyDrop(pid,key){
   if(key==="__pool__"){ delete state.assign[pid]; state.pick=null; render(); announceAssign(`${p.name} 미배정으로 이동`); }
   else { state.assign[pid]=key; state.pick=null; render(); announceAssign(`${p.name} ${dropLabel(key)} 배정`); }
 }
+// Drag-to-reorder inside a room: drop `pid` just before/after `refPid`. Assigns pid to the room first
+// so dragging in from another room (or the pool) lands it at the chosen slot. The order is stored in
+// state.roomOrder and drives both the on-screen room and the printed roster (buildOcc → sortOcc).
+function reorderInRoom(pid, roomKey, refPid, after){
+  const p=state.byId[pid]; if(!p) return;
+  const moving = state.assign[pid]!==roomKey;
+  state.assign[pid]=roomKey;
+  const occ=[]; for(const q in state.assign){ if(state.assign[q]===roomKey) occ.push(state.byId[q]); }
+  sortOcc(roomKey, occ);                              // current display order (respects any existing manual order)
+  const order=occ.map(o=>o.id).filter(id=>id!==pid);
+  let at=order.indexOf(refPid); if(at<0) at=order.length; if(after) at++;
+  order.splice(at,0,pid);
+  state.roomOrder[roomKey]=order;
+  state.pick=null; render();
+  announceAssign(moving? `${p.name} ${dropLabel(roomKey)} 배정` : `${p.name} 순서 변경`);
+}
 // Begin a drag from `downEvt` for party `p`, visualised by cloning `chipNode`.
 function beginDrag(downEvt, p, chipNode){
   const pid=downEvt.pointerId, capEl=downEvt.currentTarget;
   const sx=downEvt.clientX, sy=downEvt.clientY; let started=false;
+  let mark=null, markAfter=false, markKey=null;          // chip-level insertion slot (reorder within a room)
+  const clearMark=()=>{ if(mark){ mark.classList.remove("dropmark","dm-before","dm-after"); mark=null; markKey=null; } };
+  const evalMark=(x,y)=>{                                 // mark the occupant under the pointer as the drop slot (line above/below it)
+    const node=document.elementFromPoint(x,y);
+    const ch=node&&node.closest?node.closest(".room .chip"):null;
+    clearMark();
+    if(ch && ch!==chipNode && ch.dataset.pid!==p.id){
+      const room=ch.closest(".room"), rk=room&&room.dataset.dropkey;
+      if(rk && rk!=="__pool__"){ const rc=ch.getBoundingClientRect(); markAfter=y>rc.top+rc.height/2;
+        ch.classList.add("dropmark", markAfter?"dm-after":"dm-before"); mark=ch; markKey=rk; }
+    }
+  };
   try{ capEl.setPointerCapture(pid); }catch(e){}
   const onMove=e=>{
     if(e.pointerId!==pid) return;
     if(!started){
       if(Math.abs(e.clientX-sx)<5 && Math.abs(e.clientY-sy)<5) return;   // movement threshold ⇒ it's a drag
       started=true; DRAG.pid=p.id;
+      DRAG.onScroll=(x,y)=>{ setDragTarget(dragTargetUnder(x,y)); evalMark(x,y); };  // keep slot in sync during auto-scroll
       chipNode.classList.add("dragging"); setDragging(true);
       const g=chipNode.cloneNode(true); g.id="dragghost"; g.classList.remove("dragging");
       g.removeAttribute("role"); g.removeAttribute("tabindex");
@@ -1001,6 +1042,7 @@ function beginDrag(downEvt, p, chipNode){
     DRAG.lastXY=[e.clientX,e.clientY];
     if(DRAG.ghost){ DRAG.ghost.style.left=e.clientX+"px"; DRAG.ghost.style.top=e.clientY+"px"; }
     setDragTarget(dragTargetUnder(e.clientX,e.clientY));
+    evalMark(e.clientX,e.clientY);
     updateAutoScroll(e.clientX,e.clientY);
   };
   const finish=e=>{
@@ -1008,14 +1050,17 @@ function beginDrag(downEvt, p, chipNode){
     capEl.removeEventListener("pointerup",finish);
     capEl.removeEventListener("pointercancel",finish);
     try{ capEl.releasePointerCapture(pid); }catch(_){}
-    if(!started) return;
+    if(!started){ DRAG.onScroll=null; return; }
     DRAG.vy=0; if(DRAG.raf){cancelAnimationFrame(DRAG.raf); DRAG.raf=null;}
     const tgt=DRAG.target; setDragTarget(null);
+    const mk=mark, mka=markAfter, mkk=markKey; clearMark(); DRAG.onScroll=null;
     chipNode.classList.remove("dragging"); setDragging(false);
     if(DRAG.ghost){ DRAG.ghost.remove(); DRAG.ghost=null; }
     DRAG.pid=null; DRAG.lastXY=null;
     dragFired=true; setTimeout(()=>dragFired=false,400);    // swallow the click that follows pointerup
-    if(e.type!=="pointercancel" && tgt) applyDrop(p.id, tgt.dataset.dropkey);
+    if(e.type==="pointercancel") return;
+    if(mk && mkk) reorderInRoom(p.id, mkk, mk.dataset.pid, mka);   // dropped over an occupant → reorder (and assign, if from elsewhere)
+    else if(tgt) applyDrop(p.id, tgt.dataset.dropkey);            // dropped on empty room area / pool → plain assign
   };
   capEl.addEventListener("pointermove",onMove);
   capEl.addEventListener("pointerup",finish);
@@ -1046,7 +1091,7 @@ function loadMaster(arrbuf){
     toast(`객실ID가 한 숙소에 고유하지 않습니다 — 방-숙소 연결이 모호합니다: ${list}`,"err",9000);
   }
   // default assignment: respect 배정숙소 pre-locks
-  state.assign={}; state.locked={}; state.tlSel.clear(); state.deletedRows=[];
+  state.assign={}; state.locked={}; state.tlSel.clear(); state.deletedRows=[]; state.roomOrder={};
   state.parties.forEach(p=>{
     if(p.pre.indexOf("부영호텔")>=0){ state.assign[p.id]="BOOY"; state.locked[p.id]=true; }
   });
@@ -1155,10 +1200,19 @@ function parseRooms(aoa){
 // the whole assign map. NON-null only during a synchronous render()/export pass (no assign mutation
 // happens then); always reset to null afterwards so auto-assign/manual paths never read stale data.
 let _occ=null;
+// Order one room's occupants for display: follow the manual drag order if the user set one
+// (state.roomOrder[roomKey]), otherwise sort by name. New/unlisted occupants fall to the end by name.
+function sortOcc(roomKey, arr){
+  const ord=state.roomOrder[roomKey];
+  if(ord && ord.length){ const ix=id=>{ const i=ord.indexOf(id); return i<0?1e9:i; };
+    arr.sort((a,b)=> (ix(a.id)-ix(b.id)) || a.name.localeCompare(b.name)); }
+  else arr.sort((a,b)=>a.name.localeCompare(b.name));
+  return arr;
+}
 function buildOcc(){                              // single O(P) pass over the assignment map
   const occ={};
   for(const pid in state.assign){ const k=state.assign[pid]; if(k && k!=="BOOY"){ (occ[k]=occ[k]||[]).push(state.byId[pid]); } }
-  for(const k in occ) occ[k].sort((a,b)=>a.name.localeCompare(b.name));   // match roomOccupants' contract once
+  for(const k in occ) sortOcc(k, occ[k]);        // match roomOccupants' contract once
   return occ;
 }
 function roomLoad(roomKey){
@@ -1211,6 +1265,7 @@ function matchIssue(room,party){                 // SOFT: message for warnings /
 const FAMTYPE=["Family","Triple","Suite"];
 function autoAssign(){
   for(const pid in state.assign){ if(!state.locked[pid] && state.assign[pid]!=="BOOY") delete state.assign[pid]; }
+  state.roomOrder={};                              // a fresh auto-assign reshuffles occupants → drop stale manual order
   // Loop-local occupancy index, seeded from the assignments that survive the prune above (locked
   // parties on real rooms; BOOY is off-inventory so it is skipped). Updated incrementally as each
   // unit is placed, so compatible()/score() read O(occupants) instead of rescanning state.assign.
@@ -2538,6 +2593,7 @@ $("#gantt").addEventListener("scroll",updateGanttFades,{passive:true});
 $("#statsbar").addEventListener("scroll",updateStatsFades,{passive:true});
 
 document.querySelectorAll("[data-ico]").forEach(n=>{ n.innerHTML=ico(n.dataset.ico); });   // inject SVG icons into static toolbar buttons
+$("#ssVersion").textContent = APP_VERSION;   // stamp the start-screen build version
 loadUI();   // restore column widths, collapsed groups, and last view
 buildLegend();   // static category key (DESIGN-4)
 if(!state.masterBuf) setEmpty(true);   // show the import/start screen until a master is loaded
