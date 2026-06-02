@@ -605,13 +605,6 @@ const CAT = {
   "찬양팀":{c:"#7e57c2", ab:"찬양"},
 };
 const catInfo = cat => CAT[cat] || {c:"#888", ab:(cat||"-").slice(0,3)};
-// DESIGN-7: pick #fff or #111 for best contrast on a category colour (WCAG AA for the small badges)
-function catText(hex){
-  const m=/^#?([0-9a-fA-F]{6})$/.exec(hex||""); if(!m) return "#fff";
-  const v=parseInt(m[1],16), lin=c=>{c/=255; return c<=0.03928?c/12.92:Math.pow((c+0.055)/1.055,2.4);};
-  const L=0.2126*lin((v>>16)&255)+0.7152*lin((v>>8)&255)+0.0722*lin(v&255);
-  return (1.05/(L+0.05)) >= ((L+0.05)/0.05) ? "#fff" : "#111";   // whichever yields more contrast
-}
 const state = {
   parties: [],     // {id,name,kname,sex,partySex,hc,party,need,cat,team,group,pre,stay,arr,dep,…detail}
   rooms: [],       // {id,hotel,bldg,floor,rno,type,gender,base,ext,total,period,ondol,note,key}
@@ -700,7 +693,7 @@ function buildLegend(){
   const g=$("#legendgrid"); if(!g) return; g.innerHTML="";
   Object.entries(CAT).forEach(([name,info])=>{
     const it=el("div","legitem");
-    const b=el("span","legbadge",(info.ab||"-").slice(0,1)); b.style.background=info.c; b.style.color=catText(info.c);
+    const b=el("span","legbadge",(info.ab||"-").slice(0,1)); b.style.background=info.c;
     it.append(b, el("span",null,`${info.ab} · ${name}`));
     g.append(it);
   });
@@ -1093,7 +1086,7 @@ function chip(p){
   const grip=el("span","drag","⠿"); grip.setAttribute("aria-hidden","true"); grip.title="끌어서 이동(드래그)";
   const ci=catInfo(p.cat);
   // slim 1-char category badge (colour carries the rest; the legend + hover decode it) → more room for names
-  const cat=el("span","cat", (ci.ab||"-").slice(0,1)); cat.style.background=ci.c; cat.style.color=catText(ci.c); cat.title="분류: "+(p.cat||ci.ab); cat.setAttribute("aria-hidden","true");
+  const cat=el("span","cat", (ci.ab||"-").slice(0,1)); cat.style.background=ci.c; cat.title="분류: "+(p.cat||ci.ab); cat.setAttribute("aria-hidden","true");
   const sx=el("span","sx", p.partySex==="MIX"?"혼":p.partySex==="M"?"남":p.partySex==="F"?"여":"?");
   sx.title="성별: "+(p.partySex==="MIX"?"혼성":p.partySex==="M"?"남성":p.partySex==="F"?"여성":"미상"); sx.setAttribute("aria-hidden","true");
   const nm=el("span","nm", p.name + (p.kname?` (${p.kname})`:""));
@@ -1486,7 +1479,7 @@ function tlCard(p,n){
   const ri=partyRoomInfo(p), ci=catInfo(p.cat);
   const card=el("div","tlcard"+(state.dups&&state.dups.has(p.id)?" dup":""));
   const top=el("div","top");
-  const cb=el("span","cat",ci.ab); cb.style.background=ci.c; cb.style.color=catText(ci.c);
+  const cb=el("span","cat",ci.ab); cb.style.background=ci.c;
   top.append(cb, el("span","nm",p.name+(p.hc>1?` 👪${p.hc}`:"")));
   if(state.dups&&state.dups.has(p.id)){ const d=el("span","dupflag","⚠");
     d.title="중복 의심 — 동일 이름/이메일"; top.append(d); }
@@ -1497,7 +1490,7 @@ function tlCard(p,n){
               el("span","pill", p.stay?`${stayNights(p)}박 ${p.arr}~${p.dep}`:"숙박 없음"));
   card.append(meta);
   if(p.stay){                                       // mini stay bar mirroring the gantt
-    const tr=el("div","staytrack"); const seg=el("div","seg"); seg.style.background=ci.c; seg.style.color=catText(ci.c);
+    const tr=el("div","staytrack"); const seg=el("div","seg"); seg.style.background=ci.c;
     seg.style.left=`calc(${p.stay.s}/${n}*100%)`; seg.style.width=`calc(${stayNights(p)}/${n}*100%)`;
     seg.textContent=`${stayNights(p)}박`; tr.append(seg); card.append(tr);
   }
@@ -1529,7 +1522,7 @@ function tlRow(p,n,off629,planEnd){
   const row=el("div","tlrow"); row.style.setProperty("--ncols",n); row.dataset.pid=p.id;
   const idc=el("div","idc",p.id);                                   // ⑤ unique-ID column
   const ci=catInfo(p.cat); const catc=el("div","catc");
-  const cb=el("span","cat",ci.ab); cb.style.background=ci.c; cb.style.color=catText(ci.c); cb.title=p.cat||""; catc.append(cb);
+  const cb=el("span","cat",ci.ab); cb.style.background=ci.c; cb.title=p.cat||""; catc.append(cb);
   const who=el("div","who");
   const grip=el("span","tlgrip","⠿"); grip.title="끌어서 순서 변경";
   const nm=el("span","nm",p.name+(p.hc>1?` 👪${p.hc}`:""));
@@ -1572,7 +1565,7 @@ function tlRow(p,n,off629,planEnd){
   if(off629>0){ const u=el("div","unoff"); u.style.left="0"; u.style.width=`calc(${off629}/${n}*100%)`; track.append(u); }
   if(planEnd<n){ const bz=el("div","bufz"); bz.style.left=`calc(${planEnd}/${n}*100%)`; bz.style.right="0"; track.append(bz); }
   if(p.stay){
-    const bar=el("div","bar"); bar.style.background=catInfo(p.cat).c; bar.style.color=catText(catInfo(p.cat).c);
+    const bar=el("div","bar"); bar.style.background=catInfo(p.cat).c;
     const place=()=>{ bar.style.left=`calc(${p.stay.s}/${n}*100%)`; bar.style.width=`calc(${(p.stay.e-p.stay.s+1)}/${n}*100%)`; bar.textContent=`${stayNights(p)}박`; };
     place();
     bar.title="끝을 끌어 기간조정 · 가운데 끌어 이동 · 더블클릭: 상세";
