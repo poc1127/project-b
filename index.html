@@ -29,7 +29,7 @@
   header{background:var(--ink);color:#fff;padding:10px 16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;position:sticky;top:0;z-index:50;}
   header h1{font-size:16px;margin:0 12px 0 0;font-weight:600;}
   header .spacer{flex:1;}
-  button,label.btn{background:var(--primary);color:#fff;border:none;border-radius:5px;padding:6px 11px;font-size:12px;cursor:pointer;}
+  button,label.btn{background:var(--primary);color:#fff;border:1px solid transparent;border-radius:5px;padding:6px 11px;font-size:12px;cursor:pointer;}
   button:hover,label.btn:hover{background:#2c597f;}
   button.alt{background:#5a6b7b;}
   button.go{background:var(--success);}
@@ -99,7 +99,7 @@
   .chip.mix .sx{color:#6a8a3a;border-color:#c0d49a;} .chip.sex-q .sx{color:#777;}
   .chip{border-left-width:4px;}
   /* view tabs — segmented control */
-  .viewtabs{display:inline-flex;gap:0;background:rgba(255,255,255,.13);border-radius:10px;padding:3px;margin-right:10px;}
+  .viewtabs{display:inline-flex;gap:0;background:rgba(255,255,255,.13);border-radius:10px;padding:3px;margin-left:auto;margin-right:10px;}
   .vtab{background:transparent;color:rgba(255,255,255,.82);border:none;border-radius:8px;font-weight:600;padding:6px 15px;font-size:12px;transition:background .12s,color .12s,box-shadow .12s;}
   .vtab:hover{color:#fff;}
   .vtab.active{background:#fff;color:var(--ink);font-weight:700;box-shadow:0 1px 3px rgba(0,0,0,.18);}
@@ -303,10 +303,15 @@
   #dlg .df button{padding:8px 16px;min-height:44px;}
   /* ===== toolbar grouping (DESIGN-1): cluster actions by function ===== */
   .toolbtns{align-items:center;gap:6px;}
-  .tgroup{display:inline-flex;align-items:center;gap:6px;padding:3px 9px;border-radius:8px;background:rgba(255,255,255,.07);}
-  .tglabel{font-size:9px;font-weight:700;letter-spacing:.4px;color:rgba(255,255,255,.6);white-space:nowrap;}
-  #btnMaster{background:#8a4b3a;}                         /* version-bump export — heavier action, set apart */
-  #btnMaster:hover{background:#6f3a2c;}
+  .tgroup{display:inline-flex;align-items:center;gap:6px;}
+  .tgroup+.tgroup{border-left:1px solid rgba(255,255,255,.18);padding-left:12px;}   /* thin divider between ①/②/③ groups */
+  .tglabel{font-size:9px;font-weight:700;letter-spacing:.4px;color:rgba(255,255,255,.55);white-space:nowrap;}
+  /* toolbar buttons: coral primary, green "go", ghost utilities; recede when disabled */
+  .toolbtns button:not(:disabled):hover,.toolbtns label.btn:hover{background:var(--primary-hover);}
+  .toolbtns .go:not(:disabled):hover{background:#266a47;}
+  .toolbtns .ghost{background:transparent;color:rgba(255,255,255,.88);border-color:rgba(255,255,255,.28);}
+  .toolbtns .ghost:not(:disabled):hover{background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.5);color:#fff;}
+  .toolbtns button:disabled,.toolbtns label.btn:disabled{background:rgba(255,255,255,.08);color:rgba(255,255,255,.4);border-color:transparent;box-shadow:none;cursor:not-allowed;}
   @media (max-width:1024px){ .tglabel{display:none;} }   /* reclaim header space on smaller widths */
   /* ===== stat bar (DESIGN-2): emphasis on the risk metric + fullness bars ===== */
   #statsbar .stat .frac{color:var(--text-faint);font-weight:600;}
@@ -346,6 +351,9 @@
     .venue>h2{font-size:13px;}
     button,label.btn{padding:6px 10px;}
     #statsbar{gap:10px;}
+    /* tablet: view tabs become a full-width segmented row below the actions */
+    .viewtabs{width:100%;order:3;margin:8px 0 0;}
+    .viewtabs .vtab{flex:1;}
   }
 
   /* tablet portrait — stack the pool above the venues */
@@ -596,8 +604,8 @@
     <!-- ③ exports — 마스터 내보내기 (version bump) sits last + accented as the heavier action -->
     <span class="tgroup" role="group" aria-label="3단계 내보내기">
       <span class="tglabel" aria-hidden="true">③ 내보내기</span>
-      <button id="btnExcel" disabled title="현재 배정 결과를 보기용 Excel(.xlsx)로 내려받습니다.">배정 결과 저장</button>
-      <button class="alt" id="btnPrint" disabled title="방 배치표를 인쇄하거나 PDF로 저장합니다. (A4 세로)">인쇄 / PDF</button>
+      <button class="ghost" id="btnExcel" disabled title="현재 배정 결과를 보기용 Excel(.xlsx)로 내려받습니다.">배정 결과 저장</button>
+      <button class="ghost" id="btnPrint" disabled title="방 배치표를 인쇄하거나 PDF로 저장합니다. (A4 세로)">인쇄 / PDF</button>
       <button id="btnMaster" disabled title="원본 마스터에 배정·수정 내용을 반영해 버전을 올린 새 마스터 파일(v{N})로 내보냅니다.">마스터 업데이트 (v+1)</button>
     </span>
   </div>
