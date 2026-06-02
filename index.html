@@ -34,7 +34,7 @@
   .pill.warn{background:#fde0e0;color:var(--warn);}
   .pill.ok{background:#e3f3e4;color:var(--ok);}
   #main{display:flex;gap:12px;padding:12px;align-items:flex-start;}
-  #pool{width:260px;flex:none;background:var(--pool);border:1px solid var(--line);border-radius:8px;padding:8px;position:sticky;top:96px;max-height:calc(100vh - 110px);overflow:auto;}
+  #pool{width:260px;flex:none;background:var(--pool);border:1px solid var(--line);border-radius:8px;padding:8px;position:sticky;top:calc(var(--headerh,52px) + 6px);max-height:calc(100vh - var(--headerh,52px) - 16px);overflow:auto;}
   #pool h2{font-size:13px;margin:2px 0 6px;}
   #pool input.search{width:100%;padding:5px;margin-bottom:6px;border:1px solid var(--line);border-radius:4px;}
   #venues{flex:1;display:flex;flex-direction:column;gap:18px;min-width:0;}
@@ -68,6 +68,11 @@
   .chip .lk{cursor:pointer;font-size:11px;}
   .chip.badmatch{outline:1.5px solid var(--warn);}
   .chip .grp{font-size:9px;color:#a60;}
+  /* tap-to-assign: picked chip, room drop-target cue, hint banner */
+  .chip.picked{outline:2px solid var(--ok);box-shadow:0 0 0 2px #b6e0b8;background:#eef7ee;}
+  #venues.picking .room{outline:1px dashed #79b27c;cursor:pointer;}
+  #venues.picking .room:hover{outline:2px solid var(--ok);background:#f1f8f1;}
+  .pickhint{background:#e9f6ea;border:1px solid #b6e0b8;color:#256a2a;font-size:11px;font-weight:600;padding:5px 8px;border-radius:6px;margin-bottom:6px;line-height:1.35;}
   #warnpanel{padding:6px 16px;background:#fff8f8;border-top:1px solid #f0d0d0;font-size:12px;max-height:130px;overflow:auto;}
   #warnpanel h3{margin:0 0 4px;font-size:12px;color:var(--warn);position:sticky;top:0;background:#fff8f8;padding:4px 0;display:flex;gap:6px;align-items:center;z-index:1;}
   #warnpanel .warnnote{color:#777;font-size:11px;margin:0 0 4px;}
@@ -110,7 +115,7 @@
   #tlhead .nights div.buffer{background:#eef1f4;color:#5a6675;}
   #tlhead .lbl{padding:3px 6px;position:relative;align-self:stretch;display:flex;align-items:center;}
   #tlhead .lbl.ctr{justify-content:center;}
-  #tlhead .lbl .colgrip{position:absolute;top:0;right:-3px;width:7px;height:100%;cursor:col-resize;z-index:5;}
+  #tlhead .lbl .colgrip{position:absolute;top:0;right:-3px;width:7px;height:100%;cursor:col-resize;z-index:5;touch-action:none;}
   #tlhead .lbl .colgrip:hover,#tlhead .lbl .colgrip.drag{background:rgba(58,110,165,.35);}
   /* hotel split band */
   .tlgroup{display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none;position:sticky;top:var(--tlheadh,24px);z-index:9;font-size:11px;font-weight:700;padding:5px 10px;margin-top:4px;
@@ -125,8 +130,21 @@
   .tlrow{border-bottom:1px solid #e8e8ec;}
   .tlrow.alt{background:#fafbfc;}
   .tlrow:hover{background:#f3f7fb;}
+  /* frozen pane — ID·분류·이름 stay pinned to the left while the night axis scrolls */
+  .tlrow .idc{position:sticky;left:0;z-index:4;background:#fff;}
+  .tlrow .catc{position:sticky;left:var(--c1,56px);z-index:4;background:#fff;}
+  .tlrow .who{position:sticky;left:var(--c2,114px);z-index:4;background:#fff;box-shadow:1px 0 0 0 #dcdce0;}
+  .tlrow.alt .idc,.tlrow.alt .catc,.tlrow.alt .who{background:#fafbfc;}
+  .tlrow:hover .idc,.tlrow:hover .catc,.tlrow:hover .who{background:#f3f7fb;}
+  .tlrow.dup .idc,.tlrow.dup .catc,.tlrow.dup .who{background:#fff7e6;}
+  .tlrow.dup:hover .idc,.tlrow.dup:hover .catc,.tlrow.dup:hover .who{background:#ffeecc;}
+  #tlhead .lbl:nth-child(1){position:sticky;left:0;z-index:12;background:#f7f7f9;}
+  #tlhead .lbl:nth-child(2){position:sticky;left:var(--c1,56px);z-index:12;background:#f7f7f9;}
+  #tlhead .lbl:nth-child(3){position:sticky;left:var(--c2,114px);z-index:12;background:#f7f7f9;box-shadow:1px 0 0 0 #ccc;}
   .tlrow .who{display:flex;align-items:center;gap:4px;padding:1px 6px;overflow:hidden;cursor:pointer;font-size:11px;}
   .tlrow .who .nm{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .tlrow .who .tlgrip{flex:none;cursor:grab;color:#bbb;font-size:13px;line-height:1;padding:0 2px;touch-action:none;user-select:none;}
+  .tlrow .who .tlgrip:active{cursor:grabbing;color:#3a6ea5;}
   .tlrow .cat{display:inline-block;vertical-align:middle;font-size:10px;font-weight:700;line-height:15px;color:#fff;padding:0 7px;border-radius:999px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   .tlrow.dup{background:#fff7e6;}
   .tlrow.dup:hover{background:#ffeecc;}
@@ -136,7 +154,7 @@
   .tlrow .track .unoff{position:absolute;top:0;bottom:0;background:#f7ecec;}
   .tlrow .track .bufz{position:absolute;top:0;bottom:0;background:#eef1f4;}
   .bar{position:absolute;top:2px;height:13px;border-radius:3px;display:flex;align-items:center;justify-content:center;
-       color:#fff;font-size:9px;font-weight:700;cursor:grab;user-select:none;box-shadow:0 1px 2px rgba(0,0,0,.25);z-index:2;}
+       color:#fff;font-size:9px;font-weight:700;cursor:grab;user-select:none;box-shadow:0 1px 2px rgba(0,0,0,.25);z-index:2;touch-action:none;}
   .bar .h{position:absolute;top:0;bottom:0;width:7px;cursor:ew-resize;}
   .bar .h.l{left:-1px;} .bar .h.r{right:-1px;}
   .bar.none{background:#cfcfcf !important;cursor:default;color:#333;font-weight:500;}
@@ -161,27 +179,42 @@
   #loading{position:fixed;inset:0;background:rgba(255,255,255,.7);z-index:300;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;color:#1f3b57;font-weight:700;}
   #loading .spin{width:46px;height:46px;border:5px solid #cdd8e3;border-top-color:#3a6ea5;border-radius:50%;animation:spin .8s linear infinite;}
   @keyframes spin{to{transform:rotate(360deg);}}
-  /* responsive — stack sidebar, shrink chrome on small screens */
+  /* ===== responsive — fluid across desktop / tablet / mobile ===== */
   #timeline,#pool,#statsbar{-webkit-overflow-scrolling:touch;}
+  html,body{max-width:100%;}
+
+  /* tablet landscape & small laptop — tighten chrome, keep two-pane layout */
+  @media (max-width:1024px){
+    #main{gap:10px;padding:10px;}
+    #pool{width:228px;}
+    .venue>h2{font-size:13px;}
+    button,label.btn{padding:6px 10px;}
+    #statsbar{gap:10px;}
+  }
+
+  /* tablet portrait — stack the pool above the venues */
   @media (max-width:860px){
     #main{flex-direction:column;}
-    #pool{width:auto;position:static;max-height:40vh;top:auto;}
+    #pool{width:auto;position:static;max-height:42vh;top:auto;}
     header h1{font-size:15px;}
+    .rooms{grid-template-columns:repeat(auto-fill,minmax(168px,1fr));}
   }
+
   /* phones — stack the header into title / scrollable action strip / full-width tabs */
   @media (max-width:640px){
     header{flex-direction:column;align-items:stretch;gap:6px;padding:8px 10px;}
-    header h1{font-size:15px;margin:0;}
+    header h1{font-size:15px;margin:0;text-align:center;}
     header .spacer,#srcname{display:none;}
-    header .toolbtns{flex-wrap:nowrap;overflow-x:auto;gap:8px;padding-bottom:3px;}
+    header .toolbtns{flex-wrap:nowrap;overflow-x:auto;gap:8px;padding-bottom:4px;-webkit-overflow-scrolling:touch;}
     header .toolbtns>button,header .toolbtns>label.btn{flex:0 0 auto;white-space:nowrap;}
     header .tbdiv{display:none;}
     .viewtabs{display:flex;width:100%;margin:0;gap:6px;}
     .viewtabs .vtab{flex:1;}
-    button,label.btn{padding:8px 12px;font-size:12px;min-height:38px;}   /* larger tap targets */
+    button,label.btn{padding:8px 12px;font-size:12px;min-height:40px;}   /* larger tap targets */
     #statsbar{gap:6px;padding:6px 10px;flex-wrap:nowrap;overflow-x:auto;}
     #statsbar .stat{border-right:none;padding:2px 6px;white-space:nowrap;}
     #main{padding:8px;gap:8px;}
+    #pool{max-height:38vh;}
     #timeline{padding:6px 8px;}
     .card{width:96%;max-height:90vh;}
     .card .cbody{grid-template-columns:1fr;gap:2px 0;}                    /* labels above values */
@@ -189,11 +222,25 @@
     /* 16px form fields prevent iOS zoom-on-focus */
     input,select,textarea,#pool input.search,#tlbar .search{font-size:16px;}
   }
+
+  /* small phones */
+  @media (max-width:400px){
+    header h1{font-size:14px;}
+    .rooms{grid-template-columns:1fr;}
+    #statsbar{font-size:11px;}
+    #statsbar .stat b{font-size:13px;}
+    button,label.btn{font-size:11px;padding:7px 10px;}
+    #pool h2,#venues h2{font-size:13px;}
+  }
+
+  /* touch devices (no hover) — bigger targets, persistent affordances */
   @media (hover:none){
-    .tlgroup .ghint{opacity:.95;}            /* touch: no hover, keep the expand/collapse hint visible */
-    #tlhead .lbl .colgrip{background:rgba(58,110,165,.18);width:14px;right:-7px;}  /* easier to grab by touch */
+    .tlgroup .ghint{opacity:.95;}            /* keep the expand/collapse hint visible */
+    #tlhead .lbl .colgrip{background:rgba(58,110,165,.18);width:14px;right:-7px;}  /* easier to grab */
     .chip{padding:4px 6px;}                   /* taller chips = easier taps */
     .chip .lk{font-size:14px;padding:0 2px;}
+    .tlrow .who .tlgrip{font-size:16px;padding:0 7px;}    /* easier to grab on touch */
+    button,label.btn{min-height:38px;}
   }
   /* print */
   #printarea{display:none;}
@@ -304,6 +351,7 @@ const state = {
   orderList: [],   // custom vertical order of party ids (timeline)
   collapsed: {},   // venue -> true (timeline fold)
   colW: [56,58,150,78,84,52],  // resizable widths: ID·분류·이름/팀·호텔·객실번호·수용 (track = 1fr)
+  pick: null,      // tap-to-assign: id of the party currently 'picked up'
 };
 
 /* ---------- helpers ---------- */
@@ -311,6 +359,21 @@ const $ = s => document.querySelector(s);
 const el = (t,c,txt)=>{const e=document.createElement(t); if(c)e.className=c; if(txt!=null)e.textContent=txt; return e;};
 const norm = v => (v==null? "" : String(v).trim());
 const isDate = h => /^\d+월\d+일$/.test(norm(h));
+
+// long-press → fn (touch only; desktop keeps dblclick). Sets lpFired to swallow the trailing click.
+let lpFired=false;
+function attachLongPress(node, fn, ms=500){
+  let timer=null, sx=0, sy=0;
+  const clear=()=>{ if(timer){clearTimeout(timer); timer=null;} };
+  node.addEventListener("pointerdown",e=>{
+    if(e.pointerType==="mouse") return;            // mouse uses dblclick
+    sx=e.clientX; sy=e.clientY;
+    timer=setTimeout(()=>{ timer=null; lpFired=true; setTimeout(()=>lpFired=false,500); fn(); }, ms);
+  });
+  node.addEventListener("pointermove",e=>{ if(timer && (Math.abs(e.clientX-sx)>10||Math.abs(e.clientY-sy)>10)) clear(); });
+  node.addEventListener("pointerup",clear);
+  node.addEventListener("pointercancel",clear);
+}
 
 function headerMap(aoa){           // row index 1 (2nd row) holds headers
   const hdr = aoa[1]||[]; const m={};
@@ -519,9 +582,10 @@ function render(){
   $("#tabTimeline").classList.toggle("active",tl);
   if(tl){ renderTimeline(); }
   else { renderPool(); renderVenues(); renderWarnings(); }
+  $("#venues").classList.toggle("picking", !tl && !!state.pick);
   syncTop();
 }
-function setView(v){ state.view=v; saveUI(); render(); }
+function setView(v){ state.view=v; state.pick=null; saveUI(); render(); }
 function populateFilters(){
   const vsel=$("#tlvenue"), csel=$("#tlcat");
   vsel.length=1; csel.length=1;
@@ -576,13 +640,33 @@ function chip(p){
   lk.title="잠금 토글(자동배정 제외)";
   lk.onclick=ev=>{ ev.stopPropagation(); state.locked[p.id]=!state.locked[p.id]; render(); };
   c.append(cat,sx,nm,hc,lk);
+  c.style.cursor="pointer";
   c.addEventListener("dragstart",e=>{ e.dataTransfer.setData("text/pid",p.id); });
-  if(state.assign[p.id]){                              // assigned chip → single-click returns it to 미배정
-    c.style.cursor="pointer";
-    c.title=`${nm.title}\n클릭하면 미배정으로 이동`;
-    c.addEventListener("click",()=>{ delete state.assign[p.id]; render(); });
+  attachLongPress(c,()=>openCard(p));                  // ⑤ touch: long-press opens detail
+  // single-click = pick-up / unassign · double-click = detail modal.
+  // The single action is deferred briefly so a 2nd click can cancel it (otherwise render() would
+  // destroy the chip on the 1st click and the dblclick could never fire).
+  const single=()=>{
+    if(state.assign[p.id]){ delete state.assign[p.id]; state.pick=null; }   // assigned → back to 미배정
+    else { state.pick=(state.pick===p.id?null:p.id); }                      // pool → pick up / cancel
+    render();
+  };
+  let ctimer=null;
+  c.addEventListener("click",e=>{
+    e.stopPropagation(); if(lpFired) return;
+    if(ctimer) return;                                 // this is the 2nd click → let dblclick handle it
+    ctimer=setTimeout(()=>{ ctimer=null; single(); }, 230);
+  });
+  c.addEventListener("dblclick",e=>{                   // ⑤ detail modal
+    e.stopPropagation();
+    if(ctimer){ clearTimeout(ctimer); ctimer=null; }   // cancel the pending single action
+    openCard(p);
+  });
+  if(state.assign[p.id]){
+    c.title=`${nm.title}\n클릭: 미배정으로 이동 · 더블클릭/길게 누르기: 상세`;
   }else{
-    c.addEventListener("dblclick",()=>openCard(p));   // ⑤ detail card (pool chips)
+    if(state.pick===p.id) c.classList.add("picked");
+    c.title=`${nm.title}\n클릭: 선택 후 방을 탭하여 배정 · 더블클릭/길게 누르기: 상세`;
   }
   return c;
 }
@@ -594,6 +678,10 @@ function renderPool(){
         .filter(p=> !q || p.name.toLowerCase().includes(q)||p.id.toLowerCase().includes(q)||(p.kname||"").toLowerCase().includes(q))
         .sort((a,b)=> (b.partySex==="MIX")-(a.partySex==="MIX") || a.name.localeCompare(b.name));
   $("#poolcount").textContent = `(${un.reduce((s,p)=>s+p.hc,0)}명 / ${un.length}건)`;
+  if(state.pick && state.byId[state.pick]){
+    const ph=el("div","pickhint",`✅ ${state.byId[state.pick].name} 선택됨 — 방을 탭하면 배정됩니다 (취소: 다시 탭)`);
+    list.append(ph);
+  }
   if(!un.length){ list.append(el("div","empty-hint","미배정 없음 🎉")); }
   un.forEach(p=>list.append(chip(p)));
   makeDrop(list,null);   // drop back to pool = unassign
@@ -607,6 +695,12 @@ function makeDrop(node, roomKey){
     const pid=e.dataTransfer.getData("text/pid"); if(!pid) return;
     if(roomKey===null) delete state.assign[pid];
     else state.assign[pid]=roomKey;
+    state.pick=null; render();
+  });
+  node.addEventListener("click",()=>{                  // tap-to-assign: a person is picked, tap a room to drop
+    if(!state.pick) return;
+    if(roomKey===null) state.pick=null;                // tap the pool = cancel selection
+    else { state.assign[state.pick]=roomKey; state.pick=null; }
     render();
   });
 }
@@ -729,13 +823,20 @@ function computeDups(){                       // flag rows sharing a name or ema
   state.dups=new Set(Object.keys(state.dupInfo));
 }
 function applyColW(){
-  const floor = window.innerWidth<=640 ? 170 : 260;   // less horizontal scroll on phones
-  $("#timeline").style.setProperty("--tlcols", state.colW.map(w=>w+"px").join(" ")+` minmax(${floor}px,1fr)`);
+  const mobile = window.innerWidth<=640;
+  const floor = mobile ? 150 : 260;   // less horizontal scroll on phones
+  // on phones, cap the meta columns so the frozen ID·분류·이름 pane doesn't swallow the screen
+  const w = mobile ? state.colW.map((x,i)=>Math.min(x,[44,44,96,56,60,40][i])) : state.colW;
+  const tl=$("#timeline");
+  tl.style.setProperty("--tlcols", w.map(x=>x+"px").join(" ")+` minmax(${floor}px,1fr)`);
+  tl.style.setProperty("--c1", w[0]+"px");             // frozen-pane left offsets (ID·분류·이름 sticky-left)
+  tl.style.setProperty("--c2", (w[0]+w[1])+"px");
 }
-function syncTop(){                                   // keep timeline scroll-panel sized to the space below header+statsbar
+function syncTop(){                                   // keep panels sized to the space below header/statsbar at any width
   const h=document.querySelector("header"), sb=$("#statsbar");
-  const off=(h?h.offsetHeight:52)+(sb?sb.offsetHeight:0);
-  document.documentElement.style.setProperty("--topoff",off+"px");
+  const hh=h?h.offsetHeight:52;
+  document.documentElement.style.setProperty("--headerh",hh+"px");   // pool sticky offset (rooms view)
+  document.documentElement.style.setProperty("--topoff",(hh+(sb?sb.offsetHeight:0))+"px");  // timeline panel height
   const th=$("#tlhead"); if(th&&th.offsetHeight) document.documentElement.style.setProperty("--tlheadh",th.offsetHeight+"px");
   applyColW();   // re-evaluate the night-track floor for the new width
 }
@@ -751,12 +852,13 @@ function makeColGrip(ci){
   const g=el("div","colgrip");
   g.title="끌어서 열 너비 조정 · 더블클릭하여 초기화";
   const MIN=36, DEF=[56,58,150,78,84,52];
-  g.addEventListener("mousedown",ev=>{
+  g.addEventListener("pointerdown",ev=>{
     ev.preventDefault(); ev.stopPropagation();
     const x0=ev.clientX, w0=state.colW[ci]; g.classList.add("drag");
+    try{ g.setPointerCapture(ev.pointerId); }catch(e){}
     const mv=e=>{ state.colW[ci]=Math.max(MIN, w0+(e.clientX-x0)); applyColW(); };
-    const up=()=>{ g.classList.remove("drag"); document.removeEventListener("mousemove",mv); document.removeEventListener("mouseup",up); saveUI(); };
-    document.addEventListener("mousemove",mv); document.addEventListener("mouseup",up);
+    const up=()=>{ g.classList.remove("drag"); g.removeEventListener("pointermove",mv); g.removeEventListener("pointerup",up); g.removeEventListener("pointercancel",up); saveUI(); };
+    g.addEventListener("pointermove",mv); g.addEventListener("pointerup",up); g.addEventListener("pointercancel",up);
   });
   g.addEventListener("dblclick",ev=>{ ev.preventDefault(); ev.stopPropagation(); state.colW[ci]=DEF[ci]; applyColW(); saveUI(); });
   return g;
@@ -827,31 +929,47 @@ function assignToHotel(p,hotel){
   state.assign[p.id]=cands[0].key;
 }
 function tlRow(p,n,off629,planEnd){
-  const row=el("div","tlrow"); row.style.setProperty("--ncols",n);
+  const row=el("div","tlrow"); row.style.setProperty("--ncols",n); row.dataset.pid=p.id;
   const idc=el("div","idc",p.id);                                   // ⑤ unique-ID column
   const ci=catInfo(p.cat); const catc=el("div","catc");
   const cb=el("span","cat",ci.ab); cb.style.background=ci.c; cb.title=p.cat||""; catc.append(cb);
   const who=el("div","who");
+  const grip=el("span","tlgrip","⠿"); grip.title="끌어서 순서 변경";
   const nm=el("span","nm",p.name+(p.hc>1?` 👪${p.hc}`:""));
-  who.append(nm); who.title="끌어서 순서 변경 · 더블클릭: 상세";
+  who.append(grip,nm); who.title="손잡이(⠿)를 끌어 순서 변경 · 더블클릭/길게 누르기: 상세";
   if(state.dups && state.dups.has(p.id)){
     row.classList.add("dup");
     const others=(state.dupInfo[p.id]||[]).map(id=>state.byId[id]?`${state.byId[id].name}(${id})`:id).join(", ");
     const d=el("span","dupflag","⚠"); d.title=`중복 의심 — 동일 이름/이메일: ${others}`; who.append(d);
   }
   who.addEventListener("dblclick",()=>openCard(p));
-  // vertical drag-reorder (handle = who cell)
-  who.draggable=true; who.style.cursor="grab";
-  who.addEventListener("dragstart",e=>{ e.dataTransfer.setData("text/tlpid",p.id); e.dataTransfer.effectAllowed="move"; });
-  row.addEventListener("dragover",e=>{ if([...e.dataTransfer.types].includes("text/tlpid")) e.preventDefault(); });
-  row.addEventListener("drop",e=>{
-    const src=e.dataTransfer.getData("text/tlpid"); if(!src||src===p.id) return;
-    e.preventDefault();
-    const rect=row.getBoundingClientRect(); const after=e.clientY>rect.top+rect.height/2;
-    const sp=state.byId[src]; const tgtVen=partyVenue(p);
-    if(partyVenue(sp)!==tgtVen) assignToHotel(sp,tgtVen);   // dropped into another hotel → move there
-    tlReorder(src,p.id,after);
-    renderTimeline();
+  attachLongPress(who,()=>openCard(p));                 // touch: long-press opens detail
+  // vertical drag-reorder + cross-hotel move — pointer-based via the grip handle (works for mouse & touch)
+  grip.addEventListener("pointerdown",ev=>{
+    ev.preventDefault(); ev.stopPropagation();             // don't start who long-press / detail
+    try{ grip.setPointerCapture(ev.pointerId); }catch(e){}
+    let tgt=null, after=false;
+    const clear=()=>{ if(tgt){ tgt.classList.remove("dropmark"); tgt=null; } };
+    const mv=e=>{
+      const node=document.elementFromPoint(e.clientX,e.clientY);
+      const tr=node&&node.closest?node.closest(".tlrow"):null;
+      clear();
+      if(tr && tr!==row){ const rc=tr.getBoundingClientRect(); after=e.clientY>rc.top+rc.height/2; tr.classList.add("dropmark"); tgt=tr; }
+    };
+    const up=()=>{
+      grip.removeEventListener("pointermove",mv); grip.removeEventListener("pointerup",up); grip.removeEventListener("pointercancel",up);
+      const dest=tgt, da=after; clear();
+      if(dest){
+        const tid=dest.dataset.pid;
+        if(tid && tid!==p.id){
+          const tv=partyVenue(state.byId[tid]);
+          if(partyVenue(p)!==tv) assignToHotel(p,tv);       // dropped into another hotel → move there
+          tlReorder(p.id,tid,da);
+          renderTimeline();
+        }
+      }
+    };
+    grip.addEventListener("pointermove",mv); grip.addEventListener("pointerup",up); grip.addEventListener("pointercancel",up);
   });
   const track=el("div","track");
   if(off629>0){ const u=el("div","unoff"); u.style.left="0"; u.style.width=`calc(${off629}/${n}*100%)`; track.append(u); }
