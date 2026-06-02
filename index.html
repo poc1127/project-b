@@ -14,7 +14,7 @@
     --line:#ccc;
   }
   *{box-sizing:border-box;}
-  body{font-family:"Segoe UI","Malgun Gothic",sans-serif;margin:0;background:#f7f7f9;color:#222;font-size:13px;}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Pretendard","Apple SD Gothic Neo","Noto Sans KR","Malgun Gothic",sans-serif;margin:0;background:#f7f7f9;color:#222;font-size:13px;-webkit-text-size-adjust:100%;}
   header{background:#1f3b57;color:#fff;padding:10px 16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;position:sticky;top:0;z-index:50;}
   header h1{font-size:16px;margin:0 12px 0 0;font-weight:600;}
   header .spacer{flex:1;}
@@ -23,11 +23,14 @@
   button.alt{background:#5a6b7b;}
   button.go{background:#2e7d32;}
   button:disabled{background:#9aa6b1;cursor:not-allowed;}
+  :focus-visible{outline:2px solid #8fc0ff;outline-offset:1px;}
+  header .tbdiv{width:1px;align-self:stretch;background:rgba(255,255,255,.25);margin:2px 4px;}
+  header .toolbtns{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
   input[type=file]{display:none;}
   #statsbar{display:flex;gap:14px;flex-wrap:wrap;padding:8px 16px;background:#fff;border-bottom:1px solid var(--line);font-size:12px;align-items:center;}
   #statsbar .stat b{font-size:15px;}
   #statsbar .stat{padding:2px 8px;border-right:1px solid #eee;}
-  .pill{display:inline-block;padding:1px 7px;border-radius:10px;font-size:11px;font-weight:600;}
+  .pill{display:inline-block;padding:1px 7px;border-radius:999px;font-size:11px;font-weight:600;}
   .pill.warn{background:#fde0e0;color:var(--warn);}
   .pill.ok{background:#e3f3e4;color:var(--ok);}
   #main{display:flex;gap:12px;padding:12px;align-items:flex-start;}
@@ -44,7 +47,7 @@
   .floorgrp{padding:6px 10px;}
   .floorgrp h3{font-size:12px;color:#555;margin:8px 2px 4px;border-bottom:1px dashed #ddd;}
   .rooms{display:grid;grid-template-columns:repeat(auto-fill,minmax(185px,1fr));gap:8px;}
-  .room{border:1px solid var(--line);border-radius:6px;padding:5px 6px;background:#fafafa;min-height:62px;}
+  .room{border:1px solid var(--line);border-radius:8px;padding:5px 6px;background:#fafafa;min-height:62px;}
   .room.over{border-color:var(--warn);background:#fff5f5;}
   .room.dragover{outline:2px dashed #3a6ea5;}
   .room .rhdr{display:flex;justify-content:space-between;align-items:center;font-size:11px;color:#444;margin-bottom:3px;gap:4px;}
@@ -66,56 +69,65 @@
   .chip.badmatch{outline:1.5px solid var(--warn);}
   .chip .grp{font-size:9px;color:#a60;}
   #warnpanel{padding:6px 16px;background:#fff8f8;border-top:1px solid #f0d0d0;font-size:12px;max-height:130px;overflow:auto;}
-  #warnpanel h3{margin:4px 0;font-size:12px;color:var(--warn);}
+  #warnpanel h3{margin:0 0 4px;font-size:12px;color:var(--warn);position:sticky;top:0;background:#fff8f8;padding:4px 0;display:flex;gap:6px;align-items:center;z-index:1;}
   #warnpanel .warnnote{color:#777;font-size:11px;margin:0 0 4px;}
   #warnpanel li{margin:1px 0;line-height:1.45;}
   .empty-hint{color:#888;padding:30px;text-align:center;}
   .muted{color:#888;font-size:11px;}
   /* ④ category badge on chips */
-  .chip .cat{font-size:9px;font-weight:700;color:#fff;padding:0 5px;border-radius:8px;flex:none;letter-spacing:.2px;}
+  .chip .cat{font-size:10px;font-weight:700;color:#fff;padding:0 6px;border-radius:999px;flex:none;letter-spacing:.2px;}
+  .chip .sx{flex:none;font-size:10px;font-weight:700;padding:0 4px;border-radius:999px;background:#fff;border:1px solid #ccc;}
+  .chip.sex-M .sx{color:#2c5a8c;border-color:#aac4e0;} .chip.sex-F .sx{color:#a8456c;border-color:#e0aac4;}
+  .chip.mix .sx{color:#6a8a3a;border-color:#c0d49a;} .chip.sex-q .sx{color:#777;}
   .chip{border-left-width:4px;}
   /* view tabs */
   .viewtabs{display:inline-flex;gap:4px;margin-right:10px;}
   .vtab{background:#27496b;}
   .vtab.active{background:#fff;color:#1f3b57;font-weight:700;}
   /* ②③④ timeline — compact, hotel-split, right buffer */
-  #timeline{padding:8px 14px;}
+  #timeline{padding:8px 14px;overflow:auto;height:calc(100vh - var(--topoff,92px));height:calc(100dvh - var(--topoff,92px));}
   #tlbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:4px;}
-  #tlbar .search{width:160px;margin:0;}
+  #tlbar .search{width:160px;margin:0;max-width:60vw;}
   #tlbar select{padding:4px;border:1px solid var(--line);border-radius:4px;}
-  #tlhead,.tlrow{display:grid;grid-template-columns:56px 58px 150px 78px 64px 52px 1fr;align-items:center;}
-  #tlhead{position:sticky;top:52px;background:#f7f7f9;z-index:10;border-bottom:2px solid #bbb;font-size:10px;font-weight:700;}
-  .tlrow .idc{font-family:ui-monospace,Consolas,monospace;font-size:10px;color:#667;padding:0 5px;white-space:nowrap;overflow:hidden;border-right:1px solid #eee;}
+  #tlhead,.tlrow{display:grid;grid-template-columns:var(--tlcols,56px 58px 150px 78px 84px 52px minmax(260px,1fr));align-items:center;}
+  #tlhead{position:sticky;top:0;background:#f7f7f9;z-index:10;border-bottom:2px solid #bbb;font-size:10px;font-weight:700;}
+  .tlrow .idc{font-family:ui-monospace,Consolas,monospace;font-size:10px;color:#667;padding:0 5px;text-align:center;white-space:nowrap;overflow:hidden;border-right:1px solid #eee;}
   .tlrow .catc{padding:0 4px;text-align:center;overflow:hidden;border-right:1px solid #eee;white-space:nowrap;}
-  .tlrow .venc{display:flex;align-items:center;justify-content:center;padding:0 4px;overflow:hidden;border-right:1px solid #eee;white-space:nowrap;}
-  .tlrow .roomc{display:flex;align-items:center;justify-content:center;padding:0 4px;overflow:hidden;border-right:1px solid #eee;white-space:nowrap;}
-  .tlrow .capc{display:flex;align-items:center;justify-content:center;padding:0 4px;border-right:1px solid #eee;white-space:nowrap;}
-  .tlrow .pill{flex:none;display:inline-block;vertical-align:middle;height:16px;line-height:16px;font-size:9px;font-weight:700;padding:0 7px;border-radius:8px;max-width:100%;overflow:hidden;text-overflow:ellipsis;}
-  .tlrow .pill.ven{background:#eee6f2;color:#553b6b;}
-  .tlrow .pill.room{background:#e8eef5;color:#2b4a6b;}
-  .tlrow .pill.cap{background:#eaf1e8;color:#3c5a2b;}
-  .tlrow .pill.none{background:#eee;color:#999;}
+  .tlrow .venc{padding:0 4px;text-align:center;overflow:hidden;border-right:1px solid #eee;white-space:nowrap;}
+  .tlrow .roomc{padding:0 4px;text-align:center;overflow:hidden;border-right:1px solid #eee;white-space:nowrap;}
+  .tlrow .capc{padding:0 4px;text-align:center;border-right:1px solid #eee;white-space:nowrap;}
+  .tlrow .pill{display:inline-block;vertical-align:middle;height:16px;line-height:16px;font-size:10px;font-weight:700;padding:0 8px;border-radius:999px;max-width:100%;overflow:hidden;text-overflow:ellipsis;}
+  /* informational pills are quiet/neutral — colour is reserved for status (warn/ok/dup/over) */
+  .tlrow .pill.ven{background:#eef0f2;color:#5a6470;font-weight:600;}
+  .tlrow .rnum{font-size:12px;font-weight:700;color:#283544;}
+  .tlrow .rnum.none{font-size:11px;font-weight:600;color:#8a929c;}
+  .tlrow .pill.cap{background:#eef0f2;color:#5a6470;font-weight:600;}
+  .tlrow .pill.none{background:#f0f1f3;color:#6b7480;font-weight:600;}
   .tlrow.dropmark{box-shadow:inset 0 2px 0 0 #3a6ea5;}
   #tlhead .nights,.tlrow .track{display:grid;grid-template-columns:repeat(var(--ncols),1fr);}
   #tlhead .nights div{padding:3px 1px;text-align:center;border-left:1px solid #e3e3e3;}
   #tlhead .nights div.unofficial{background:#f3e6e6;color:#a55;}
-  #tlhead .nights div.buffer{background:#eef1f4;color:#789;}
-  #tlhead .lbl{padding:3px 6px;}
+  #tlhead .nights div.buffer{background:#eef1f4;color:#5a6675;}
+  #tlhead .lbl{padding:3px 6px;position:relative;align-self:stretch;display:flex;align-items:center;}
+  #tlhead .lbl.ctr{justify-content:center;}
+  #tlhead .lbl .colgrip{position:absolute;top:0;right:-3px;width:7px;height:100%;cursor:col-resize;z-index:5;}
+  #tlhead .lbl .colgrip:hover,#tlhead .lbl .colgrip.drag{background:rgba(58,110,165,.35);}
   /* hotel split band */
-  .tlgroup{display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none;position:sticky;top:76px;z-index:9;font-size:11px;font-weight:700;padding:5px 10px;margin-top:4px;
+  .tlgroup{display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none;position:sticky;top:var(--tlheadh,24px);z-index:9;font-size:11px;font-weight:700;padding:5px 10px;margin-top:4px;
            border-top:2px solid rgba(0,0,0,.18);border-bottom:1px solid rgba(0,0,0,.12);transition:filter .12s,box-shadow .12s;}
   .tlgroup:hover{filter:brightness(1.05);box-shadow:inset 0 0 0 2px rgba(58,110,165,.5);}
   .tlgroup .chev{display:inline-block;width:12px;text-align:center;font-size:10px;transition:transform .15s;}
   .tlgroup .chev.open{transform:rotate(90deg);}
-  .tlgroup .ghint{margin-left:auto;font-size:10px;font-weight:600;color:#1f3b57;background:rgba(255,255,255,.6);padding:1px 9px;border-radius:10px;opacity:0;transition:opacity .12s;}
+  .tlgroup .ghint{margin-left:auto;font-size:10px;font-weight:600;color:#1f3b57;background:rgba(255,255,255,.6);padding:1px 9px;border-radius:999px;opacity:0;transition:opacity .12s;}
   .tlgroup:hover .ghint{opacity:.95;}
   .tlgroup.byytc{background:var(--byytc);} .tlgroup.youus{background:var(--youus);}
   .tlgroup.booyoung{background:var(--booyoung);} .tlgroup.unassigned{background:#e9e9ec;color:#666;}
-  .tlrow{border-bottom:1px solid #f0f0f0;}
+  .tlrow{border-bottom:1px solid #e8e8ec;}
+  .tlrow.alt{background:#fafbfc;}
   .tlrow:hover{background:#f3f7fb;}
   .tlrow .who{display:flex;align-items:center;gap:4px;padding:1px 6px;overflow:hidden;cursor:pointer;font-size:11px;}
   .tlrow .who .nm{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-  .tlrow .cat{display:inline-block;vertical-align:middle;font-size:8px;font-weight:700;line-height:14px;color:#fff;padding:0 6px;border-radius:7px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .tlrow .cat{display:inline-block;vertical-align:middle;font-size:10px;font-weight:700;line-height:15px;color:#fff;padding:0 7px;border-radius:999px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   .tlrow.dup{background:#fff7e6;}
   .tlrow.dup:hover{background:#ffeecc;}
   .tlrow .dupflag{margin-left:4px;font-size:10px;color:#c47f00;cursor:help;flex:none;}
@@ -127,7 +139,7 @@
        color:#fff;font-size:9px;font-weight:700;cursor:grab;user-select:none;box-shadow:0 1px 2px rgba(0,0,0,.25);z-index:2;}
   .bar .h{position:absolute;top:0;bottom:0;width:7px;cursor:ew-resize;}
   .bar .h.l{left:-1px;} .bar .h.r{right:-1px;}
-  .bar.none{background:#ccc !important;cursor:default;color:#555;font-weight:400;}
+  .bar.none{background:#cfcfcf !important;cursor:default;color:#333;font-weight:500;}
   /* ⑤ detail modal */
   .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;display:flex;align-items:center;justify-content:center;}
   .card{background:#fff;border-radius:10px;max-width:560px;width:92%;max-height:86vh;overflow:auto;box-shadow:0 10px 40px rgba(0,0,0,.3);}
@@ -149,6 +161,40 @@
   #loading{position:fixed;inset:0;background:rgba(255,255,255,.7);z-index:300;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;color:#1f3b57;font-weight:700;}
   #loading .spin{width:46px;height:46px;border:5px solid #cdd8e3;border-top-color:#3a6ea5;border-radius:50%;animation:spin .8s linear infinite;}
   @keyframes spin{to{transform:rotate(360deg);}}
+  /* responsive — stack sidebar, shrink chrome on small screens */
+  #timeline,#pool,#statsbar{-webkit-overflow-scrolling:touch;}
+  @media (max-width:860px){
+    #main{flex-direction:column;}
+    #pool{width:auto;position:static;max-height:40vh;top:auto;}
+    header h1{font-size:15px;}
+  }
+  /* phones — stack the header into title / scrollable action strip / full-width tabs */
+  @media (max-width:640px){
+    header{flex-direction:column;align-items:stretch;gap:6px;padding:8px 10px;}
+    header h1{font-size:15px;margin:0;}
+    header .spacer,#srcname{display:none;}
+    header .toolbtns{flex-wrap:nowrap;overflow-x:auto;gap:8px;padding-bottom:3px;}
+    header .toolbtns>button,header .toolbtns>label.btn{flex:0 0 auto;white-space:nowrap;}
+    header .tbdiv{display:none;}
+    .viewtabs{display:flex;width:100%;margin:0;gap:6px;}
+    .viewtabs .vtab{flex:1;}
+    button,label.btn{padding:8px 12px;font-size:12px;min-height:38px;}   /* larger tap targets */
+    #statsbar{gap:6px;padding:6px 10px;flex-wrap:nowrap;overflow-x:auto;}
+    #statsbar .stat{border-right:none;padding:2px 6px;white-space:nowrap;}
+    #main{padding:8px;gap:8px;}
+    #timeline{padding:6px 8px;}
+    .card{width:96%;max-height:90vh;}
+    .card .cbody{grid-template-columns:1fr;gap:2px 0;}                    /* labels above values */
+    .card .cbody .k{margin-top:6px;}
+    /* 16px form fields prevent iOS zoom-on-focus */
+    input,select,textarea,#pool input.search,#tlbar .search{font-size:16px;}
+  }
+  @media (hover:none){
+    .tlgroup .ghint{opacity:.95;}            /* touch: no hover, keep the expand/collapse hint visible */
+    #tlhead .lbl .colgrip{background:rgba(58,110,165,.18);width:14px;right:-7px;}  /* easier to grab by touch */
+    .chip{padding:4px 6px;}                   /* taller chips = easier taps */
+    .chip .lk{font-size:14px;padding:0 2px;}
+  }
   /* print */
   #printarea{display:none;}
   @media print{
@@ -169,17 +215,21 @@
 <body>
 <header>
   <h1>ICMDA 2026 숙소배정</h1>
-  <label class="btn">① 마스터 열기<input type="file" id="fileMaster" accept=".xlsx"></label>
-  <label class="btn alt">진행(JSON) 불러오기<input type="file" id="fileJson" accept=".json"></label>
-  <button class="go" id="btnAuto" disabled>② 자동 배정</button>
-  <button id="btnExcel" disabled>Excel 저장</button>
-  <button class="go" id="btnMaster" disabled>마스터 내보내기</button>
-  <button class="alt" id="btnJson" disabled>진행 저장(JSON)</button>
-  <button class="alt" id="btnPrint" disabled>인쇄 / PDF</button>
+  <div class="toolbtns">
+    <label class="btn" title="참가자·객실 데이터가 담긴 마스터 .xlsx 파일을 불러옵니다.">① 마스터 열기<input type="file" id="fileMaster" accept=".xlsx"></label>
+    <label class="btn alt" title="이전에 저장한 배정 진행 상태(.json)를 불러와 이어서 작업합니다.">진행(JSON) 불러오기<input type="file" id="fileJson" accept=".json"></label>
+    <span class="tbdiv"></span>
+    <button class="go" id="btnAuto" disabled title="성별·정원·온돌·묶음 규칙에 따라 미배정 인원을 방에 자동으로 배치합니다. (잠긴 인원은 제외)">② 자동 배정</button>
+    <span class="tbdiv"></span>
+    <button id="btnExcel" disabled title="현재 배정 결과를 보기용 Excel(.xlsx)로 내려받습니다.">Excel 저장</button>
+    <button id="btnMaster" disabled title="원본 마스터에 배정·수정 내용을 반영해 버전을 올린 새 마스터 파일(v{N})로 내보냅니다.">마스터 내보내기</button>
+    <button class="alt" id="btnJson" disabled title="현재 작업 상태를 .json으로 저장합니다. 나중에 '진행 불러오기'로 이어서 작업할 수 있습니다.">진행 저장(JSON)</button>
+    <button class="alt" id="btnPrint" disabled title="방 배치표를 인쇄하거나 PDF로 저장합니다. (A4 세로)">인쇄 / PDF</button>
+  </div>
   <span class="spacer"></span>
   <span class="viewtabs">
-    <button id="tabRooms" class="vtab active">배정 보기</button>
-    <button id="tabTimeline" class="vtab">타임라인 보기</button>
+    <button id="tabRooms" class="vtab active" title="방 단위 보기 — 방마다 인원을 끌어다 놓아 배정/수정합니다.">배정 보기</button>
+    <button id="tabTimeline" class="vtab" title="참가자 단위 보기 — 숙박 기간과 배정 현황을 한눈에 보고 막대로 조정합니다.">타임라인 보기</button>
   </span>
   <span id="srcname" style="font-size:11px;opacity:.8;"></span>
 </header>
@@ -253,6 +303,7 @@ const state = {
   tlFilter: {q:"", venue:"", cat:""},
   orderList: [],   // custom vertical order of party ids (timeline)
   collapsed: {},   // venue -> true (timeline fold)
+  colW: [56,58,150,78,84,52],  // resizable widths: ID·분류·이름/팀·호텔·객실번호·수용 (track = 1fr)
 };
 
 /* ---------- helpers ---------- */
@@ -468,8 +519,9 @@ function render(){
   $("#tabTimeline").classList.toggle("active",tl);
   if(tl){ renderTimeline(); }
   else { renderPool(); renderVenues(); renderWarnings(); }
+  syncTop();
 }
-function setView(v){ state.view=v; render(); }
+function setView(v){ state.view=v; saveUI(); render(); }
 function populateFilters(){
   const vsel=$("#tlvenue"), csel=$("#tlcat");
   vsel.length=1; csel.length=1;
@@ -514,6 +566,8 @@ function chip(p){
   if(room && matchIssue(room,p)) c.classList.add("badmatch");
   const ci=catInfo(p.cat);
   const cat=el("span","cat", ci.ab); cat.style.background=ci.c; cat.title=p.cat||"";
+  const sx=el("span","sx", p.partySex==="MIX"?"혼":p.partySex==="M"?"남":p.partySex==="F"?"여":"?");
+  sx.title="성별: "+(p.partySex==="MIX"?"혼성":p.partySex==="M"?"남성":p.partySex==="F"?"여성":"미상");
   const nm=el("span","nm", p.name + (p.kname?` (${p.kname})`:""));
   nm.title = `${p.id} · ${p.cat} · ${p.partySex} · ${p.arr}~${p.dep}` + (p.pre?` · 사전:${p.pre}`:"");
   const hc=el("span","hc", p.hc>1?`👪${p.hc}`:"");
@@ -521,7 +575,7 @@ function chip(p){
   const lk=el("span","lk", state.locked[p.id]?"🔒":"🔓");
   lk.title="잠금 토글(자동배정 제외)";
   lk.onclick=ev=>{ ev.stopPropagation(); state.locked[p.id]=!state.locked[p.id]; render(); };
-  c.append(cat,nm,hc,lk);
+  c.append(cat,sx,nm,hc,lk);
   c.addEventListener("dragstart",e=>{ e.dataTransfer.setData("text/pid",p.id); });
   if(state.assign[p.id]){                              // assigned chip → single-click returns it to 미배정
     c.style.cursor="pointer";
@@ -633,7 +687,10 @@ function renderWarnings(){
     issues.push(`묶음 분리 — '${g}' 그룹은 한 방에 함께 배정해야 하지만, 현재 ${set.size}개 방(${labels})에 나뉘어 있습니다. 같은 방(또는 인접 방)으로 모아주세요.`);
   }});
   const un=state.parties.filter(p=>p.need!=="No"&&!state.assign[p.id]).reduce((s,p)=>s+p.hc,0);
-  wp.append(el("h3",null,`경고 ${issues.length}건${un?` · 미배정 ${un}명`:""}`));
+  const wh=el("h3");
+  wh.append(el("span","pill "+(issues.length?"warn":"ok"),`경고 ${issues.length}건`));
+  if(un) wh.append(el("span","pill warn",`미배정 ${un}명`));
+  wp.append(wh);
   wp.append(el("div","warnnote","아래는 배정 점검 결과입니다 — 정원 초과, 성별/조건 불일치, 그리고 같은 묶음(그룹)이 여러 방에 흩어진 경우를 안내합니다."));
   if(!issues.length){ wp.append(el("div",null,un?"용량/성별 충돌 없음. 미배정 인원을 수동 배치하세요.":"문제 없음 ✓")); return; }
   const ul=el("ul"); ul.style.margin="2px 0"; issues.slice(0,40).forEach(t=>ul.append(el("li",null,t)));
@@ -671,6 +728,39 @@ function computeDups(){                       // flag rows sharing a name or ema
   Object.values(byName).forEach(add); Object.values(byEmail).forEach(add);
   state.dups=new Set(Object.keys(state.dupInfo));
 }
+function applyColW(){
+  const floor = window.innerWidth<=640 ? 170 : 260;   // less horizontal scroll on phones
+  $("#timeline").style.setProperty("--tlcols", state.colW.map(w=>w+"px").join(" ")+` minmax(${floor}px,1fr)`);
+}
+function syncTop(){                                   // keep timeline scroll-panel sized to the space below header+statsbar
+  const h=document.querySelector("header"), sb=$("#statsbar");
+  const off=(h?h.offsetHeight:52)+(sb?sb.offsetHeight:0);
+  document.documentElement.style.setProperty("--topoff",off+"px");
+  const th=$("#tlhead"); if(th&&th.offsetHeight) document.documentElement.style.setProperty("--tlheadh",th.offsetHeight+"px");
+  applyColW();   // re-evaluate the night-track floor for the new width
+}
+const UIKEY="icmda_ui";
+function saveUI(){ try{ localStorage.setItem(UIKEY, JSON.stringify({colW:state.colW, collapsed:state.collapsed, view:state.view})); }catch(e){} }
+function loadUI(){ try{
+  const s=JSON.parse(localStorage.getItem(UIKEY)||"{}");
+  if(Array.isArray(s.colW) && s.colW.length===state.colW.length) state.colW=s.colW.map(Number);
+  if(s.collapsed && typeof s.collapsed==="object") state.collapsed=s.collapsed;
+  if(s.view==="rooms"||s.view==="timeline") state.view=s.view;
+}catch(e){} }
+function makeColGrip(ci){
+  const g=el("div","colgrip");
+  g.title="끌어서 열 너비 조정 · 더블클릭하여 초기화";
+  const MIN=36, DEF=[56,58,150,78,84,52];
+  g.addEventListener("mousedown",ev=>{
+    ev.preventDefault(); ev.stopPropagation();
+    const x0=ev.clientX, w0=state.colW[ci]; g.classList.add("drag");
+    const mv=e=>{ state.colW[ci]=Math.max(MIN, w0+(e.clientX-x0)); applyColW(); };
+    const up=()=>{ g.classList.remove("drag"); document.removeEventListener("mousemove",mv); document.removeEventListener("mouseup",up); saveUI(); };
+    document.addEventListener("mousemove",mv); document.addEventListener("mouseup",up);
+  });
+  g.addEventListener("dblclick",ev=>{ ev.preventDefault(); ev.stopPropagation(); state.colW[ci]=DEF[ci]; applyColW(); saveUI(); });
+  return g;
+}
 function renderTimeline(){
   computeDups();
   const D=state.dates; const n=D.length;
@@ -678,7 +768,10 @@ function renderTimeline(){
   const planEnd = state.nightCols.length;                     // index where buffer (연장) zone starts
   // header (ID + 참가자 + date axis)
   const head=$("#tlhead"); head.innerHTML=""; head.style.setProperty("--ncols",n);
-  head.append(el("div","lbl","ID"), el("div","lbl","분류"), el("div","lbl","이름 / 팀"), el("div","lbl","객실"), el("div","lbl","수용"));
+  applyColW();
+  ["ID","분류","이름 / 팀","호텔","객실번호","수용"].forEach((t,ci)=>{
+    const lbl=el("div","lbl"+(ci===2?"":" ctr"),t); lbl.append(makeColGrip(ci)); head.append(lbl);
+  });
   const hn=el("div","nights");
   D.forEach((lab,i)=>{
     const cls = (off629>=0&&i<off629)?"unofficial":(i>=planEnd?"buffer":null);
@@ -712,10 +805,10 @@ function renderTimeline(){
               el("span","glabel",`${v} — ${list.length}건 / ${people}명`),
               el("span","ghint",open?"클릭하여 접기 ▲":"클릭하여 펼치기 ▼"));
     gh.title="클릭하여 접기/펼치기";
-    gh.onclick=()=>{ state.collapsed[v]=open; renderTimeline(); };
+    gh.onclick=()=>{ state.collapsed[v]=open; saveUI(); renderTimeline(); };
     wrap.append(gh);
     if(!open) return;
-    list.forEach(p=>{ if(shown<CAP){ wrap.append(tlRow(p,n,off629,planEnd)); shown++; } });
+    list.forEach((p,ri)=>{ if(shown<CAP){ const r=tlRow(p,n,off629,planEnd); if(ri%2) r.classList.add("alt"); wrap.append(r); shown++; } });
   });
   if(shown<rows.length) wrap.append(el("div","muted",`… 외 ${rows.length-shown}명 (검색/필터로 좁혀 보세요)`));
 }
@@ -782,9 +875,10 @@ function tlRow(p,n,off629,planEnd){
     });
   }
   const ri=partyRoomInfo(p);
-  const roomc=el("div","roomc"); const rpill=el("span","pill "+(ri.cap==null?"none":"room"),ri.rno); rpill.title=ri.full; roomc.append(rpill);
+  const venc=el("div","venc"); const vpill=el("span","pill "+(ri.ven==null?"none":"ven"),ri.vshort); vpill.title=ri.ven||"미배정"; venc.append(vpill);
+  const roomc=el("div","roomc"); const rnum=el("span","rnum"+(ri.cap==null?" none":""),ri.rno); rnum.title=ri.full; roomc.append(rnum);
   const capc=el("div","capc"); capc.append(el("span","pill "+(ri.cap==null?"none":"cap"), ri.cap==null?"—":ri.cap+"인"));
-  row.append(idc,catc,who,roomc,capc,track);
+  row.append(idc,catc,who,venc,roomc,capc,track);
   return row;
 }
 function enableBarDrag(p,bar,hl,hr,track,n,place){
@@ -1119,6 +1213,9 @@ $("#tlvenue").addEventListener("change",e=>{ state.tlFilter.venue=e.target.value
 $("#tlcat").addEventListener("change",e=>{ state.tlFilter.cat=e.target.value; renderTimeline(); });
 $("#modal").addEventListener("click",e=>{ if(e.target.id==="modal") closeCard(); });
 document.addEventListener("keydown",e=>{ if(e.key==="Escape") closeCard(); });
+loadUI();   // restore column widths, collapsed groups, and last view
+window.addEventListener("resize",syncTop);
+syncTop();
 </script>
 </body>
 </html>
