@@ -3,26 +3,36 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#1f3b57">
+<meta name="theme-color" content="var(--ink)">
 <title>ICMDA 2026 숙소배정 대시보드</title>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <style>
   :root{
+    /* venue + category accents (unchanged — carry meaning) */
     --byytc:#fff2cc; --byytc-b:#e0c200;
     --youus:#dbe9f5; --youus-b:#5b8fc9;
     --booyoung:#f3e2d2; --booyoung-b:#c08b55;
-    --pool:#f0f0f0; --warn:#c00000; --ok:#2e7d32;
-    --line:#ccc;
+    /* ===== THEME TOKENS — "Slate & Coral". Retheme by editing only this block. ===== */
+    --ink:#2a3645; --primary:#cf4631; --primary-hover:#b3392a;
+    --bg:#eef1f4; --surface:#ffffff;
+    --text:#1f2a37; --text2:#41505f; --text-muted:#697686; --text-faint:#9aa6b2;
+    --border:#d5dbe2; --border-strong:#b3bcc7;
+    --success:#2f7d57; --success-bg:#e6f4ec;
+    --warning:#a9650f; --warning-fill:#e2961c;
+    --danger:#a51d2a; --danger-bg:#fae6e7;
+    --info:#2f6fa8;
+    /* legacy aliases → tokens */
+    --pool:#e8edf2; --warn:var(--danger); --ok:var(--success); --line:var(--border);
   }
   *{box-sizing:border-box;}
-  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Pretendard","Apple SD Gothic Neo","Noto Sans KR","Malgun Gothic",sans-serif;margin:0;background:#f7f7f9;color:#222;font-size:13px;-webkit-text-size-adjust:100%;}
-  header{background:#1f3b57;color:#fff;padding:10px 16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;position:sticky;top:0;z-index:50;}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Pretendard","Apple SD Gothic Neo","Noto Sans KR","Malgun Gothic",sans-serif;margin:0;background:var(--bg);color:var(--text);font-size:13px;-webkit-text-size-adjust:100%;}
+  header{background:var(--ink);color:#fff;padding:10px 16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;position:sticky;top:0;z-index:50;}
   header h1{font-size:16px;margin:0 12px 0 0;font-weight:600;}
   header .spacer{flex:1;}
-  button,label.btn{background:#3a6ea5;color:#fff;border:none;border-radius:5px;padding:6px 11px;font-size:12px;cursor:pointer;}
+  button,label.btn{background:var(--primary);color:#fff;border:none;border-radius:5px;padding:6px 11px;font-size:12px;cursor:pointer;}
   button:hover,label.btn:hover{background:#2c597f;}
   button.alt{background:#5a6b7b;}
-  button.go{background:#2e7d32;}
+  button.go{background:var(--success);}
   button:disabled{background:#9aa6b1;cursor:not-allowed;}
   :focus-visible{outline:2px solid #8fc0ff;outline-offset:1px;}
   header .tbdiv{width:1px;align-self:stretch;background:rgba(255,255,255,.25);margin:2px 4px;}
@@ -52,7 +62,7 @@
   .rooms{display:grid;grid-template-columns:repeat(auto-fill,minmax(185px,1fr));gap:8px;}
   .room{border:1px solid var(--line);border-radius:8px;padding:5px 6px;background:#fafafa;min-height:62px;}
   .room.over{border-color:var(--warn);background:#fff5f5;}
-  .room .rhdr{display:flex;justify-content:space-between;align-items:center;font-size:11px;color:#444;margin-bottom:3px;gap:4px;}
+  .room .rhdr{display:flex;justify-content:space-between;align-items:center;font-size:11px;color:var(--text2);margin-bottom:3px;gap:4px;}
   .room .rno{font-weight:700;color:#111;}
   .room .tags{display:flex;gap:3px;flex-wrap:wrap;}
   .tag{font-size:9px;padding:0 4px;border-radius:3px;border:1px solid #bbb;background:#fff;}
@@ -60,9 +70,10 @@
   .tag.ondol{background:#fff0c8;border-color:#d4a;}
   .tag.staff{background:#eee;}
   .capbadge{font-weight:700;}
-  .capbadge.over{color:var(--warn);} .capbadge.full{color:#b8860b;} .capbadge.ok{color:var(--ok);}
+  .capbadge.over{color:var(--warn);} .capbadge.full{color:var(--warning-fill);} .capbadge.ok{color:var(--ok);}
+  .capedit{width:46px;font-size:11px;font-weight:600;padding:0 3px;border:1px solid #88a;border-radius:3px;}
   .chip{display:flex;align-items:center;gap:4px;font-size:11px;padding:2px 5px;margin:2px 0;border-radius:4px;background:#eef2f6;border:1px solid #d6dee6;cursor:grab;}
-  .chip.sex-M{border-left:3px solid #3a6ea5;} .chip.sex-F{border-left:3px solid #c2557a;} .chip.sex-q{border-left:3px solid #999;}
+  .chip.sex-M{border-left:3px solid var(--primary);} .chip.sex-F{border-left:3px solid #c2557a;} .chip.sex-q{border-left:3px solid #999;}
   .chip.mix{border-left:3px solid #8a6; }
   .chip.locked{background:#fff7df;}
   .chip .nm{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
@@ -79,18 +90,52 @@
   #warnpanel h3{margin:0 0 4px;font-size:12px;color:var(--warn);position:sticky;top:0;background:#fff8f8;padding:4px 0;display:flex;gap:6px;align-items:center;z-index:1;}
   #warnpanel .warnnote{color:#777;font-size:11px;margin:0 0 4px;}
   #warnpanel li{margin:1px 0;line-height:1.45;}
-  .empty-hint{color:#888;padding:30px;text-align:center;}
-  .muted{color:#888;font-size:11px;}
+  .empty-hint{color:var(--text-muted);padding:30px;text-align:center;}
+  .muted{color:var(--text-muted);font-size:11px;}
   /* ④ category badge on chips */
   .chip .cat{font-size:10px;font-weight:700;color:#fff;padding:0 6px;border-radius:999px;flex:none;letter-spacing:.2px;}
   .chip .sx{flex:none;font-size:10px;font-weight:700;padding:0 4px;border-radius:999px;background:#fff;border:1px solid #ccc;}
   .chip.sex-M .sx{color:#2c5a8c;border-color:#aac4e0;} .chip.sex-F .sx{color:#a8456c;border-color:#e0aac4;}
   .chip.mix .sx{color:#6a8a3a;border-color:#c0d49a;} .chip.sex-q .sx{color:#777;}
   .chip{border-left-width:4px;}
-  /* view tabs */
-  .viewtabs{display:inline-flex;gap:4px;margin-right:10px;}
-  .vtab{background:#27496b;}
-  .vtab.active{background:#fff;color:#1f3b57;font-weight:700;}
+  /* view tabs — segmented control */
+  .viewtabs{display:inline-flex;gap:0;background:rgba(255,255,255,.13);border-radius:10px;padding:3px;margin-right:10px;}
+  .vtab{background:transparent;color:rgba(255,255,255,.82);border:none;border-radius:8px;font-weight:600;padding:6px 15px;font-size:12px;transition:background .12s,color .12s,box-shadow .12s;}
+  .vtab:hover{color:#fff;}
+  .vtab.active{background:#fff;color:var(--ink);font-weight:700;box-shadow:0 1px 3px rgba(0,0,0,.18);}
+  .viewtabs.disabled{opacity:.55;}                                    /* empty state: tabs visible but inert */
+  .viewtabs.disabled .vtab{cursor:default;}
+  .viewtabs.disabled .vtab.active{background:rgba(255,255,255,.4);color:#cdd9e4;box-shadow:none;}
+  /* import / start screen (shown until a master loads) */
+  #startscreen{display:flex;align-items:center;justify-content:center;box-sizing:border-box;
+    min-height:calc(100vh - var(--headerh,56px));padding:32px 24px;}
+  #startscreen[hidden]{display:none;}
+  .ss-hero{display:grid;grid-template-columns:1.05fr .95fr;width:100%;max-width:840px;
+    background:var(--surface);border:1px solid var(--border);border-radius:18px;
+    box-shadow:0 14px 40px rgba(20,30,45,.08);overflow:hidden;}
+  .ss-intro{padding:42px 38px;display:flex;flex-direction:column;border-right:1px solid var(--border);}
+  .ss-eyebrow{align-self:flex-start;font-size:11px;font-weight:700;letter-spacing:.05em;
+    color:var(--primary);background:var(--danger-bg);border-radius:999px;padding:4px 12px;margin-bottom:18px;}
+  .ss-title{font-size:25px;line-height:1.25;font-weight:800;color:var(--ink);margin-bottom:12px;}
+  .ss-sub{font-size:13.5px;line-height:1.65;color:var(--text-muted);margin-bottom:28px;}
+  .ss-flow{display:flex;flex-direction:column;gap:16px;margin-top:auto;}
+  .ss-fitem{display:flex;align-items:flex-start;gap:13px;}
+  .ss-fnum{flex:none;width:27px;height:27px;border-radius:50%;background:var(--bg);color:var(--text2);
+    font-size:12.5px;font-weight:700;display:flex;align-items:center;justify-content:center;border:1px solid var(--border);}
+  .ss-ftext b{display:block;font-size:13px;font-weight:700;color:var(--text);margin-bottom:1px;}
+  .ss-ftext span{font-size:11.5px;color:var(--text-faint);line-height:1.4;}
+  /* right column: dropzone */
+  .ss-import{padding:26px;display:flex;}
+  .ss-drop{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;cursor:pointer;
+    border:1.5px dashed var(--border-strong);border-radius:14px;background:var(--bg);padding:30px 24px;transition:border-color .15s,background .15s;}
+  .ss-drop.drag{border-color:var(--primary);background:var(--danger-bg);}
+  .ss-ic{color:var(--primary);margin-bottom:14px;}
+  .ss-h{font-size:16px;font-weight:700;color:var(--ink);margin-bottom:6px;}
+  .ss-p{font-size:12.5px;color:var(--text-muted);margin-bottom:20px;} .ss-p b{color:var(--text2);}
+  .ss-btn{display:inline-flex;align-items:center;justify-content:center;min-height:46px;padding:0 22px;background:var(--primary);color:#fff;
+    font-size:14px;font-weight:700;border-radius:10px;cursor:pointer;box-shadow:0 2px 8px rgba(207,70,49,.28);}
+  .ss-btn:hover{background:var(--primary-hover);} .ss-btn>input[type=file]{display:none;}
+  .ss-or{font-size:11.5px;color:var(--text-faint);margin-top:14px;}
   /* ②③④ timeline — compact, hotel-split, right buffer */
   /* #timeline is now a flex column wrapper; #gantt is the actual both-axis
      scroller (so frozen columns + sticky date header resolve against it and
@@ -103,10 +148,12 @@
   #timeline.cardmode #ganttwrap{display:none;}
   #timeline.cardmode #tlcards{display:block;overflow:auto;}
   #tlbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:4px;}
-  #tlbar .search{width:160px;margin:0;max-width:60vw;}
-  #tlbar select{padding:4px;border:1px solid var(--line);border-radius:4px;}
+  #tlbar .search{width:160px;margin:0;max-width:60vw;padding-left:10px;}
+  /* unify the filter-bar controls (search input + selects) to one box style */
+  #tlbar .search,#tlbar select{height:32px;box-sizing:border-box;font-size:13px;border:1px solid var(--line);border-radius:6px;background:#fff;color:var(--text);}
+  #tlbar select{padding:0 8px;}
   #tlhead,.tlrow{display:grid;grid-template-columns:var(--tlcols,56px 58px 150px 78px 84px 52px minmax(260px,1fr));align-items:center;}
-  #tlhead{position:sticky;top:0;background:#f7f7f9;z-index:10;border-bottom:2px solid #bbb;font-size:10px;font-weight:700;}
+  #tlhead{position:sticky;top:0;background:var(--bg);z-index:10;border-bottom:2px solid #bbb;font-size:10px;font-weight:700;}
   .tlrow .idc{font-family:ui-monospace,Consolas,monospace;font-size:10px;color:#667;padding:0 5px;text-align:center;white-space:nowrap;overflow:hidden;border-right:1px solid #eee;}
   .tlrow .catc{padding:0 4px;text-align:center;overflow:hidden;border-right:1px solid #eee;white-space:nowrap;}
   .tlrow .venc{padding:0 4px;text-align:center;overflow:hidden;border-right:1px solid #eee;white-space:nowrap;}
@@ -116,79 +163,126 @@
   /* informational pills are quiet/neutral — colour is reserved for status (warn/ok/dup/over) */
   .tlrow .pill.ven{background:#eef0f2;color:#5a6470;font-weight:600;}
   .tlrow .rnum{font-size:12px;font-weight:700;color:#283544;}
-  .tlrow .rnum.none{font-size:11px;font-weight:600;color:#8a929c;}
+  .tlrow .rnum.none{font-size:11px;font-weight:600;color:var(--text-muted);}
   .tlrow .pill.cap{background:#eef0f2;color:#5a6470;font-weight:600;}
-  .tlrow .pill.none{background:#f0f1f3;color:#6b7480;font-weight:600;}
-  .tlrow.dropmark{box-shadow:inset 0 2px 0 0 #3a6ea5;}
+  .tlrow .pill.none{background:#f0f1f3;color:var(--text-muted);font-weight:600;}
+  /* 호텔·객실번호·수용 render as plain text matching the 이름 column (no pill/badge) */
+  .tlrow .venc .pill,.tlrow .capc .pill,.tlrow .roomc .rnum{background:none;border-radius:0;height:auto;line-height:1.2;padding:0;font-size:11px;font-weight:400;color:inherit;}
+  .tlrow .venc .pill.none,.tlrow .capc .pill.none,.tlrow .roomc .rnum.none{color:var(--text-faint);}
+  /* drop insertion indicator — crisp line above/below the target row, drawn over the frozen columns too */
+  .tlrow.dropmark{position:relative;}
+  .tlrow.dropmark::after{content:"";position:absolute;left:0;right:0;height:0;border-top:2px solid var(--primary);z-index:6;pointer-events:none;box-shadow:0 0 5px rgba(207,70,49,.6);}
+  .tlrow.dropmark.dm-before::after{top:-1px;}
+  .tlrow.dropmark.dm-after::after{bottom:-1px;}
   #tlhead .nights,.tlrow .track{display:grid;grid-template-columns:repeat(var(--ncols),1fr);}
   #tlhead .nights div{padding:3px 1px;text-align:center;border-left:1px solid #e3e3e3;}
   #tlhead .nights div.unofficial{background:#f3e6e6;color:#a55;}
   #tlhead .nights div.buffer{background:#eef1f4;color:#5a6675;}
   #tlhead .lbl{padding:3px 6px;position:relative;align-self:stretch;display:flex;align-items:center;}
   #tlhead .lbl.ctr{justify-content:center;}
+  #tlhead .lbl.sortable{cursor:pointer;}
+  #tlhead .lbl.sortable:hover{background:#e9eef4;}
+  #tlhead .lbl .sortar{margin-left:3px;font-size:8px;color:var(--primary);flex:none;}
   #tlhead .lbl .colgrip{position:absolute;top:0;right:-3px;width:7px;height:100%;cursor:col-resize;z-index:5;touch-action:none;}
-  #tlhead .lbl .colgrip:hover,#tlhead .lbl .colgrip.drag{background:rgba(58,110,165,.35);}
+  #tlhead .lbl .colgrip:hover,#tlhead .lbl .colgrip.drag{background:rgba(207,70,49,.35);}
   /* hotel split band */
-  .tlgroup{display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none;position:sticky;top:var(--tlheadh,24px);z-index:9;font-size:11px;font-weight:700;padding:5px 10px;margin-top:4px;
+  .tlgroup{display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none;position:sticky;top:calc(var(--tlheadh,24px) - 1px);z-index:9;font-size:11px;font-weight:700;padding:5px 10px;
            border-top:2px solid rgba(0,0,0,.18);border-bottom:1px solid rgba(0,0,0,.12);transition:filter .12s,box-shadow .12s;}
-  .tlgroup:hover{filter:brightness(1.05);box-shadow:inset 0 0 0 2px rgba(58,110,165,.5);}
+  .tlgroup:hover{filter:brightness(1.05);box-shadow:inset 0 0 0 2px rgba(207,70,49,.5);}
   .tlgroup .chev{display:inline-block;width:12px;text-align:center;font-size:10px;transition:transform .15s;}
   .tlgroup .chev.open{transform:rotate(90deg);}
-  .tlgroup .ghint{margin-left:auto;font-size:10px;font-weight:600;color:#1f3b57;background:rgba(255,255,255,.6);padding:1px 9px;border-radius:999px;opacity:0;transition:opacity .12s;}
+  .tlgroup .ghint{margin-left:auto;font-size:10px;font-weight:600;color:var(--ink);background:rgba(255,255,255,.6);padding:1px 9px;border-radius:999px;opacity:0;transition:opacity .12s;}
   .tlgroup:hover .ghint{opacity:.95;}
   .tlgroup.byytc{background:var(--byytc);} .tlgroup.youus{background:var(--youus);}
   .tlgroup.booyoung{background:var(--booyoung);} .tlgroup.unassigned{background:#e9e9ec;color:#666;}
-  .tlrow{border-bottom:1px solid #e8e8ec;}
+  .tlrow{border-bottom:1px solid #e8e8ec;transition:opacity .12s ease;}
   .tlrow.alt{background:#eef2f6;}                 /* stronger zebra (DESIGN-6) */
   .tlrow:hover{background:#f3f7fb;}
   /* frozen pane — ID·분류·이름 stay pinned to the left while the night axis scrolls */
-  .tlrow .idc{position:sticky;left:0;z-index:4;background:#fff;}
+  .tlrow .idc{position:sticky;left:0;z-index:4;background:#fff;display:flex;align-items:center;gap:3px;}
+  .tlrow .idc .idtxt{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   .tlrow .catc{position:sticky;left:var(--c1,56px);z-index:4;background:#fff;}
   .tlrow .who{position:sticky;left:var(--c2,114px);z-index:4;background:#fff;box-shadow:1px 0 0 0 #dcdce0;}
   .tlrow.alt .idc,.tlrow.alt .catc,.tlrow.alt .who{background:#eef2f6;}
   .tlrow:hover .idc,.tlrow:hover .catc,.tlrow:hover .who{background:#f3f7fb;}
   .tlrow.dup .idc,.tlrow.dup .catc,.tlrow.dup .who{background:#fff7e6;}
   .tlrow.dup:hover .idc,.tlrow.dup:hover .catc,.tlrow.dup:hover .who{background:#ffeecc;}
-  #tlhead .lbl:nth-child(1){position:sticky;left:0;z-index:12;background:#f7f7f9;}
-  #tlhead .lbl:nth-child(2){position:sticky;left:var(--c1,56px);z-index:12;background:#f7f7f9;}
-  #tlhead .lbl:nth-child(3){position:sticky;left:var(--c2,114px);z-index:12;background:#f7f7f9;box-shadow:1px 0 0 0 #ccc;}
+  /* multi-select highlight (group drag) — wins over zebra so the selection is unambiguous */
+  .tlrow.selected{background:#e3edff;}
+  .tlrow.selected .idc,.tlrow.selected .catc,.tlrow.selected .who{background:#e3edff;}
+  .tlrow.selected .who{box-shadow:1px 0 0 0 #9bbcf0;}
+  #tlhead .lbl:nth-child(1){position:sticky;left:0;z-index:12;background:var(--bg);}
+  #tlhead .lbl:nth-child(2){position:sticky;left:var(--c1,56px);z-index:12;background:var(--bg);}
+  #tlhead .lbl:nth-child(3){position:sticky;left:var(--c2,114px);z-index:12;background:var(--bg);box-shadow:1px 0 0 0 #ccc;}
   .tlrow .who{display:flex;align-items:center;gap:4px;padding:1px 6px;overflow:hidden;cursor:pointer;font-size:11px;}
   .tlrow .who .nm{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-  .tlrow .who .tlgrip{flex:none;cursor:grab;color:#bbb;font-size:13px;line-height:1;padding:0 2px;touch-action:none;user-select:none;}
-  .tlrow .who .tlgrip:active{cursor:grabbing;color:#3a6ea5;}
+  .tlrow .tlgrip{flex:none;cursor:grab;color:#bbb;font-size:13px;line-height:1;padding:0 2px;touch-action:none;user-select:none;}
+  .tlrow .tlgrip:active{cursor:grabbing;color:var(--primary);}
+  .tlrow.selected .tlgrip{color:var(--primary);}
   .tlrow .cat{display:inline-block;vertical-align:middle;font-size:10px;font-weight:700;line-height:15px;color:#fff;padding:0 7px;border-radius:999px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   .tlrow.dup{background:#fff7e6;}
   .tlrow.dup:hover{background:#ffeecc;}
-  .tlrow .dupflag{margin-left:4px;font-size:10px;color:#c47f00;cursor:help;flex:none;}
+  .tlrow .dupflag{margin-left:4px;font-size:10px;color:var(--warning);cursor:help;flex:none;}
   .tlrow .track{position:relative;height:17px;background:
      repeating-linear-gradient(to right,transparent,transparent calc(100%/var(--ncols) - 1px),#ececec calc(100%/var(--ncols) - 1px),#ececec calc(100%/var(--ncols)));}
   .tlrow .track .unoff{position:absolute;top:0;bottom:0;background:#f7ecec;}
   .tlrow .track .bufz{position:absolute;top:0;bottom:0;background:#eef1f4;}
   .bar{position:absolute;top:2px;height:13px;border-radius:3px;display:flex;align-items:center;justify-content:center;
-       color:#fff;font-size:9px;font-weight:700;cursor:grab;user-select:none;box-shadow:0 1px 2px rgba(0,0,0,.25);z-index:2;touch-action:none;}
+       color:#fff;font-size:9px;font-weight:700;cursor:grab;user-select:none;box-shadow:0 1px 2px rgba(0,0,0,.25);z-index:2;touch-action:none;
+       transition:left .13s ease,width .13s ease;}
+  .bar.dragging{transition:none;z-index:3;box-shadow:0 3px 9px rgba(0,0,0,.4);cursor:grabbing;}  /* pixel-follow live; snap-settle on drop */
   .bar .h{position:absolute;top:0;bottom:0;width:7px;cursor:ew-resize;}
   .bar .h.l{left:-1px;} .bar .h.r{right:-1px;}
   .bar.none{background:#cfcfcf !important;cursor:default;color:#333;font-weight:500;}
   /* ⑤ detail modal */
-  .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;display:flex;align-items:center;justify-content:center;}
-  .card{background:#fff;border-radius:10px;max-width:560px;width:92%;max-height:86vh;overflow:auto;box-shadow:0 10px 40px rgba(0,0,0,.3);}
-  .card .chead{padding:12px 16px;color:#fff;display:flex;align-items:center;gap:10px;border-radius:10px 10px 0 0;}
-  .card .chead h2{margin:0;font-size:17px;} .card .chead .sub{opacity:.9;font-size:12px;}
-  .card .cedit{margin-left:auto;cursor:pointer;font-size:12px;font-weight:700;color:#fff;background:rgba(255,255,255,.22);border:1px solid rgba(255,255,255,.6);border-radius:6px;padding:3px 11px;}
-  .card .cedit:hover{background:rgba(255,255,255,.4);}
-  .card .cx{margin-left:auto;cursor:pointer;font-size:20px;line-height:1;background:none;border:none;color:#fff;padding:0 4px;}
-  .card .cbody{padding:12px 16px;display:grid;grid-template-columns:auto 1fr;gap:4px 14px;font-size:13px;}
-  .card .cbody .k{color:#777;white-space:nowrap;} .card .cbody .v{word-break:break-word;}
-  .card .cbody.edit{align-items:center;gap:6px 12px;}
-  .card .cbody.edit .k{font-size:12px;}
-  .card .cbody.edit input,.card .cbody.edit select,.card .cbody.edit textarea{width:100%;box-sizing:border-box;font:inherit;font-size:13px;padding:3px 6px;border:1px solid var(--line);border-radius:5px;background:#fff;}
+  .modal-bg{position:fixed;inset:0;background:rgba(15,23,35,.5);z-index:200;display:flex;align-items:center;justify-content:center;padding:16px;animation:modalin .15s ease;}
+  @keyframes modalin{from{opacity:0;}to{opacity:1;}}
+  .card{background:#fff;border-radius:14px;max-width:540px;width:100%;max-height:88vh;overflow:auto;box-shadow:0 18px 50px rgba(15,23,35,.32);animation:cardpop .2s cubic-bezier(.2,.7,.3,1);}
+  @keyframes cardpop{from{opacity:0;transform:translateY(14px) scale(.97);}to{opacity:1;transform:none;}}
+  .card .chead{padding:16px 20px;color:#fff;display:flex;align-items:center;gap:12px;border-radius:14px 14px 0 0;position:sticky;top:0;z-index:1;}
+  .card .chead .htitle{flex:1;min-width:0;}
+  .card .chead h2{margin:0;font-size:18px;font-weight:700;line-height:1.25;word-break:break-word;}
+  .card .chead .sub{margin-top:3px;opacity:.92;font-size:12px;font-weight:500;}
+  .card .cedit{cursor:pointer;font-size:12px;font-weight:700;color:#fff;background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.55);border-radius:8px;padding:6px 13px;white-space:nowrap;flex:none;}
+  .card .cedit:hover{background:rgba(255,255,255,.34);}
+  .card .cx{cursor:pointer;font-size:20px;line-height:1;background:none;border:none;color:#fff;opacity:.85;padding:2px 4px;flex:none;}
+  .card .cx:hover{opacity:1;}
+  .card .cbody{padding:16px 22px 20px;display:grid;grid-template-columns:max-content 1fr;gap:10px 20px;font-size:13px;align-items:baseline;}
+  .card .cbody .k{color:var(--text-muted);white-space:nowrap;font-size:12px;} .card .cbody .v{color:#26323f;font-weight:500;word-break:break-word;}
+  .card .cbody.edit{align-items:center;gap:9px 16px;}
+  .card .cbody.edit .k{font-size:12px;color:var(--text-muted);}
+  .card .cbody.edit input,.card .cbody.edit select,.card .cbody.edit textarea{width:100%;box-sizing:border-box;font:inherit;font-size:13px;padding:6px 8px;border:1px solid var(--line);border-radius:7px;background:#fff;}
+  .card .cbody.edit input:focus,.card .cbody.edit select:focus,.card .cbody.edit textarea:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px rgba(207,70,49,.15);}
   .card .cbody.edit textarea{resize:vertical;}
-  .card .cfoot{display:flex;gap:8px;justify-content:flex-end;padding:10px 16px;border-top:1px solid #eee;position:sticky;bottom:0;background:#fff;border-radius:0 0 10px 10px;}
-  .card .cfoot button{padding:6px 16px;}
-  .card .sec{grid-column:1/-1;margin:8px 0 2px;font-weight:700;color:#1f3b57;border-bottom:1px solid #eee;}
+  .card .cfoot{display:flex;gap:8px;justify-content:flex-end;padding:12px 20px;border-top:1px solid #eef0f3;position:sticky;bottom:0;background:#fff;border-radius:0 0 14px 14px;}
+  .card .cfoot button{padding:8px 18px;border-radius:8px;}
+  .card .cfoot .cdanger{margin-right:auto;background:#fff;color:var(--danger);border:1px solid #e3b4ae;}
+  .card .cfoot .cdanger:hover{background:#fdecea;border-color:#d49a93;}
+  .card .sec{grid-column:1/-1;display:flex;align-items:center;gap:8px;margin:18px 0 4px;padding-bottom:7px;border-bottom:1px solid #edf0f3;font-weight:700;font-size:12.5px;letter-spacing:.02em;color:var(--ink);}
+  .card .sec::before{content:"";width:4px;height:14px;border-radius:2px;background:var(--primary);flex:none;}
+  .card .cbody>.sec:first-child{margin-top:0;}
+  /* long-press row context action sheet (timeline) */
+  #rowsheet{position:fixed;inset:0;z-index:210;background:rgba(15,23,35,.45);display:flex;align-items:flex-end;justify-content:center;animation:modalin .15s ease;}
+  #rowsheet[hidden]{display:none;}
+  #rowsheet .rs-panel{width:100%;max-width:520px;background:#fff;border-radius:16px 16px 0 0;
+    padding:8px 14px calc(16px + env(safe-area-inset-bottom));box-shadow:0 -6px 26px rgba(0,0,0,.3);
+    animation:rsup .2s cubic-bezier(.2,.7,.3,1);max-height:84vh;overflow:auto;}
+  @keyframes rsup{from{transform:translateY(100%);}to{transform:translateY(0);}}
+  #rowsheet .rs-grip{width:42px;height:4px;border-radius:2px;background:#cfd6dd;margin:4px auto 10px;}
+  #rowsheet .rs-head{font-weight:700;color:var(--ink);font-size:15px;margin:0 4px 6px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+  #rowsheet .rs-head .rs-sub{font-weight:400;color:var(--text-muted);font-size:12px;}
+  #rowsheet .rs-sec{font-size:11px;color:var(--text-muted);margin:12px 4px 2px;font-weight:600;}
+  #rowsheet .rsbtn{display:flex;align-items:center;gap:10px;width:100%;min-height:50px;margin:6px 0;
+    border:1px solid var(--line);border-radius:11px;background:#f7f9fb;color:var(--text);font-size:14px;padding:0 14px;text-align:left;cursor:pointer;}
+  #rowsheet .rsbtn:hover{background:#eef2f6;}
+  #rowsheet .rsbtn .ic{font-size:17px;width:24px;text-align:center;flex:none;}
+  #rowsheet .rsbtn.danger{color:var(--danger);border-color:#e3b4ae;background:#fff;}
+  #rowsheet .rsbtn.cur{border-color:var(--primary);background:#eef4fb;color:var(--ink);font-weight:600;}
+  #rowsheet .rs-venues{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+  #rowsheet .rs-venues .rsbtn{margin:0;justify-content:center;min-height:46px;font-size:13px;gap:6px;}
   /* loading overlay */
-  #loading{position:fixed;inset:0;background:rgba(255,255,255,.7);z-index:300;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;color:#1f3b57;font-weight:700;}
-  #loading .spin{width:46px;height:46px;border:5px solid #cdd8e3;border-top-color:#3a6ea5;border-radius:50%;animation:spin .8s linear infinite;}
+  #loading{position:fixed;inset:0;background:rgba(255,255,255,.7);z-index:300;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;color:var(--ink);font-weight:700;}
+  #loading .spin{width:46px;height:46px;border:5px solid #cdd8e3;border-top-color:var(--primary);border-radius:50%;animation:spin .8s linear infinite;}
   @keyframes spin{to{transform:rotate(360deg);}}
   /* ===== toasts (non-blocking feedback, replaces alert) ===== */
   #toasts{position:fixed;left:50%;bottom:calc(16px + env(safe-area-inset-bottom));transform:translateX(-50%);
@@ -197,13 +291,13 @@
     font-weight:600;box-shadow:0 6px 20px rgba(0,0,0,.28);display:flex;gap:10px;align-items:flex-start;animation:toastin .18s ease-out;transition:opacity .2s;}
   .toast .tmsg{white-space:pre-line;line-height:1.4;}
   .toast .tx{margin-left:auto;cursor:pointer;background:none;border:none;color:inherit;font-size:16px;line-height:1;padding:0 2px;min-height:auto;}
-  .toast.info{background:#34557a;} .toast.ok{background:#256a2a;} .toast.warn{background:#9a5b00;} .toast.err{background:#b32d1f;}
+  .toast.info{background:var(--info);} .toast.ok{background:#256a2a;} .toast.warn{background:#9a5b00;} .toast.err{background:var(--danger);}
   @media (max-width:640px){ #toasts{bottom:calc(74px + env(safe-area-inset-bottom));} }   /* clear the mobile action bar */
   @keyframes toastin{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:none;}}
   /* ===== confirm / info dialog — its own layer, above the detail modal & sheet ===== */
   #dlgbg{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:460;display:flex;align-items:center;justify-content:center;padding:16px;}
   #dlg{background:#fff;border-radius:11px;max-width:440px;width:100%;box-shadow:0 12px 44px rgba(0,0,0,.32);overflow:hidden;}
-  #dlg .dh{padding:13px 16px;font-size:15px;font-weight:700;color:#1f3b57;border-bottom:1px solid #eee;}
+  #dlg .dh{padding:13px 16px;font-size:15px;font-weight:700;color:var(--ink);border-bottom:1px solid #eee;}
   #dlg .db{padding:14px 16px;font-size:13px;line-height:1.55;white-space:pre-line;color:#333;max-height:58vh;overflow:auto;}
   #dlg .df{display:flex;gap:8px;justify-content:flex-end;padding:10px 16px;border-top:1px solid #eee;flex-wrap:wrap;}
   #dlg .df button{padding:8px 16px;min-height:44px;}
@@ -215,20 +309,18 @@
   #btnMaster:hover{background:#6f3a2c;}
   @media (max-width:1024px){ .tglabel{display:none;} }   /* reclaim header space on smaller widths */
   /* ===== stat bar (DESIGN-2): emphasis on the risk metric + fullness bars ===== */
-  #statsbar .stat .frac{color:#9aa3ad;font-weight:600;}
-  #statsbar .stat .bar{display:inline-block;width:54px;height:7px;border-radius:4px;background:#e6e8eb;overflow:hidden;vertical-align:middle;margin-left:6px;}
-  #statsbar .stat .bar>i{display:block;height:100%;border-radius:4px;}
-  #statsbar .stat .bar>i.ok{background:#2e7d32;} #statsbar .stat .bar>i.amber{background:#b8860b;} #statsbar .stat .bar>i.red{background:#c0392b;}
+  #statsbar .stat .frac{color:var(--text-faint);font-weight:600;}
+  #statsbar .stat .frac.frac-amber{color:var(--warning-fill);} #statsbar .stat .frac.frac-red{color:var(--danger);}
   #statsbar .stat.alert{background:#fde0e0;border-radius:7px;border-right:none;}
-  #statsbar .stat.alert b{color:#b32d1f;font-size:18px;}
+  #statsbar .stat.alert b{color:var(--danger);font-size:18px;}
   #statsbar .stat.clear{background:#e3f3e4;border-radius:7px;border-right:none;}
-  #statsbar .stat.clear b{color:#2e7d32;}
+  #statsbar .stat.clear b{color:var(--success);}
   /* ===== room-card chips (DESIGN-3): slim 1-char category badge + more name room ===== */
   .chip .cat{min-width:17px;padding:0 4px;text-align:center;flex:none;}
   .chip .nm{min-width:40px;}
   /* ===== category legend (DESIGN-4): collapsible color/letter key ===== */
   .legend{margin:0 0 6px;font-size:11px;border:1px solid var(--line);border-radius:6px;background:#fafbfc;}
-  .legend>summary{cursor:pointer;color:#444;font-weight:600;padding:5px 8px;list-style:none;min-height:32px;display:flex;align-items:center;}
+  .legend>summary{cursor:pointer;color:var(--text2);font-weight:600;padding:5px 8px;list-style:none;min-height:32px;display:flex;align-items:center;}
   .legend>summary::-webkit-details-marker{display:none;}
   .legend>summary::before{content:"▸";margin-right:6px;font-size:9px;}
   .legend[open]>summary::before{content:"▾";}
@@ -242,7 +334,7 @@
   @keyframes wflash{0%,100%{background:#fff8f8;}30%{background:#ffe0e0;}}
   /* ===== timeline polish (DESIGN-6): conference-day highlight (zebra strengthened in place above) ===== */
   #tlhead .nights div.event{background:#eef5ee;color:#39673d;}
-  #tlhead .nights div.event.evstart{box-shadow:inset 2px 0 0 0 #2e7d32;}
+  #tlhead .nights div.event.evstart{box-shadow:inset 2px 0 0 0 var(--success);}
   /* ===== responsive — fluid across desktop / tablet / mobile ===== */
   #timeline,#pool,#statsbar{-webkit-overflow-scrolling:touch;}
   html,body{max-width:100%;}
@@ -277,9 +369,15 @@
            padding-top:max(8px,env(safe-area-inset-top));}
     header h1{font-size:15px;margin:0;flex:1;text-align:left;}
     header .toolbtns,header .spacer,#srcname,header .tbdiv{display:none;}
-    .viewtabs{display:flex;width:100%;margin:0;gap:6px;order:3;}
-    .viewtabs .vtab{flex:1;min-height:44px;}
+    .viewtabs{display:flex;width:100%;margin:0;gap:0;order:3;}
+    .viewtabs .vtab{flex:1;min-height:40px;font-size:13px;}
     button,label.btn{padding:8px 12px;font-size:12px;min-height:44px;}   /* larger tap targets */
+    /* start screen stacks: dropzone (CTA) first, intro below */
+    #startscreen{padding:18px 14px;}
+    .ss-hero{grid-template-columns:1fr;}
+    .ss-import{order:1;padding:22px 18px 6px;}
+    .ss-intro{order:2;border-right:none;border-top:1px solid var(--border);padding:26px 22px;}
+    .ss-title{font-size:21px;}
     #statsbar{gap:6px;padding:6px 10px;flex-wrap:nowrap;overflow-x:auto;}
     #statsbar .stat{border-right:none;padding:2px 6px;white-space:nowrap;}
     #main{padding:8px;gap:8px;}
@@ -305,10 +403,10 @@
   /* touch devices (no hover) — bigger targets, persistent affordances */
   @media (hover:none){
     .tlgroup .ghint{opacity:.95;}            /* keep the expand/collapse hint visible */
-    #tlhead .lbl .colgrip{background:rgba(58,110,165,.18);width:14px;right:-7px;}  /* easier to grab */
+    #tlhead .lbl .colgrip{background:rgba(207,70,49,.18);width:14px;right:-7px;}  /* easier to grab */
     .chip{padding:4px 6px;}                   /* taller chips = easier taps */
     .chip .lk{font-size:14px;padding:0 2px;}
-    .tlrow .who .tlgrip{font-size:16px;padding:0 7px;}    /* easier to grab on touch */
+    .tlrow .tlgrip{font-size:16px;padding:0 6px;}    /* easier to grab on touch */
     button,label.btn{min-height:38px;}
   }
   /* ===================================================================
@@ -332,14 +430,19 @@
   .chip{align-items:center;}
   .chip .drag{flex:none;cursor:grab;color:#9aa6b1;font-size:13px;line-height:1;padding:0 2px;
               touch-action:none;user-select:none;-webkit-user-select:none;}
-  .chip .drag:active{cursor:grabbing;color:#3a6ea5;}
+  .chip .drag:active{cursor:grabbing;color:var(--primary);}
   .chip.dragging{opacity:.4;}
+  .tlrow.dragging{opacity:.4;}
+  /* lightweight pill ghost for timeline grip-drag (rows are too wide to clone) */
+  .tlghost{display:flex;align-items:center;gap:6px;background:var(--primary);color:#fff;font-size:12px;font-weight:600;
+           padding:6px 12px;border-radius:999px;white-space:nowrap;border:1px solid rgba(255,255,255,.25);animation:ghostin .12s ease-out;}
+  @keyframes ghostin{from{opacity:0;transform:translate(-50%,-42%) scale(.9);}to{opacity:.93;transform:translate(-50%,-55%) scale(1.03);}}
   /* floating clone that tracks the pointer during a drag */
   #dragghost{position:fixed;z-index:400;left:0;top:0;pointer-events:none;opacity:.93;
              transform:translate(-50%,-55%) scale(1.03);box-shadow:0 8px 20px rgba(0,0,0,.35);
              max-width:240px;}
   /* room flagged as the live drop target during a pointer drag */
-  .room.droptarget{outline:2px solid #2e7d32;background:#f1f8f1;}
+  .room.droptarget{outline:2px solid var(--success);background:#f1f8f1;}
   #poollist.droptarget{outline:2px dashed #c2557a;border-radius:6px;}
 
   /* selection hint banner + its cancel button (tap-to-assign) */
@@ -353,7 +456,7 @@
   .searchwrap .search{flex:1;padding-right:34px!important;margin-bottom:0!important;}
   .searchwrap .clr{position:absolute;right:3px;top:50%;transform:translateY(-50%);
                    width:30px;height:30px;border-radius:50%;border:none;background:transparent;
-                   color:#888;font-size:18px;line-height:1;display:none;align-items:center;
+                   color:var(--text-muted);font-size:18px;line-height:1;display:none;align-items:center;
                    justify-content:center;cursor:pointer;padding:0;}
   .searchwrap .clr.show{display:flex;}
   #pool .searchwrap{margin-bottom:6px;}
@@ -401,7 +504,7 @@
   .tlcard .row2{display:flex;align-items:center;gap:8px;}
   .tlcard select{flex:1;min-height:44px;font-size:16px;border:1px solid var(--line);border-radius:8px;padding:2px 6px;background:#fff;}
   .tlcard .det{min-height:44px;min-width:60px;border-radius:8px;}
-  .tlcard .dupflag{color:#c47f00;flex:none;}
+  .tlcard .dupflag{color:var(--warning);flex:none;}
 
   /* ≥44px touch targets for chips, toggles, tabs, search clear */
   @media (hover:none),(max-width:640px){
@@ -410,6 +513,7 @@
     .chip .drag{min-width:34px;min-height:44px;display:flex;align-items:center;justify-content:center;font-size:18px;}
     .searchwrap .search{min-height:44px;padding-right:48px!important;}
     .searchwrap .clr{width:44px;height:44px;font-size:20px;}
+    #tlbar .search,#tlbar select{height:auto;min-height:44px;}   /* match search + selects at touch size */
     .tlcard select,.tlcard .det{min-height:44px;}
   }
 
@@ -417,11 +521,11 @@
   @media (max-width:640px){
     /* fixed bottom action bar — two primary actions always visible + 더보기 */
     #mobilebar{display:flex;gap:8px;position:fixed;left:0;right:0;bottom:0;z-index:120;
-      background:#1f3b57;padding:8px 10px;padding-bottom:max(8px,env(safe-area-inset-bottom));
+      background:var(--ink);padding:8px 10px;padding-bottom:max(8px,env(safe-area-inset-bottom));
       box-shadow:0 -2px 12px rgba(0,0,0,.28);}
     #mobilebar .mbtn{flex:1;min-height:48px;border:none;border-radius:9px;font-size:13px;font-weight:600;
-      color:#fff;background:#3a6ea5;display:flex;align-items:center;justify-content:center;gap:5px;padding:0 6px;}
-    #mobilebar .mbtn.go{background:#2e7d32;}
+      color:#fff;background:var(--primary);display:flex;align-items:center;justify-content:center;gap:5px;padding:0 6px;}
+    #mobilebar .mbtn.go{background:var(--success);}
     #mobilebar .mbtn.more{flex:0 0 68px;background:#27496b;}
     #mobilebar .mbtn:disabled{background:#56657a;opacity:.65;}
     #mobilebar .mbtn>input[type=file]{display:none;}
@@ -438,9 +542,9 @@
       animation:sheetup .18s ease-out;max-height:80vh;overflow:auto;}
     @keyframes sheetup{from{transform:translateY(100%);}to{transform:translateY(0);}}
     #sheet .sheet-grip{width:42px;height:4px;border-radius:2px;background:#cfd6dd;margin:4px auto 10px;}
-    #sheet h3{margin:0 0 6px;font-size:14px;color:#1f3b57;}
+    #sheet h3{margin:0 0 6px;font-size:14px;color:var(--ink);}
     #sheet .sbtn{display:flex;align-items:center;gap:10px;width:100%;min-height:52px;margin:7px 0;
-      border:1px solid var(--line);border-radius:11px;background:#f7f9fb;color:#222;font-size:14px;
+      border:1px solid var(--line);border-radius:11px;background:#f7f9fb;color:var(--text);font-size:14px;
       padding:0 14px;text-align:left;cursor:pointer;}
     #sheet .sbtn:disabled{opacity:.5;}
     #sheet .sbtn .ic{font-size:18px;width:26px;text-align:center;flex:none;}
@@ -467,7 +571,7 @@
     .pgroup h2{font-size:15px;border-bottom:2px solid #333;padding-bottom:3px;}
     .pgroup h3{font-size:12px;margin:8px 0 3px;background:#eee;padding:2px 6px;}
     table.proom{width:100%;border-collapse:collapse;margin-bottom:4px;font-size:11px;}
-    table.proom th,table.proom td{border:1px solid #444;padding:2px 5px;text-align:left;vertical-align:top;}
+    table.proom th,table.proom td{border:1px solid var(--text2);padding:2px 5px;text-align:left;vertical-align:top;}
     table.proom th{background:#ddd;}
     table.proom td.rno{font-weight:700;width:48px;}
     table.proom td.meta{width:120px;color:#333;}
@@ -483,7 +587,6 @@
     <span class="tgroup" role="group" aria-label="1단계 데이터 입력">
       <span class="tglabel" aria-hidden="true">① 입력</span>
       <label class="btn" title="참가자·객실 데이터가 담긴 마스터 .xlsx 파일을 불러옵니다.">① 마스터 열기<input type="file" id="fileMaster" accept=".xlsx"></label>
-      <label class="btn alt" title="이전에 저장한 배정 진행 상태(.json)를 불러와 이어서 작업합니다.">진행(JSON) 불러오기<input type="file" id="fileJson" accept=".json"></label>
     </span>
     <!-- ② primary action -->
     <span class="tgroup" role="group" aria-label="2단계 자동 배정">
@@ -493,10 +596,9 @@
     <!-- ③ exports — 마스터 내보내기 (version bump) sits last + accented as the heavier action -->
     <span class="tgroup" role="group" aria-label="3단계 내보내기">
       <span class="tglabel" aria-hidden="true">③ 내보내기</span>
-      <button id="btnExcel" disabled title="현재 배정 결과를 보기용 Excel(.xlsx)로 내려받습니다.">Excel 저장</button>
-      <button class="alt" id="btnJson" disabled title="현재 작업 상태를 .json으로 저장합니다. 나중에 '진행 불러오기'로 이어서 작업할 수 있습니다.">진행 저장(JSON)</button>
+      <button id="btnExcel" disabled title="현재 배정 결과를 보기용 Excel(.xlsx)로 내려받습니다.">배정 결과 저장</button>
       <button class="alt" id="btnPrint" disabled title="방 배치표를 인쇄하거나 PDF로 저장합니다. (A4 세로)">인쇄 / PDF</button>
-      <button id="btnMaster" disabled title="원본 마스터에 배정·수정 내용을 반영해 버전을 올린 새 마스터 파일(v{N})로 내보냅니다.">마스터 내보내기</button>
+      <button id="btnMaster" disabled title="원본 마스터에 배정·수정 내용을 반영해 버전을 올린 새 마스터 파일(v{N})로 내보냅니다.">마스터 업데이트 (v+1)</button>
     </span>
   </div>
   <span class="spacer"></span>
@@ -508,6 +610,36 @@
 </header>
 
 <div id="statsbarwrap" class="hscroll-wrap"><div id="statsbar"><span class="empty-hint" style="padding:4px;">마스터 .xlsx 파일을 열어 시작하세요. (참가자 · 객실 탭 필요)</span></div></div>
+
+<!-- import / start screen: shown until a master file is loaded -->
+<div id="startscreen" hidden>
+  <div class="ss-hero">
+    <div class="ss-intro">
+      <span class="ss-eyebrow">ICMDA 2026</span>
+      <div class="ss-title">숙소 배정 대시보드</div>
+      <div class="ss-sub">참가자와 객실 데이터를 불러와 자동으로 방을 배정하고, 타임라인으로 확인한 뒤 마스터 파일을 새 버전으로 저장합니다.</div>
+      <div class="ss-flow">
+        <div class="ss-fitem"><span class="ss-fnum">1</span><div class="ss-ftext"><b>마스터 파일 열기</b><span>참가자 · 객실 탭이 있는 .xlsx</span></div></div>
+        <div class="ss-fitem"><span class="ss-fnum">2</span><div class="ss-ftext"><b>자동 배정</b><span>규칙에 따라 방을 자동 배정</span></div></div>
+        <div class="ss-fitem"><span class="ss-fnum">3</span><div class="ss-ftext"><b>마스터 업데이트</b><span>결과를 새 버전으로 저장</span></div></div>
+      </div>
+    </div>
+    <div class="ss-import">
+      <div class="ss-drop" id="ssDrop">
+        <div class="ss-ic">
+          <svg width="46" height="46" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/>
+            <path d="M14 3v5h5"/><path d="M12 17.5v-5.5"/><path d="M9.7 14.3 12 12l2.3 2.3"/>
+          </svg>
+        </div>
+        <div class="ss-h">여기로 파일을 끌어다 놓으세요</div>
+        <div class="ss-p"><b>참가자 · 객실</b> 탭이 있는 <b>.xlsx</b> 파일</div>
+        <label class="ss-btn" title="마스터 .xlsx 열기">① 마스터 파일 열기<input type="file" id="ssFile" accept=".xlsx"></label>
+        <div class="ss-or">또는 파일 선택 버튼을 누르세요</div>
+      </div>
+    </div>
+  </div>
+</div>
 
 <div id="main">
   <div id="pool">
@@ -538,6 +670,7 @@
     <select id="tlcat" aria-label="카테고리 필터"><option value="">전체 카테고리</option></select>
     <span id="tlcount" class="muted" aria-live="polite"></span>
     <span class="muted" id="tlhint">· 막대 양끝을 끌어 숙박기간 조정, 가운데를 끌어 이동</span>
+    <span class="muted" id="tlsel" aria-live="polite"></span>
   </div>
   <!-- gantt scroller wrapped for edge-fade affordances; #gantt is the scroller -->
   <div id="ganttwrap" class="hscroll-wrap">
@@ -574,13 +707,14 @@
   <div class="sheet-panel" role="document">
     <div class="sheet-grip"></div>
     <h3>더보기</h3>
-    <button class="sbtn" id="shExcel" disabled><span class="ic">📊</span> Excel 저장</button>
-    <button class="sbtn" id="shMaster" disabled><span class="ic">📤</span> 마스터 내보내기</button>
-    <button class="sbtn" id="shJson" disabled><span class="ic">💾</span> 진행 저장(JSON)</button>
+    <button class="sbtn" id="shExcel" disabled><span class="ic">📊</span> 배정 결과 저장</button>
+    <button class="sbtn" id="shMaster" disabled><span class="ic">📤</span> 마스터 업데이트 (v+1)</button>
     <button class="sbtn" id="shPrint" disabled><span class="ic">🖨</span> 인쇄 / PDF</button>
-    <label class="sbtn" id="shLoad"><span class="ic">📂</span> 진행(JSON) 불러오기<input type="file" id="shFileJson" accept=".json"></label>
   </div>
 </div>
+
+<!-- long-press row action sheet (timeline) -->
+<div id="rowsheet" hidden role="dialog" aria-modal="true" aria-label="기록 작업"><div class="rs-panel" role="document"></div></div>
 
 <div id="modal" class="modal-bg" style="display:none;"><div id="card" class="card"></div></div>
 
@@ -611,7 +745,7 @@ const CAT = {
   "미디어팀":{c:"#2a9d8f", ab:"미디어"},
   "찬양팀":{c:"#7e57c2", ab:"찬양"},
 };
-const catInfo = cat => CAT[cat] || {c:"#888", ab:(cat||"-").slice(0,3)};
+const catInfo = cat => CAT[cat] || {c:"var(--text-muted)", ab:(cat||"-").slice(0,3)};
 const state = {
   parties: [],     // {id,name,kname,sex,partySex,hc,party,need,cat,team,group,pre,stay,arr,dep,…detail}
   rooms: [],       // {id,hotel,bldg,floor,rno,type,gender,base,ext,total,period,ondol,note,key}
@@ -626,8 +760,10 @@ const state = {
   orderList: [],   // custom vertical order of party ids (timeline)
   collapsed: {},   // venue -> true (timeline fold)
   collapsedRooms: {}, // rooms-view accordion fold, keyed by venue/floor element id
-  colW: [56,58,150,78,84,52],  // resizable widths: ID·분류·이름/팀·호텔·객실번호·수용 (track = 1fr)
+  colW: [74,58,150,78,84,52],  // resizable widths: ID(+손잡이)·분류·이름/팀·호텔·객실번호·수용 (track = 1fr)
   pick: null,      // tap-to-assign: id of the party currently 'picked up'
+  tlSel: new Set(),// timeline multi-select: party ids selected for group drag
+  tlSort: {key:null, dir:"asc"},  // timeline sort: key "id"|"name" (null = manual drag order), dir asc|desc
 };
 
 /* ---------- helpers ---------- */
@@ -716,7 +852,7 @@ function buildLegend(){
    ⠿ grip, so the chip body stays tappable + the list scrollable.
    ============================================================ */
 let dragFired=false;                 // set briefly after a real drag, to swallow the trailing click
-const DRAG={pid:null, ghost:null, target:null, raf:null, vy:0, scn:null, lastXY:null};
+const DRAG={pid:null, ghost:null, target:null, raf:null, vy:0, scn:null, lastXY:null, onScroll:null};
 
 function scrollParent(node){          // nearest vertically-scrollable ancestor (else null = window/page)
   for(let n=node; n && n!==document.body && n!==document.documentElement; n=n.parentElement){
@@ -739,7 +875,7 @@ function autoScrollTick(){            // scroll page / inner container while the
   if(DRAG.pid==null){ DRAG.raf=null; return; }
   if(DRAG.vy){
     if(DRAG.scn) DRAG.scn.scrollTop+=DRAG.vy; else window.scrollBy(0,DRAG.vy);
-    if(DRAG.lastXY) setDragTarget(dragTargetUnder(DRAG.lastXY[0],DRAG.lastXY[1]));
+    if(DRAG.lastXY){ if(DRAG.onScroll) DRAG.onScroll(DRAG.lastXY[0],DRAG.lastXY[1]); else setDragTarget(dragTargetUnder(DRAG.lastXY[0],DRAG.lastXY[1])); }
   }
   DRAG.raf=requestAnimationFrame(autoScrollTick);
 }
@@ -818,8 +954,13 @@ function loadMaster(arrbuf){
 
   parseParticipants(pA);
   parseRooms(rA);
+  // surface any room whose 객실ID isn't tied to a single hotel (data-integrity warning)
+  if(state.roomDupIds && state.roomDupIds.length){
+    const list=state.roomDupIds.map(d=>`${d.id} (${d.hotels.join(" / ")})`).join(", ");
+    toast(`⚠ 객실ID가 한 숙소에 고유하지 않습니다 — 방-숙소 연결이 모호합니다: ${list}`,"err",9000);
+  }
   // default assignment: respect 배정숙소 pre-locks
-  state.assign={}; state.locked={};
+  state.assign={}; state.locked={}; state.tlSel.clear(); state.deletedRows=[];
   state.parties.forEach(p=>{
     if(p.pre.indexOf("부영호텔")>=0){ state.assign[p.id]="BOOY"; state.locked[p.id]=true; }
   });
@@ -829,8 +970,8 @@ function loadMaster(arrbuf){
 }
 // enable/disable every action control (desktop toolbar + mobile bar + 더보기 sheet)
 function setActionsEnabled(on){
-  ["#btnAuto","#btnExcel","#btnJson","#btnPrint","#btnMaster",
-   "#mbAuto","#shExcel","#shJson","#shPrint","#shMaster"].forEach(s=>{ const n=$(s); if(n) n.disabled=!on; });
+  ["#btnAuto","#btnExcel","#btnPrint","#btnMaster",
+   "#mbAuto","#shExcel","#shPrint","#shMaster"].forEach(s=>{ const n=$(s); if(n) n.disabled=!on; });
 }
 
 function nextDay(label){                        // "6월30일" -> "7월1일"
@@ -896,22 +1037,30 @@ function refreshStay(p){                          // recompute arr/dep after a b
 }
 
 function parseRooms(aoa){
-  const H=headerMap(aoa); const rooms=[];
+  const H=headerMap(aoa); state.rH=H; const rooms=[];
   for(let r=2;r<aoa.length;r++){
     const row=aoa[r]; if(!row) continue;
     const id=norm(row[H["객실ID"]]); const hotel=norm(row[H["숙소"]]);
     if(!id||!hotel) continue;
     const num = x => { const v=row[H[x]]; return (typeof v==="number")?v:(parseFloat(v)||0); };
+    const ext=num("추가인원"), total=num("총가능인원")||num("기준인원");
     rooms.push({
       id, key:id, hotel,
       bldg:norm(row[H["동"]]), floor:norm(row[H["층"]]), rno:norm(row[H["호실"]]),
       type:norm(row[H["객실유형"]]), gender:norm(row[H["성별구분"]]),
-      base:num("기준인원"), ext:num("추가인원"), total:num("총가능인원")||num("기준인원"),
+      base:num("기준인원"), ext, total,
       period:norm(row[H["이용가능기간"]]), ondol:norm(row[H["필수온돌"]])==="Y",
       note:norm(row[H["비고"]]),
+      _row:r, _oext:ext, _ototal:total,    // source row + original capacity (for surgical write-back)
     });
   }
   state.rooms=rooms; state.roomById={}; rooms.forEach(x=>state.roomById[x.key]=x);
+  // integrity: each 객실ID must be unique and belong to exactly one 숙소 (a room is tied to one hotel).
+  // A repeated ID collides in roomById (a room would vanish); an ID across hotels is an ambiguous tie.
+  const idHotels={}; rooms.forEach(r=>{ (idHotels[r.id]=idHotels[r.id]||[]).push(r.hotel); });
+  state.roomDupIds = Object.keys(idHotels)
+    .filter(id=>idHotels[id].length>1)
+    .map(id=>({id, hotels:[...new Set(idHotels[id])]}));
 }
 
 /* ---------- assignment model ---------- */
@@ -1002,6 +1151,7 @@ function autoAssign(){
 function venueClass(hotel){ return hotel===VEN.BYYTC?"byytc":hotel===VEN.YOUUS?"youus":"booyoung"; }
 
 function render(){
+  setEmpty(false);                 // a master is loaded → leave the import screen, reveal the dashboard
   renderStats();
   const tl = state.view==="timeline";
   $("#main").style.display = tl?"none":"flex";
@@ -1045,9 +1195,9 @@ function renderStats(){
   const pct=(u,c)=>c>0?Math.min(100,Math.round(u/c*100)):0;
   const lvl=(u,c)=> u>c?"red":(c>0&&u/c>=0.9)?"amber":"ok";          // green / amber(≥90%) / red(over)
   const mk=(label,val,extra)=>{const d=el("span","stat"); d.innerHTML=`${label} <b>${val}</b>${extra||""}`; return d;};
-  // venue stat: consistent used/cap fraction + a fullness progress bar
+  // venue stat: consistent used/cap fraction (color-coded by fullness)
   const venStat=(label,used,cap)=>mk(label,used,
-    `<span class="frac">/${cap}</span><span class="bar" title="${pct(used,cap)}% 사용"><i class="${lvl(used,cap)}" style="width:${pct(used,cap)}%"></i></span>`);
+    `<span class="frac frac-${lvl(used,cap)}" title="${pct(used,cap)}% 사용">/${cap}</span>`);
   // 미배정 is the number a coordinator acts on → emphasised block (red when >0, green ✓ when clear)
   const un=el("span","stat "+(unassigned?"alert":"clear"));
   un.innerHTML = unassigned ? `미배정 <b>${unassigned}</b>명` : `미배정 <b>0</b> ✓`;
@@ -1190,6 +1340,15 @@ function makeDrop(node, roomKey){
   }
 }
 
+// toggle the import/start screen vs the working dashboard (called at init and from render())
+function setEmpty(isEmpty){
+  $("#startscreen").hidden = !isEmpty;
+  $("#statsbarwrap").style.display = isEmpty ? "none" : "";
+  $("#warnpanel").style.display    = isEmpty ? "none" : "";
+  $("#main").style.display         = isEmpty ? "none" : "";   // render() sets the proper per-view display when loaded
+  $("#timeline").style.display     = isEmpty ? "none" : "";
+  $(".viewtabs").classList.toggle("disabled", isEmpty);       // tabs visible but inert until a file loads
+}
 function renderVenues(){
   const root=$("#venues"); root.innerHTML="";
   const order=[VEN.BYYTC,VEN.YOUUS,VEN.BOOY];
@@ -1272,12 +1431,41 @@ function roomCard(r){
   left.append(" ");
   const cls = load>r.total?"over":load===r.total?"full":"ok";
   const cap=el("span","capbadge "+cls,`${load}/${r.total}`);
+  cap.title="더블클릭: 수용(정원) 수정";
+  cap.style.cursor="pointer";
+  cap.addEventListener("click",e=>e.stopPropagation());                       // don't trigger room drop on tap
+  cap.addEventListener("dblclick",e=>{ e.stopPropagation(); editCap(r,cap,load); });
   hdr.append(left,tags,cap);
   card.append(hdr);
   card.title=`${r.type||""} ${r.gender||"미지정"} 기준${r.base}+추가${r.ext}=${r.total}`+(r.note?` · ${r.note}`:"");
   roomOccupants(r.key).forEach(p=>card.append(chip(p)));
   makeDrop(card,r.key);
   return card;
+}
+// double-click the capacity badge → edit a room's 수용(총가능) in place. Updates r.total live
+// (recomputes over-capacity, fullness, auto-assign); persisted to the '객실' tab on 마스터 내보내기.
+function editCap(r,capEl,load){
+  capEl.classList.add("editing");
+  capEl.textContent=load+" / ";
+  const inp=el("input","capedit"); inp.type="number"; inp.min="1";
+  inp.value=r.total; inp.setAttribute("aria-label",(r.rno||r.id)+"호 수용 인원");
+  capEl.append(inp); inp.focus(); inp.select();
+  let done=false;
+  const commit=save=>{
+    if(done) return; done=true;
+    const v=parseInt(inp.value,10);
+    if(save && Number.isFinite(v) && v>=1 && v!==r.total){
+      r.ext=v-r.base; r.total=v;            // keep 기준+추가=총가능 invariant; edits adjust 추가
+      toast(`${r.hotel} ${r.rno||r.id}호 수용 → ${v}명`,"ok");
+    }
+    render();                                // refresh badge + over/full class + warnings + fullness bars
+  };
+  inp.addEventListener("keydown",e=>{ e.stopPropagation();
+    if(e.key==="Enter"){ e.preventDefault(); commit(true); }
+    else if(e.key==="Escape"){ e.preventDefault(); commit(false); } });
+  inp.addEventListener("blur",()=>commit(true));
+  inp.addEventListener("click",e=>e.stopPropagation());
+  inp.addEventListener("dblclick",e=>e.stopPropagation());
 }
 
 // shared warning computation — used by both the panel and the top warning badge (DESIGN-5)
@@ -1357,7 +1545,7 @@ function applyColW(){
   const mobile = window.innerWidth<=640;
   const floor = mobile ? 150 : 260;   // less horizontal scroll on phones
   // on phones, cap the meta columns so the frozen ID·분류·이름 pane doesn't swallow the screen
-  const w = mobile ? state.colW.map((x,i)=>Math.min(x,[44,44,96,56,60,40][i])) : state.colW;
+  const w = mobile ? state.colW.map((x,i)=>Math.min(x,[60,44,96,56,60,40][i])) : state.colW;
   const tl=$("#timeline");
   tl.style.setProperty("--tlcols", w.map(x=>x+"px").join(" ")+` minmax(${floor}px,1fr)`);
   tl.style.setProperty("--c1", w[0]+"px");             // frozen-pane left offsets (ID·분류·이름 sticky-left)
@@ -1376,6 +1564,7 @@ function saveUI(){ try{ localStorage.setItem(UIKEY, JSON.stringify({colW:state.c
 function loadUI(){ try{
   const s=JSON.parse(localStorage.getItem(UIKEY)||"{}");
   if(Array.isArray(s.colW) && s.colW.length===state.colW.length) state.colW=s.colW.map(Number);
+  if(state.colW[0]<70) state.colW[0]=74;   // ensure the ID column fits the relocated drag handle (⠿) + 'P0001'
   if(s.collapsed && typeof s.collapsed==="object") state.collapsed=s.collapsed;
   if(s.collapsedRooms && typeof s.collapsedRooms==="object") state.collapsedRooms=s.collapsedRooms;
   if(s.view==="rooms"||s.view==="timeline") state.view=s.view;
@@ -1383,7 +1572,7 @@ function loadUI(){ try{
 function makeColGrip(ci){
   const g=el("div","colgrip");
   g.title="끌어서 열 너비 조정 · 더블클릭하여 초기화";
-  const MIN=36, DEF=[56,58,150,78,84,52];
+  const MIN=36, DEF=[74,58,150,78,84,52];
   g.addEventListener("pointerdown",ev=>{
     ev.preventDefault(); ev.stopPropagation();
     const x0=ev.clientX, w0=state.colW[ci]; g.classList.add("drag");
@@ -1411,7 +1600,15 @@ function renderTimeline(){
   const head=$("#tlhead"); head.innerHTML=""; head.style.setProperty("--ncols",n);
   applyColW();
   ["ID","분류","이름 / 팀","호텔","객실번호","수용"].forEach((t,ci)=>{
-    const lbl=el("div","lbl"+(ci===2?"":" ctr"),t); lbl.append(makeColGrip(ci)); head.append(lbl);
+    const lbl=el("div","lbl"+(ci===2?"":" ctr"),t);
+    const sortKey = ci===0?"id":ci===2?"name":null;   // ID·이름 columns are click-to-sort
+    if(sortKey){
+      lbl.classList.add("sortable"); lbl.title="클릭하여 정렬 (오름차순/내림차순 전환)";
+      const ar = state.tlSort.key===sortKey ? (state.tlSort.dir==="asc"?"▲":"▼") : "↕";
+      lbl.append(el("span","sortar",ar));
+      lbl.addEventListener("click",e=>{ if(!e.target.classList.contains("colgrip")) applyTlSort(sortKey); });
+    }
+    lbl.append(makeColGrip(ci)); head.append(lbl);
   });
   const hn=el("div","nights");
   D.forEach((lab,i)=>{
@@ -1459,6 +1656,7 @@ function renderTimeline(){
   });
   if(shown<rows.length) wrap.append(el("div","muted",`… 외 ${rows.length-shown}명 (검색/필터로 좁혀 보세요)`));
   updateGanttFades();
+  updateTlSelHint();
 }
 /* ---------- timeline: per-person card fallback (narrow screens) ---------- */
 function renderTLCards(rows, off629, planEnd, n){
@@ -1511,11 +1709,91 @@ function tlCard(p,n){
   row2.append(sel,det); card.append(row2);
   return card;
 }
-// vertical reorder + cross-hotel move ---------------------------------
-function tlReorder(srcId,tgtId,after){
-  const L=state.orderList, si=L.indexOf(srcId); if(si<0) return;
-  L.splice(si,1); let ti=L.indexOf(tgtId); if(ti<0) ti=L.length-1;
-  L.splice(after?ti+1:ti,0,srcId);
+// vertical reorder + cross-hotel move (single or multi) ---------------
+// move a block of ids to just before/after tgtId, preserving their current relative order
+function tlReorderMulti(ids,tgtId,after){
+  const L=state.orderList;
+  const moving=ids.filter(id=>L.includes(id)).sort((a,b)=>L.indexOf(a)-L.indexOf(b));
+  if(!moving.length) return;
+  const movingSet=new Set(moving);
+  const rest=L.filter(id=>!movingSet.has(id));
+  let ti=rest.indexOf(tgtId); if(ti<0) ti=rest.length-1;
+  rest.splice(after?ti+1:ti,0,...moving);
+  state.orderList=rest;
+}
+// click-to-sort the timeline by ID or 이름; rewrites orderList so grouping/drag keep working
+function applyTlSort(key){
+  const dir = (state.tlSort.key===key && state.tlSort.dir==="asc") ? "desc" : "asc";
+  state.tlSort={key,dir};
+  const sign = dir==="asc"?1:-1;
+  const cmp = key==="id"
+    ? (a,b)=> sign*a.id.localeCompare(b.id,undefined,{numeric:true})
+    : (a,b)=> sign*((a.name||"").localeCompare(b.name||"",undefined,{sensitivity:"base"})) || a.id.localeCompare(b.id,undefined,{numeric:true});
+  state.orderList = state.parties.slice().sort(cmp).map(p=>p.id);
+  renderTimeline();
+}
+// timeline multi-select helpers
+function toggleTlSel(pid,row){
+  if(state.tlSel.has(pid)){ state.tlSel.delete(pid); row.classList.remove("selected"); }
+  else { state.tlSel.add(pid); row.classList.add("selected"); }
+  updateTlSelHint();
+}
+function clearTlSel(){
+  state.tlSel.clear();
+  document.querySelectorAll(".tlrow.selected").forEach(r=>r.classList.remove("selected"));
+  updateTlSelHint();
+}
+function updateTlSelHint(){
+  const s=$("#tlsel"); if(s) s.textContent = state.tlSel.size ? `· ${state.tlSel.size}명 선택됨 (손잡이를 끌어 함께 이동 · Esc 해제)` : "";
+}
+// grip: tap = toggle selection; drag = move (the selection if this row is part of it, else just this row)
+function tlGripStart(p,grip,row,ev){
+  ev.preventDefault(); ev.stopPropagation();              // don't trigger row detail
+  try{ grip.setPointerCapture(ev.pointerId); }catch(e){}
+  const x0=ev.clientX, y0=ev.clientY; let moved=false, tgt=null, after=false, ghost=null;
+  const clear=()=>{ if(tgt){ tgt.classList.remove("dropmark","dm-before","dm-after"); tgt=null; } };
+  const evalTgt=(x,y)=>{                                   // mark the row under the pointer as the drop slot (line above/below)
+    const node=document.elementFromPoint(x,y);
+    const tr=node&&node.closest?node.closest(".tlrow"):null;
+    clear();
+    if(tr && tr!==row){ const rc=tr.getBoundingClientRect(); after=y>rc.top+rc.height/2; tr.classList.add("dropmark", after?"dm-after":"dm-before"); tgt=tr; }
+  };
+  const mv=e=>{
+    if(!moved){
+      if(Math.abs(e.clientX-x0)+Math.abs(e.clientY-y0)<=5) return;   // movement threshold ⇒ it's a drag
+      moved=true;
+      const sel=state.tlSel.has(p.id)&&state.tlSel.size>1;
+      ghost=el("div","tlghost", sel?`⠿ ${state.tlSel.size}명 이동`:`⠿ ${p.id} ${p.name}`);
+      ghost.id="dragghost"; document.body.appendChild(ghost);
+      row.classList.add("dragging");
+      DRAG.pid=p.id; DRAG.onScroll=evalTgt; DRAG.vy=0; DRAG.raf=requestAnimationFrame(autoScrollTick);
+    }
+    e.preventDefault();
+    DRAG.lastXY=[e.clientX,e.clientY];
+    if(ghost){ ghost.style.left=e.clientX+"px"; ghost.style.top=e.clientY+"px"; }
+    evalTgt(e.clientX,e.clientY);
+    updateAutoScroll(e.clientX,e.clientY);
+  };
+  const up=()=>{
+    grip.removeEventListener("pointermove",mv); grip.removeEventListener("pointerup",up); grip.removeEventListener("pointercancel",up);
+    DRAG.vy=0; DRAG.pid=null; DRAG.onScroll=null; DRAG.lastXY=null;
+    if(DRAG.raf){ cancelAnimationFrame(DRAG.raf); DRAG.raf=null; }
+    if(ghost){ ghost.remove(); ghost=null; }
+    row.classList.remove("dragging");
+    const dest=tgt, da=after; clear();
+    if(!moved){ toggleTlSel(p.id,row); return; }           // tap (no drag) → toggle selection
+    if(!dest) return;
+    const tid=dest.dataset.pid; if(!tid) return;
+    // move the whole selection if this row is part of it (and there's >1), else just this row
+    const ids = (state.tlSel.has(p.id) && state.tlSel.size>1) ? [...state.tlSel] : [p.id];
+    if(ids.includes(tid)) return;                          // can't drop onto one of the moved rows
+    const tv=partyVenue(state.byId[tid]);
+    ids.forEach(id=>{ if(partyVenue(state.byId[id])!==tv) assignToHotel(state.byId[id],tv); });
+    tlReorderMulti(ids,tid,da);
+    state.tlSort={key:null,dir:"asc"};      // manual reorder departs from a pure sort → reset indicator
+    renderTimeline();
+  };
+  grip.addEventListener("pointermove",mv); grip.addEventListener("pointerup",up); grip.addEventListener("pointercancel",up);
 }
 function assignToHotel(p,hotel){
   if(hotel==="(미배정)"){ delete state.assign[p.id]; return; }
@@ -1527,54 +1805,32 @@ function assignToHotel(p,hotel){
 }
 function tlRow(p,n,off629,planEnd){
   const row=el("div","tlrow"); row.style.setProperty("--ncols",n); row.dataset.pid=p.id;
-  const idc=el("div","idc",p.id);                                   // ⑤ unique-ID column
+  if(state.tlSel.has(p.id)) row.classList.add("selected");
+  // ⑤ unique-ID column — now also hosts the drag handle (⠿) in front of the ID
+  const idc=el("div","idc");
+  const grip=el("span","tlgrip","⠿"); grip.title="끌어서 순서/숙소 이동 · 탭하여 다중 선택";
+  grip.addEventListener("pointerdown",ev=>tlGripStart(p,grip,row,ev));
+  idc.append(grip, el("span","idtxt",p.id));
   const ci=catInfo(p.cat); const catc=el("div","catc");
   const cb=el("span","cat",ci.ab); cb.style.background=ci.c; cb.title=p.cat||""; catc.append(cb);
   const who=el("div","who");
-  const grip=el("span","tlgrip","⠿"); grip.title="끌어서 순서 변경";
   const nm=el("span","nm",p.name+(p.hc>1?` 👪${p.hc}`:""));
-  who.append(grip,nm); who.title="손잡이(⠿)를 끌어 순서 변경 · 더블클릭/길게 누르기: 상세";
+  who.append(nm); who.title="더블클릭/길게 누르기: 상세";
   if(state.dups && state.dups.has(p.id)){
     row.classList.add("dup");
     const others=(state.dupInfo[p.id]||[]).map(id=>state.byId[id]?`${state.byId[id].name}(${id})`:id).join(", ");
     const d=el("span","dupflag","⚠"); d.title=`중복 의심 — 동일 이름/이메일: ${others}`; who.append(d);
   }
   who.addEventListener("dblclick",()=>openCard(p));
-  attachLongPress(who,()=>openCard(p));                 // touch: long-press opens detail
-  // vertical drag-reorder + cross-hotel move — pointer-based via the grip handle (works for mouse & touch)
-  grip.addEventListener("pointerdown",ev=>{
-    ev.preventDefault(); ev.stopPropagation();             // don't start who long-press / detail
-    try{ grip.setPointerCapture(ev.pointerId); }catch(e){}
-    let tgt=null, after=false;
-    const clear=()=>{ if(tgt){ tgt.classList.remove("dropmark"); tgt=null; } };
-    const mv=e=>{
-      const node=document.elementFromPoint(e.clientX,e.clientY);
-      const tr=node&&node.closest?node.closest(".tlrow"):null;
-      clear();
-      if(tr && tr!==row){ const rc=tr.getBoundingClientRect(); after=e.clientY>rc.top+rc.height/2; tr.classList.add("dropmark"); tgt=tr; }
-    };
-    const up=()=>{
-      grip.removeEventListener("pointermove",mv); grip.removeEventListener("pointerup",up); grip.removeEventListener("pointercancel",up);
-      const dest=tgt, da=after; clear();
-      if(dest){
-        const tid=dest.dataset.pid;
-        if(tid && tid!==p.id){
-          const tv=partyVenue(state.byId[tid]);
-          if(partyVenue(p)!==tv) assignToHotel(p,tv);       // dropped into another hotel → move there
-          tlReorder(p.id,tid,da);
-          renderTimeline();
-        }
-      }
-    };
-    grip.addEventListener("pointermove",mv); grip.addEventListener("pointerup",up); grip.addEventListener("pointercancel",up);
-  });
+  attachLongPress(who,()=>openRowSheet(p,row));          // touch: long-press opens the row action sheet
   const track=el("div","track");
   if(off629>0){ const u=el("div","unoff"); u.style.left="0"; u.style.width=`calc(${off629}/${n}*100%)`; track.append(u); }
   if(planEnd<n){ const bz=el("div","bufz"); bz.style.left=`calc(${planEnd}/${n}*100%)`; bz.style.right="0"; track.append(bz); }
   if(p.stay){
     const bar=el("div","bar"); bar.style.background=catInfo(p.cat).c;
-    const place=()=>{ bar.style.left=`calc(${p.stay.s}/${n}*100%)`; bar.style.width=`calc(${(p.stay.e-p.stay.s+1)}/${n}*100%)`; bar.textContent=`${stayNights(p)}박`; };
-    place();
+    const lbl=el("span","barlbl"); bar.append(lbl);                  // label in its own node — see place()
+    const place=()=>{ bar.style.left=`calc(${p.stay.s}/${n}*100%)`; bar.style.width=`calc(${(p.stay.e-p.stay.s+1)}/${n}*100%)`; lbl.textContent=`${stayNights(p)}박`; };
+    place();                                                          // update only the label, not bar.textContent (that would wipe the resize handles)
     bar.title="끝을 끌어 기간조정 · 가운데 끌어 이동 · 더블클릭: 상세";
     bar.addEventListener("dblclick",()=>openCard(p));                // ④ modal on bar double-click
     const hl=el("div","h l"), hr=el("div","h r"); bar.append(hl,hr);
@@ -1593,26 +1849,44 @@ function tlRow(p,n,off629,planEnd){
   const venc=el("div","venc"); const vpill=el("span","pill "+(ri.ven==null?"none":"ven"),ri.vshort); vpill.title=ri.ven||"미배정"; venc.append(vpill);
   const roomc=el("div","roomc"); const rnum=el("span","rnum"+(ri.cap==null?" none":""),ri.rno); rnum.title=ri.full; roomc.append(rnum);
   const capc=el("div","capc"); capc.append(el("span","pill "+(ri.cap==null?"none":"cap"), ri.cap==null?"—":ri.cap+"인"));
+  // 호별·객실번호·수용: 더블클릭→상세, 길게 누르기(터치)→작업 시트
+  [venc,roomc,capc].forEach(cell=>{
+    cell.style.cursor="pointer";
+    cell.title="더블클릭: 상세 · 길게 누르기: 작업 메뉴";
+    cell.addEventListener("dblclick",()=>openCard(p));
+    attachLongPress(cell,()=>openRowSheet(p,row));
+  });
   row.append(idc,catc,who,venc,roomc,capc,track);
   return row;
 }
 function enableBarDrag(p,bar,hl,hr,track,n,place){
   const start=ev=>{
-    ev.preventDefault();
+    ev.preventDefault(); ev.stopPropagation();
     const mode = ev.target===hl?"L":ev.target===hr?"R":"M";
-    const rect=track.getBoundingClientRect(); const cw=rect.width/n;
-    const s0=p.stay.s, e0=p.stay.e, x0=ev.clientX;
+    const rect=track.getBoundingClientRect(); const tw=rect.width, cw=tw/n;
+    const s0=p.stay.s, e0=p.stay.e, x0=ev.clientX, pid=ev.pointerId;
+    const left0=s0*cw, width0=(e0-s0+1)*cw, right0=left0+width0;   // start geometry in px
+    const lbl=bar.querySelector(".barlbl");
+    bar.classList.add("dragging");                                 // follow the pointer in px, transition off
+    try{ bar.setPointerCapture(pid); }catch(e){}   // own the gesture so the browser can't reclaim it (pointercancel) mid-drag
     const move=e=>{
-      const d=Math.round((e.clientX-x0)/cw);
-      let s=s0,e2=e0;
-      if(mode==="L") s=Math.min(Math.max(0,s0+d),e0);
-      else if(mode==="R") e2=Math.max(Math.min(n-1,e0+d),s0);
-      else { let sh=d; if(s0+sh<0)sh=-s0; if(e0+sh>n-1)sh=n-1-e0; s=s0+sh; e2=e0+sh; }
-      p.stay.s=s; p.stay.e=e2; place();
+      if(e.pointerId!==pid) return;
+      const dx=e.clientX-x0; let L=left0, W=width0, s=s0, e2=e0;
+      if(mode==="L"){ L=Math.min(Math.max(0,left0+dx),right0-cw); W=right0-L; s=Math.round(L/cw); }
+      else if(mode==="R"){ const R=Math.max(Math.min(tw,right0+dx),left0+cw); W=R-left0; e2=Math.round(R/cw)-1; }
+      else { L=Math.min(Math.max(0,left0+dx),tw-width0); s=Math.round(L/cw); e2=s+(e0-s0); }
+      bar.style.left=L+"px"; bar.style.width=W+"px";               // smooth pixel-level follow
+      p.stay.s=s; p.stay.e=e2; if(lbl) lbl.textContent=`${stayNights(p)}박`;  // day values + label stay snapped
     };
-    const up=()=>{ document.removeEventListener("pointermove",move); document.removeEventListener("pointerup",up);
-      refreshStay(p); renderStats(); };
-    document.addEventListener("pointermove",move); document.addEventListener("pointerup",up);
+    const up=e=>{
+      if(e.pointerId!==pid) return;
+      bar.removeEventListener("pointermove",move); bar.removeEventListener("pointerup",up); bar.removeEventListener("pointercancel",up);
+      try{ bar.releasePointerCapture(pid); }catch(_){}
+      bar.classList.remove("dragging");
+      place();                                       // settle onto the day grid — the CSS transition eases it into place
+      refreshStay(p); renderStats();
+    };
+    bar.addEventListener("pointermove",move); bar.addEventListener("pointerup",up); bar.addEventListener("pointercancel",up);
   };
   bar.addEventListener("pointerdown",start);
 }
@@ -1625,14 +1899,14 @@ function openCard(p){
   if(a && a!=="BOOY"){ const rm=state.roomById[a]; if(rm) roomTxt=`${rm.hotel} · ${rm.bldg?rm.bldg+"동 ":""}${rm.floor?rm.floor+" ":""}${rm.rno||rm.id} (${rm.type||""})`; }
   const rows=[
     ["참가행사",p.event],
-    ["sec","■ 인적사항"],
+    ["sec","인적사항"],
     ["성별",{M:"남",F:"여","?":"미상"}[p.sex]||p.sex],["생년월일",p.dob],["국적",p.nat],
     ["이메일",p.email],["소속",p.aff],["직책",p.title],
     ["WB등급",p.wb],["결제상태",p.pay],
-    ["sec","■ 숙박"],
+    ["sec","숙박"],
     ["도착일",p.arr],["출발일(체크아웃)",p.dep],["숙박",p.stay?`${stayNights(p)}박`:"없음"],
     ["방 필요",p.need],["사전 배정(원본)",p.pre],["현재 배정",roomTxt],
-    ["sec","■ 인원/동반"],
+    ["sec","인원/동반"],
     ["총인원",`${p.hc}명 (본인 ${p.party.본인}·배우자 ${p.party.배우자}·자녀 ${p.party.자녀}·기타 ${p.party.기타})`],
     ["동반자요약",p.companions],["비고",p.note],
   ];
@@ -1644,15 +1918,55 @@ function openCard(p){
   });
   card.innerHTML=
     `<div class="chead" style="background:${ci.c}">
-       <div><h2>${p.name||p.id}${p.kname?` <span style="font-weight:400">(${p.kname})</span>`:""}</h2>
+       <div class="htitle"><h2>${p.name||p.id}${p.kname?` <span style="font-weight:400">(${p.kname})</span>`:""}</h2>
        <div class="sub">${p.id} · ${p.cat||""}${p.team?" · "+p.team:""}${p.group?" · 묶음 "+p.group:""}</div></div>
-       <button class="cedit" id="cardEditBtn">✏ 수정</button>
+       <button class="cedit" id="cardEditBtn">수정</button>
        <button class="cx" onclick="closeCard()">×</button>
      </div><div class="cbody">${body}</div>`;
   $("#cardEditBtn").onclick=()=>editCard(p);
   $("#modal").style.display="flex";
 }
 function closeCard(){ $("#modal").style.display="none"; }
+
+/* ---------- ⑤c long-press row action sheet (touch) ---------- */
+function openRowSheet(p,row){
+  const sh=$("#rowsheet"), panel=sh.querySelector(".rs-panel");
+  const cur=partyVenue(p);
+  const venBtn=(label,hotel)=>`<button class="rsbtn${cur===hotel?" cur":""}" data-act="venue" data-h="${esc(hotel)}"><span class="ic">🏨</span>${esc(label)}${cur===hotel?" ✓":""}</button>`;
+  panel.innerHTML=
+    `<div class="rs-grip"></div>
+     <div class="rs-head">${esc(p.name||p.id)} <span class="rs-sub">${esc(p.id)}${p.cat?" · "+esc(p.cat):""}</span></div>
+     <button class="rsbtn" data-act="detail"><span class="ic">🔍</span>상세 보기</button>
+     <button class="rsbtn" data-act="edit"><span class="ic">✎</span>수정</button>
+     <div class="rs-sec">숙소 이동</div>
+     <div class="rs-venues">
+       ${venBtn(VEN.BYYTC,VEN.BYYTC)}
+       ${venBtn(VEN.YOUUS,VEN.YOUUS)}
+       ${venBtn(VEN.BOOY+"(NOC)",VEN.BOOY)}
+       <button class="rsbtn${cur==null?" cur":""}" data-act="venue" data-h=""><span class="ic">↩</span>미배정${cur==null?" ✓":""}</button>
+     </div>
+     <button class="rsbtn" data-act="select"><span class="ic">☑</span>${state.tlSel.has(p.id)?"다중 선택에서 빼기":"다중 선택에 추가"}</button>
+     <button class="rsbtn danger" data-act="delete"><span class="ic">🗑</span>삭제</button>`;
+  sh.hidden=false;
+  const close=()=>{ sh.hidden=true; sh.onclick=null; panel.onclick=null; document.removeEventListener("keydown",onKey); };
+  const onKey=e=>{ if(e.key==="Escape"){ e.stopPropagation(); close(); } };
+  document.addEventListener("keydown",onKey);
+  sh.onclick=e=>{ if(e.target===sh) close(); };          // tap backdrop = dismiss
+  panel.onclick=e=>{
+    const b=e.target.closest(".rsbtn"); if(!b) return;
+    const act=b.dataset.act;
+    if(act==="detail"){ close(); openCard(p); }
+    else if(act==="edit"){ close(); $("#modal").style.display="flex"; editCard(p); }
+    else if(act==="venue"){
+      const h=b.dataset.h; close();
+      if(!h){ delete state.assign[p.id]; toast(`${p.name||p.id} 미배정으로 이동`,"ok"); }
+      else { assignToHotel(p,h); toast(`${p.name||p.id} → ${venShort(h)} 이동`,"ok"); }
+      render();
+    }
+    else if(act==="select"){ close(); toggleTlSel(p.id,row); }
+    else if(act==="delete"){ close(); deleteCard(p); }
+  };
+}
 
 /* ---------- ⑤b editable card ---------- */
 const SEX_OPTS=[["M","남"],["F","여"],["?","미상"]];
@@ -1688,18 +2002,18 @@ function editCard(p){
   };
   const catOpts=`<option value=""></option>${opt(Object.keys(CAT),p.cat)}${CAT[p.cat]?"":(p.cat?`<option value="${esc(p.cat)}" selected>${esc(p.cat)}</option>`:"")}`;
   const F=[
-    ["sec","■ 인적사항"],
+    ["sec","인적사항"],
     ["이름",txt("name",p.name)],["한글이름",txt("kname",p.kname)],
     ["성별",`<select data-f="sex">${opt(SEX_OPTS,p.sex)}</select>`],
     ["생년월일",txt("dob",p.dob)],["국적",txt("nat",p.nat)],["이메일",txt("email",p.email)],
     ["소속",txt("aff",p.aff)],["직책",txt("title",p.title)],["WB등급",txt("wb",p.wb)],["결제상태",txt("pay",p.pay)],
     ["카테고리",`<select data-f="cat">${catOpts}</select>`],["팀",txt("team",p.team)],["그룹ID(묶음)",txt("group",p.group)],
-    ["sec","■ 숙박"],
+    ["sec","숙박"],
     ["방 필요",`<select data-f="need">${opt([["Yes","Yes"],["No","No"]],p.need)}</select>`],
     ["도착일(첫 박)",arrSel],["출발일(체크아웃)",depSel],
     ["사전 배정(원본)",txt("pre",p.pre)],
     ["현재 배정 · 숙소",venSel],["현재 배정 · 객실",`<span id="edRoomWrap">${roomSelHtml(curVen)}</span>`],
-    ["sec","■ 인원/동반"],
+    ["sec","인원/동반"],
     ["본인",numI("본인",p.party.본인)],["배우자",numI("배우자",p.party.배우자)],
     ["자녀",numI("자녀",p.party.자녀)],["기타",numI("기타",p.party.기타)],
     ["동반자요약",area("companions",p.companions)],["비고",area("note",p.note)],
@@ -1708,15 +2022,33 @@ function editCard(p){
   F.forEach(([k,v])=>{ if(k==="sec"){body+=`<div class="sec">${v}</div>`;return;} body+=`<div class="k">${k}</div><div class="v">${v}</div>`; });
   card.innerHTML=
     `<div class="chead" style="background:${ci.c}">
-       <div><h2>${esc(p.name||p.id)} <span style="font-weight:400;opacity:.85">· 수정 중</span></h2>
+       <div class="htitle"><h2>${esc(p.name||p.id)} <span style="font-weight:400;opacity:.85">· 수정 중</span></h2>
        <div class="sub">${esc(p.id)} · 변경 후 저장을 누르세요</div></div>
        <button class="cx" onclick="closeCard()">×</button>
      </div><div class="cbody edit">${body}</div>
-     <div class="cfoot"><button class="go" id="cardSaveBtn">저장</button><button class="alt" id="cardCancelBtn">취소</button></div>`;
+     <div class="cfoot"><button class="cdanger" id="cardDelBtn">삭제</button><button class="go" id="cardSaveBtn">저장</button><button class="alt" id="cardCancelBtn">취소</button></div>`;
   // venue change → repopulate room select
   $("#edVenue").onchange=e=>{ $("#edRoomWrap").innerHTML=roomSelHtml(e.target.value); };
   $("#cardSaveBtn").onclick=()=>saveCard(p);
   $("#cardCancelBtn").onclick=()=>openCard(p);
+  $("#cardDelBtn").onclick=()=>deleteCard(p);
+}
+// remove a participant entirely: from the live view now, and (on export) blank its row in the master
+function deleteCard(p){
+  dialog({
+    title:"기록 삭제",
+    body:`'${p.name||p.id}' (${p.id}) 기록을 완전히 삭제합니다.\n배정·동반 정보가 모두 제거되며, 마스터 내보내기 시 해당 행이 비워집니다. 되돌릴 수 없습니다.`,
+    okText:"삭제", cancelText:"취소", danger:true,
+    onOk:()=>{
+      if(p._row!=null){ state.deletedRows=state.deletedRows||[]; state.deletedRows.push(p._row); }
+      state.parties=state.parties.filter(x=>x.id!==p.id);
+      state.orderList=state.orderList.filter(id=>id!==p.id);
+      delete state.byId[p.id]; delete state.assign[p.id]; delete state.locked[p.id];
+      state.tlSel.delete(p.id);
+      closeCard(); render();
+      toast(`'${p.name||p.id}' 기록을 삭제했습니다. (내보내기 시 마스터에 반영)`,"ok",4000);
+    }
+  });
 }
 function saveCard(p){
   const card=$("#card");
@@ -1739,11 +2071,15 @@ function saveCard(p){
   if(sv===""||sv==null){ p.stay=null; }
   else { let s=+sv, e=+val("stayE"); if(isNaN(e)||e<s) e=s; p.stay={s,e}; }
   refreshStay(p);
-  // assignment
+  // assignment — a room must be tied to the selected 숙소; never bind a room from another hotel
   const ven=val("venue"); const room=val("room");
   if(!ven){ delete state.assign[p.id]; }
   else if(ven===VEN.BOOY){ state.assign[p.id]="BOOY"; }
-  else if(room){ state.assign[p.id]=room; }
+  else if(room && state.roomById[room] && state.roomById[room].hotel===ven){ state.assign[p.id]=room; }
+  else if(room){                   // chosen room isn't in the selected hotel → auto-pick within it instead
+    toast(`선택한 객실이 ${venShort(ven)} 소속이 아니어서 해당 숙소 내 방으로 자동 배정했습니다.`,"warn");
+    assignToHotel(p,ven);
+  }
   else { assignToHotel(p,ven); }   // no specific room → auto-pick
   // record which master columns the user actually changed (surgical export)
   p._edits=p._edits||new Set();
@@ -1779,7 +2115,7 @@ function exportExcel(){
   if(booy.length) ros.push([VEN.BOOY,"","","개별","","",booy.reduce((s,p)=>s+p.hc,0),booy.reduce((s,p)=>s+p.hc,0),booy.map(o=>o.name).join(", ")]);
   XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(ros),"객실roster");
   XLSX.writeFile(wb,"ICMDA 숙소배정 결과.xlsx");
-  toast("Excel 저장 완료 — 'ICMDA 숙소배정 결과.xlsx'","ok");
+  toast("배정 결과 저장 완료 — 'ICMDA 숙소배정 결과.xlsx'","ok");
 }
 
 /* ---------- export updated MASTER (versioned) ---------- */
@@ -1799,6 +2135,7 @@ function exportMaster(){
   const wb=XLSX.read(state.masterBuf,{type:"array",cellFormula:true,cellStyles:true});  // fresh copy from original
   const ws=wb.Sheets["참가자"]; const H=state.pH; const HR=1;     // header row = 2nd row
   const range=XLSX.utils.decode_range(ws['!ref']);
+  const origEndC=range.e.c;                 // last original column (before we append room-detail cols)
   // add room-detail columns at the right
   let c=range.e.c+1; const NC={동:c++,층:c++,호실:c++,객실ID:c++};
   xSet(ws,HR,NC.동,"배정동"); xSet(ws,HR,NC.층,"배정층"); xSet(ws,HR,NC.호실,"배정호실"); xSet(ws,HR,NC.객실ID,"배정객실ID");
@@ -1832,35 +2169,35 @@ function exportMaster(){
       changed++;
     }
   });
+  // deleted records → blank their entire row (formulas included; other rows untouched)
+  let delCount=0;
+  if(state.deletedRows && state.deletedRows.length){
+    [...new Set(state.deletedRows)].forEach(r=>{
+      for(let cc=range.s.c; cc<=origEndC; cc++) xSet(ws,r,cc,"");
+      delCount++; changed++;
+    });
+  }
   range.e.c=Math.max(range.e.c,NC.객실ID); ws['!ref']=XLSX.utils.encode_range(range);
+  // write edited room capacities back to the '객실' tab (추가인원·총가능인원). Surgical: only changed rooms.
+  let capChanged=0; const rws=wb.Sheets["객실"], RH=state.rH;
+  if(rws && RH){
+    state.rooms.forEach(rm=>{
+      if(rm._row==null || (rm.ext===rm._oext && rm.total===rm._ototal)) return;
+      if(RH["추가인원"]!=null) xSet(rws,rm._row,RH["추가인원"],rm.ext,"n");
+      if(RH["총가능인원"]!=null) xSet(rws,rm._row,RH["총가능인원"],rm.total,"n");
+      capChanged++;
+    });
+    changed+=capChanged;
+  }
   const outName=bumpMasterName(state.masterName);
   XLSX.writeFile(wb,outName);
   let msg=`'${outName}' 저장 완료 — 변경 ${changed}건.\n· 배정동/배정층/배정호실/배정객실ID 열을 추가했습니다.\n· 총인원·도착일·출발일·숙박일수는 수식이라 그대로 두었습니다.`;
+  if(capChanged) msg+=`\n· 객실 수용(추가인원·총가능인원) ${capChanged}건을 '객실' 탭에 반영했습니다.`;
+  if(delCount) msg+=`\n· 삭제한 기록 ${delCount}건의 행을 '참가자' 탭에서 비웠습니다.`;
   if(beyond.length) msg+=`\n\n⚠ 마스터 박 범위를 벗어난 연장 숙박은 기록할 칸이 없어 누락: ${beyond.join(", ")}`;
   msg+=`\n\n※ 버전 규칙: 이전 파일은 history/ 폴더로 옮기고 기록하세요(브라우저에서 자동 이동 불가). 셀 서식/색상은 보존되지 않을 수 있습니다.`;
-  toast(`마스터 내보내기 완료 — '${outName}' (변경 ${changed}건)`,"ok",5000);
-  dialog({title:"마스터 내보내기 완료", body:msg});   // detail (version rule + any warnings) in a dismissible dialog
-}
-
-/* ---------- progress JSON ---------- */
-function saveJson(){
-  const stays={}; state.parties.forEach(p=>{ stays[p.id]=p.stay?[p.stay.s,p.stay.e]:null; });
-  const data={kind:"icmda-room-assign",ver:3,assign:state.assign,locked:state.locked,stays,
-              orderList:state.orderList,collapsed:state.collapsed};
-  const blob=new Blob([JSON.stringify(data,null,1)],{type:"application/json"});
-  const a=el("a"); a.href=URL.createObjectURL(blob); a.download="숙소배정 진행.json"; a.click();
-  toast("진행 상태(JSON) 저장 완료","ok");
-}
-function loadJson(text){
-  try{
-    const d=JSON.parse(text);
-    if(d.assign) state.assign=d.assign; if(d.locked) state.locked=d.locked;
-    if(d.stays) state.parties.forEach(p=>{ if(p.id in d.stays){ const v=d.stays[p.id]; p.stay=v?{s:v[0],e:v[1]}:null; refreshStay(p); } });
-    if(Array.isArray(d.orderList)) state.orderList=d.orderList;
-    if(d.collapsed) state.collapsed=d.collapsed;
-    render();
-    toast("진행 상태 불러오기 완료","ok");
-  }catch(e){ toast("JSON 읽기 실패: "+e.message,"err",6000); }
+  toast(`마스터 업데이트 완료 — '${outName}' (변경 ${changed}건)`,"ok",5000);
+  dialog({title:"마스터 업데이트 완료", body:msg});   // detail (version rule + any warnings) in a dismissible dialog
 }
 
 /* ---------- print ---------- */
@@ -1935,45 +2272,39 @@ function confirmAuto(){
 function confirmMaster(){
   if(!state.masterBuf){ toast("먼저 ① 마스터 파일을 여세요.","warn"); return; }
   const assigned=state.parties.filter(p=>p.need!=="No"&&state.assign[p.id]).reduce((s,p)=>s+p.hc,0);
-  dialog({title:"마스터 내보내기", okText:"내보내기",
+  dialog({title:"마스터 업데이트 (v+1)", okText:"업데이트",
     body:`배정 결과(배정숙소·배정동/층/호실)를 원본 마스터에 반영해 새 버전(v{N})으로 저장합니다.\n`
         +`현재 배정 ${assigned}명. 수식 열(총인원·도착일·출발일·숙박일수)은 그대로 둡니다.\n\n계속할까요?`,
     onOk:()=>withLoading("마스터 내보내는 중…",exportMaster)});
 }
 function doPrint(){ buildPrint(); window.print(); }
-function onMasterFile(e){
-  const f=e.target.files[0]; if(!f) return;
+function onMasterFile(e){ const f=e.target.files[0]; if(f) loadFile(f); e.target.value=""; }  // allow re-picking the same file
+function loadFile(f){
+  if(!/\.xlsx$/i.test(f.name)){ toast("`.xlsx` 파일만 열 수 있습니다.","warn"); return; }
   $("#srcname").textContent=f.name; state.masterName=f.name;
   const rd=new FileReader();
   rd.onload=()=>withLoading("마스터 불러오는 중…",()=>loadMaster(rd.result));   // XLSX.read can throw on a bad file
   rd.onerror=()=>toast("파일을 읽지 못했습니다.","err");
   rd.readAsArrayBuffer(f);
-  e.target.value="";                              // allow re-picking the same file
-}
-function onJsonFile(e){
-  const f=e.target.files[0]; if(!f) return;
-  const rd=new FileReader();
-  rd.onload=()=>{
-    const text=rd.result;
-    const go=()=>{ loadJson(text); closeSheet(); };
-    // loading JSON over existing work overwrites it → confirm first
-    if(Object.keys(state.assign).length){
-      dialog({title:"진행 불러오기", danger:true, okText:"불러오기(덮어쓰기)",
-        body:"현재 배정 작업을 불러온 파일 내용으로 덮어씁니다.\n저장하지 않은 변경사항은 사라집니다.\n\n계속할까요?",
-        onOk:go});
-    } else go();
-  };
-  rd.onerror=()=>toast("파일을 읽지 못했습니다.","err");
-  rd.readAsText(f);
-  e.target.value="";
 }
 // desktop toolbar
 $("#fileMaster").addEventListener("change",onMasterFile);
-$("#fileJson").addEventListener("change",onJsonFile);
+// import/start screen: file picker + drag-and-drop
+$("#ssFile").addEventListener("change",onMasterFile);
+(function(){
+  const dz=$("#ssDrop"); if(!dz) return;
+  dz.addEventListener("click",e=>{ if(!e.target.closest(".ss-btn")) $("#ssFile").click(); });   // click zone (not the button) opens picker
+  const stop=e=>{ e.preventDefault(); e.stopPropagation(); };
+  dz.addEventListener("dragover",e=>{ stop(e); dz.classList.add("drag"); });
+  dz.addEventListener("dragleave",e=>{ stop(e); dz.classList.remove("drag"); });
+  dz.addEventListener("drop",e=>{ stop(e); dz.classList.remove("drag"); const f=e.dataTransfer&&e.dataTransfer.files&&e.dataTransfer.files[0]; if(f) loadFile(f); });
+  // don't let a file dropped outside the zone navigate the page away
+  window.addEventListener("dragover",e=>e.preventDefault());
+  window.addEventListener("drop",e=>e.preventDefault());
+})();
 $("#btnAuto").onclick=confirmAuto;
-$("#btnExcel").onclick=()=>withLoading("Excel 저장 중…",exportExcel);
+$("#btnExcel").onclick=()=>withLoading("배정 결과 저장 중…",exportExcel);
 $("#btnMaster").onclick=confirmMaster;
-$("#btnJson").onclick=saveJson;
 $("#btnPrint").onclick=doPrint;
 // mobile bottom bar
 $("#mbFileMaster").addEventListener("change",onMasterFile);
@@ -1983,11 +2314,9 @@ $("#mbMore").onclick=openSheet;
 function openSheet(){ $("#sheet").hidden=false; $("#mbMore").setAttribute("aria-expanded","true"); }
 function closeSheet(){ $("#sheet").hidden=true; $("#mbMore").setAttribute("aria-expanded","false"); }
 $("#sheet").addEventListener("click",e=>{ if(e.target.id==="sheet") closeSheet(); });   // tap backdrop to dismiss
-$("#shExcel").onclick=()=>{ closeSheet(); withLoading("Excel 저장 중…",exportExcel); };
+$("#shExcel").onclick=()=>{ closeSheet(); withLoading("배정 결과 저장 중…",exportExcel); };
 $("#shMaster").onclick=()=>{ closeSheet(); confirmMaster(); };
-$("#shJson").onclick=()=>{ closeSheet(); saveJson(); };
 $("#shPrint").onclick=()=>{ closeSheet(); doPrint(); };
-$("#shFileJson").addEventListener("change",onJsonFile);
 
 // search: live filter + clear (×) button (shows when non-empty)
 function wireSearchClear(inputSel, clrSel, onChange){
@@ -2018,8 +2347,8 @@ $("#jumpsel").addEventListener("change",e=>{
 });
 
 // view tabs + timeline filters + modal
-$("#tabRooms").onclick=()=>setView("rooms");
-$("#tabTimeline").onclick=()=>setView("timeline");
+$("#tabRooms").onclick=()=>{ if(state.masterBuf) setView("rooms"); };
+$("#tabTimeline").onclick=()=>{ if(state.masterBuf) setView("timeline"); };
 $("#tlvenue").addEventListener("change",e=>{ state.tlFilter.venue=e.target.value; renderTimeline(); });
 $("#tlcat").addEventListener("change",e=>{ state.tlFilter.cat=e.target.value; renderTimeline(); });
 $("#modal").addEventListener("click",e=>{ if(e.target.id==="modal") closeCard(); });
@@ -2029,6 +2358,7 @@ document.addEventListener("keydown",e=>{
   if(e.key!=="Escape") return;
   if(!$("#sheet").hidden){ closeSheet(); return; }
   if(state.pick){ state.pick=null; announce("선택 해제"); render(); return; }
+  if(state.tlSel.size){ clearTlSel(); return; }   // clear timeline multi-select
   closeCard();
 });
 // tapping empty space deselects a picked person (chips/rooms have their own handlers)
@@ -2057,6 +2387,7 @@ $("#statsbar").addEventListener("scroll",updateStatsFades,{passive:true});
 
 loadUI();   // restore column widths, collapsed groups, and last view
 buildLegend();   // static category key (DESIGN-4)
+if(!state.masterBuf) setEmpty(true);   // show the import/start screen until a master is loaded
 let _rsT=null;
 window.addEventListener("resize",()=>{
   syncTop(); updateGanttFades(); updateStatsFades();
