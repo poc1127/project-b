@@ -36,7 +36,9 @@
   .pill.ok{background:#e3f3e4;color:var(--ok);}
   #main{display:flex;gap:12px;padding:12px;align-items:flex-start;}
   #pool{width:260px;flex:none;background:var(--pool);border:1px solid var(--line);border-radius:8px;padding:8px;position:sticky;top:calc(var(--headerh,52px) + 6px);max-height:calc(100vh - var(--headerh,52px) - 16px);overflow:auto;}
-  #pool h2{font-size:13px;margin:2px 0 6px;}
+  #pool h2{font-size:13px;margin:2px 0 6px;display:flex;align-items:center;gap:6px;}
+  .poolToggle{display:none;margin-left:auto;background:none;border:1px solid var(--line);color:#555;border-radius:6px;font-size:12px;line-height:1;padding:3px 8px;cursor:pointer;}
+  .poolToggle:hover{background:#eef2f6;}
   #pool input.search{width:100%;padding:5px;margin-bottom:6px;border:1px solid var(--line);border-radius:4px;}
   #venues{flex:1;display:flex;flex-direction:column;gap:18px;min-width:0;}
   .venue{border:1px solid var(--line);border-radius:8px;background:#fff;}
@@ -259,7 +261,12 @@
     #main{flex-direction:column;align-items:stretch;}   /* stretch panes to full width when stacked */
     #pool{width:auto;position:static;max-height:42vh;top:auto;}
     header h1{font-size:15px;}
-    .rooms{grid-template-columns:repeat(auto-fill,minmax(168px,1fr));}
+    /* fewer, wider cards when stacked (item 8): comfortable 2-3 per row, not 4 tight ones */
+    .rooms{grid-template-columns:repeat(auto-fill,minmax(220px,1fr));}
+    /* item 11: let the stacked pool collapse so it doesn't push venues down the page */
+    .poolToggle{display:inline-flex;align-items:center;justify-content:center;min-height:32px;}
+    #pool.collapsed{max-height:none;}
+    #pool.collapsed #poollist{display:none;}   /* keep title + search + legend; hide only the list */
   }
 
   /* phones — header keeps only the title + full-width view tabs; ALL toolbar
@@ -504,7 +511,7 @@
 
 <div id="main">
   <div id="pool">
-    <h2>미배정 <span id="poolcount"></span></h2>
+    <h2>미배정 <span id="poolcount"></span><button id="poolToggle" type="button" class="poolToggle" aria-expanded="true" aria-controls="poollist" title="미배정 목록 접기/펼치기">▾</button></h2>
     <div class="searchwrap">
       <input class="search" id="poolsearch" placeholder="이름/ID 검색…" aria-label="미배정 인원 검색" autocomplete="off">
       <button class="clr" id="poolsearchclr" type="button" aria-label="검색어 지우기" title="지우기">×</button>
@@ -1991,6 +1998,14 @@ function wireSearchClear(inputSel, clrSel, onChange){
   sync();
 }
 wireSearchClear("#poolsearch","#poolsearchclr",renderPool);
+
+// tablet (≤860px): collapse the stacked 미배정 pool so the room grid isn't pushed far down
+$("#poolToggle").addEventListener("click",()=>{
+  const collapsed=$("#pool").classList.toggle("collapsed");
+  const t=$("#poolToggle");
+  t.setAttribute("aria-expanded", collapsed?"false":"true");
+  t.textContent=collapsed?"▸":"▾";
+});
 wireSearchClear("#tlsearch","#tlsearchclr",()=>{ state.tlFilter.q=$("#tlsearch").value; renderTimeline(); });
 
 // mobile jump-to-floor: expand the target accordion, then smooth-scroll to it
