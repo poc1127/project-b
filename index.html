@@ -2,7 +2,8 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1f3b57">
 <title>ICMDA 2026 숙소배정 대시보드</title>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <style>
@@ -49,7 +50,6 @@
   .rooms{display:grid;grid-template-columns:repeat(auto-fill,minmax(185px,1fr));gap:8px;}
   .room{border:1px solid var(--line);border-radius:8px;padding:5px 6px;background:#fafafa;min-height:62px;}
   .room.over{border-color:var(--warn);background:#fff5f5;}
-  .room.dragover{outline:2px dashed #3a6ea5;}
   .room .rhdr{display:flex;justify-content:space-between;align-items:center;font-size:11px;color:#444;margin-bottom:3px;gap:4px;}
   .room .rno{font-weight:700;color:#111;}
   .room .tags{display:flex;gap:3px;flex-wrap:wrap;}
@@ -90,7 +90,16 @@
   .vtab{background:#27496b;}
   .vtab.active{background:#fff;color:#1f3b57;font-weight:700;}
   /* ②③④ timeline — compact, hotel-split, right buffer */
-  #timeline{padding:8px 14px;overflow:auto;height:calc(100vh - var(--topoff,92px));height:calc(100dvh - var(--topoff,92px));}
+  /* #timeline is now a flex column wrapper; #gantt is the actual both-axis
+     scroller (so frozen columns + sticky date header resolve against it and
+     the edge-fade overlays can pin to the non-scrolling #ganttwrap). */
+  #timeline{padding:8px 14px;display:flex;flex-direction:column;min-height:0;
+            height:calc(100vh - var(--topoff,92px));height:calc(100dvh - var(--topoff,92px));}
+  #ganttwrap{position:relative;flex:1;min-height:0;display:flex;}
+  #gantt{overflow:auto;flex:1;min-width:0;}
+  #tlcards{flex:1;min-height:0;}
+  #timeline.cardmode #ganttwrap{display:none;}
+  #timeline.cardmode #tlcards{display:block;overflow:auto;}
   #tlbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:4px;}
   #tlbar .search{width:160px;margin:0;max-width:60vw;}
   #tlbar select{padding:4px;border:1px solid var(--line);border-radius:4px;}
@@ -128,13 +137,13 @@
   .tlgroup.byytc{background:var(--byytc);} .tlgroup.youus{background:var(--youus);}
   .tlgroup.booyoung{background:var(--booyoung);} .tlgroup.unassigned{background:#e9e9ec;color:#666;}
   .tlrow{border-bottom:1px solid #e8e8ec;}
-  .tlrow.alt{background:#fafbfc;}
+  .tlrow.alt{background:#eef2f6;}                 /* stronger zebra (DESIGN-6) */
   .tlrow:hover{background:#f3f7fb;}
   /* frozen pane — ID·분류·이름 stay pinned to the left while the night axis scrolls */
   .tlrow .idc{position:sticky;left:0;z-index:4;background:#fff;}
   .tlrow .catc{position:sticky;left:var(--c1,56px);z-index:4;background:#fff;}
   .tlrow .who{position:sticky;left:var(--c2,114px);z-index:4;background:#fff;box-shadow:1px 0 0 0 #dcdce0;}
-  .tlrow.alt .idc,.tlrow.alt .catc,.tlrow.alt .who{background:#fafbfc;}
+  .tlrow.alt .idc,.tlrow.alt .catc,.tlrow.alt .who{background:#eef2f6;}
   .tlrow:hover .idc,.tlrow:hover .catc,.tlrow:hover .who{background:#f3f7fb;}
   .tlrow.dup .idc,.tlrow.dup .catc,.tlrow.dup .who{background:#fff7e6;}
   .tlrow.dup:hover .idc,.tlrow.dup:hover .catc,.tlrow.dup:hover .who{background:#ffeecc;}
@@ -179,6 +188,59 @@
   #loading{position:fixed;inset:0;background:rgba(255,255,255,.7);z-index:300;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;color:#1f3b57;font-weight:700;}
   #loading .spin{width:46px;height:46px;border:5px solid #cdd8e3;border-top-color:#3a6ea5;border-radius:50%;animation:spin .8s linear infinite;}
   @keyframes spin{to{transform:rotate(360deg);}}
+  /* ===== toasts (non-blocking feedback, replaces alert) ===== */
+  #toasts{position:fixed;left:50%;bottom:calc(16px + env(safe-area-inset-bottom));transform:translateX(-50%);
+    z-index:520;display:flex;flex-direction:column;gap:8px;align-items:center;width:max-content;max-width:92vw;pointer-events:none;}
+  .toast{pointer-events:auto;min-width:200px;max-width:92vw;padding:10px 14px;border-radius:9px;color:#fff;font-size:13px;
+    font-weight:600;box-shadow:0 6px 20px rgba(0,0,0,.28);display:flex;gap:10px;align-items:flex-start;animation:toastin .18s ease-out;transition:opacity .2s;}
+  .toast .tmsg{white-space:pre-line;line-height:1.4;}
+  .toast .tx{margin-left:auto;cursor:pointer;background:none;border:none;color:inherit;font-size:16px;line-height:1;padding:0 2px;min-height:auto;}
+  .toast.info{background:#34557a;} .toast.ok{background:#256a2a;} .toast.warn{background:#9a5b00;} .toast.err{background:#b32d1f;}
+  @media (max-width:640px){ #toasts{bottom:calc(74px + env(safe-area-inset-bottom));} }   /* clear the mobile action bar */
+  @keyframes toastin{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:none;}}
+  /* ===== confirm / info dialog — its own layer, above the detail modal & sheet ===== */
+  #dlgbg{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:460;display:flex;align-items:center;justify-content:center;padding:16px;}
+  #dlg{background:#fff;border-radius:11px;max-width:440px;width:100%;box-shadow:0 12px 44px rgba(0,0,0,.32);overflow:hidden;}
+  #dlg .dh{padding:13px 16px;font-size:15px;font-weight:700;color:#1f3b57;border-bottom:1px solid #eee;}
+  #dlg .db{padding:14px 16px;font-size:13px;line-height:1.55;white-space:pre-line;color:#333;max-height:58vh;overflow:auto;}
+  #dlg .df{display:flex;gap:8px;justify-content:flex-end;padding:10px 16px;border-top:1px solid #eee;flex-wrap:wrap;}
+  #dlg .df button{padding:8px 16px;min-height:44px;}
+  /* ===== toolbar grouping (DESIGN-1): cluster actions by function ===== */
+  .toolbtns{align-items:center;gap:6px;}
+  .tgroup{display:inline-flex;align-items:center;gap:6px;padding:3px 9px;border-radius:8px;background:rgba(255,255,255,.07);}
+  .tglabel{font-size:9px;font-weight:700;letter-spacing:.4px;color:rgba(255,255,255,.6);white-space:nowrap;}
+  #btnMaster{background:#8a4b3a;}                         /* version-bump export — heavier action, set apart */
+  #btnMaster:hover{background:#6f3a2c;}
+  @media (max-width:1024px){ .tglabel{display:none;} }   /* reclaim header space on smaller widths */
+  /* ===== stat bar (DESIGN-2): emphasis on the risk metric + fullness bars ===== */
+  #statsbar .stat .frac{color:#9aa3ad;font-weight:600;}
+  #statsbar .stat .bar{display:inline-block;width:54px;height:7px;border-radius:4px;background:#e6e8eb;overflow:hidden;vertical-align:middle;margin-left:6px;}
+  #statsbar .stat .bar>i{display:block;height:100%;border-radius:4px;}
+  #statsbar .stat .bar>i.ok{background:#2e7d32;} #statsbar .stat .bar>i.amber{background:#b8860b;} #statsbar .stat .bar>i.red{background:#c0392b;}
+  #statsbar .stat.alert{background:#fde0e0;border-radius:7px;border-right:none;}
+  #statsbar .stat.alert b{color:#b32d1f;font-size:18px;}
+  #statsbar .stat.clear{background:#e3f3e4;border-radius:7px;border-right:none;}
+  #statsbar .stat.clear b{color:#2e7d32;}
+  /* ===== room-card chips (DESIGN-3): slim 1-char category badge + more name room ===== */
+  .chip .cat{min-width:17px;padding:0 4px;text-align:center;flex:none;}
+  .chip .nm{min-width:40px;}
+  /* ===== category legend (DESIGN-4): collapsible color/letter key ===== */
+  .legend{margin:0 0 6px;font-size:11px;border:1px solid var(--line);border-radius:6px;background:#fafbfc;}
+  .legend>summary{cursor:pointer;color:#444;font-weight:600;padding:5px 8px;list-style:none;min-height:32px;display:flex;align-items:center;}
+  .legend>summary::-webkit-details-marker{display:none;}
+  .legend>summary::before{content:"▸";margin-right:6px;font-size:9px;}
+  .legend[open]>summary::before{content:"▾";}
+  .legendgrid{display:grid;grid-template-columns:1fr 1fr;gap:4px 8px;padding:2px 8px 8px;}
+  .legitem{display:flex;align-items:center;gap:5px;line-height:1.3;}
+  .legbadge{min-width:17px;height:16px;line-height:16px;text-align:center;border-radius:999px;color:#fff;font-size:10px;font-weight:700;flex:none;}
+  /* ===== warning badge (DESIGN-5) ===== */
+  #statsbar .stat.warnjump{cursor:pointer;border-right:none;}
+  #statsbar .stat.warnjump .pill{cursor:pointer;}
+  #warnpanel.flash{animation:wflash 1.2s ease;}
+  @keyframes wflash{0%,100%{background:#fff8f8;}30%{background:#ffe0e0;}}
+  /* ===== timeline polish (DESIGN-6): conference-day highlight (zebra strengthened in place above) ===== */
+  #tlhead .nights div.event{background:#eef5ee;color:#39673d;}
+  #tlhead .nights div.event.evstart{box-shadow:inset 2px 0 0 0 #2e7d32;}
   /* ===== responsive — fluid across desktop / tablet / mobile ===== */
   #timeline,#pool,#statsbar{-webkit-overflow-scrolling:touch;}
   html,body{max-width:100%;}
@@ -194,23 +256,23 @@
 
   /* tablet portrait — stack the pool above the venues */
   @media (max-width:860px){
-    #main{flex-direction:column;}
+    #main{flex-direction:column;align-items:stretch;}   /* stretch panes to full width when stacked */
     #pool{width:auto;position:static;max-height:42vh;top:auto;}
     header h1{font-size:15px;}
     .rooms{grid-template-columns:repeat(auto-fill,minmax(168px,1fr));}
   }
 
-  /* phones — stack the header into title / scrollable action strip / full-width tabs */
+  /* phones — header keeps only the title + full-width view tabs; ALL toolbar
+     actions move to the fixed bottom action bar (#mobilebar) + 더보기 sheet,
+     so nothing hides in an invisible horizontal scroller anymore. */
   @media (max-width:640px){
-    header{flex-direction:column;align-items:stretch;gap:6px;padding:8px 10px;}
-    header h1{font-size:15px;margin:0;text-align:center;}
-    header .spacer,#srcname{display:none;}
-    header .toolbtns{flex-wrap:nowrap;overflow-x:auto;gap:8px;padding-bottom:4px;-webkit-overflow-scrolling:touch;}
-    header .toolbtns>button,header .toolbtns>label.btn{flex:0 0 auto;white-space:nowrap;}
-    header .tbdiv{display:none;}
-    .viewtabs{display:flex;width:100%;margin:0;gap:6px;}
-    .viewtabs .vtab{flex:1;}
-    button,label.btn{padding:8px 12px;font-size:12px;min-height:40px;}   /* larger tap targets */
+    header{flex-direction:row;flex-wrap:wrap;align-items:center;gap:8px;padding:8px 10px;
+           padding-top:max(8px,env(safe-area-inset-top));}
+    header h1{font-size:15px;margin:0;flex:1;text-align:left;}
+    header .toolbtns,header .spacer,#srcname,header .tbdiv{display:none;}
+    .viewtabs{display:flex;width:100%;margin:0;gap:6px;order:3;}
+    .viewtabs .vtab{flex:1;min-height:44px;}
+    button,label.btn{padding:8px 12px;font-size:12px;min-height:44px;}   /* larger tap targets */
     #statsbar{gap:6px;padding:6px 10px;flex-wrap:nowrap;overflow-x:auto;}
     #statsbar .stat{border-right:none;padding:2px 6px;white-space:nowrap;}
     #main{padding:8px;gap:8px;}
@@ -242,6 +304,153 @@
     .tlrow .who .tlgrip{font-size:16px;padding:0 7px;}    /* easier to grab on touch */
     button,label.btn{min-height:38px;}
   }
+  /* ===================================================================
+     MOBILE REBUILD (2026-06) — appended last so it wins on equal
+     specificity. Touch drag, fixed action bar, accordions, a11y, etc.
+     =================================================================== */
+
+  /* visually-hidden live region (screen-reader announcements) */
+  .sr-only{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;
+           clip:rect(0,0,0,0);white-space:nowrap;border:0;}
+
+  /* notch / safe-area insets on the sticky header */
+  header{padding-left:max(16px,env(safe-area-inset-left));padding-right:max(16px,env(safe-area-inset-right));}
+
+  /* stop the page rubber-banding when an inner pane reaches its scroll end */
+  #pool,#timeline,#statsbar,#venues,#poollist,#tlrows,#tlcards,.sheet-panel{overscroll-behavior:contain;}
+
+  /* chip drag handle (⠿): the ONLY drag-initiator on touch, so the chip body
+     stays tappable (tap-to-assign) and the list stays swipe-scrollable.
+     On mouse/pen the whole chip is also draggable (handled in JS). */
+  .chip{align-items:center;}
+  .chip .drag{flex:none;cursor:grab;color:#9aa6b1;font-size:13px;line-height:1;padding:0 2px;
+              touch-action:none;user-select:none;-webkit-user-select:none;}
+  .chip .drag:active{cursor:grabbing;color:#3a6ea5;}
+  .chip.dragging{opacity:.4;}
+  /* floating clone that tracks the pointer during a drag */
+  #dragghost{position:fixed;z-index:400;left:0;top:0;pointer-events:none;opacity:.93;
+             transform:translate(-50%,-55%) scale(1.03);box-shadow:0 8px 20px rgba(0,0,0,.35);
+             max-width:240px;}
+  /* room flagged as the live drop target during a pointer drag */
+  .room.droptarget{outline:2px solid #2e7d32;background:#f1f8f1;}
+  #poollist.droptarget{outline:2px dashed #c2557a;border-radius:6px;}
+
+  /* selection hint banner + its cancel button (tap-to-assign) */
+  .pickhint{display:flex;align-items:center;gap:8px;justify-content:space-between;}
+  .pickhint .pickcancel{flex:none;background:#fff;border:1px solid #b6e0b8;color:#256a2a;border-radius:6px;
+    padding:5px 11px;font-size:11px;font-weight:700;min-height:34px;cursor:pointer;}
+  .pickhint .pickcancel:hover{background:#f1f8f1;}
+
+  /* search field wrapper: clear (×) button + room for it */
+  .searchwrap{position:relative;display:flex;align-items:center;}
+  .searchwrap .search{flex:1;padding-right:34px!important;margin-bottom:0!important;}
+  .searchwrap .clr{position:absolute;right:3px;top:50%;transform:translateY(-50%);
+                   width:30px;height:30px;border-radius:50%;border:none;background:transparent;
+                   color:#888;font-size:18px;line-height:1;display:none;align-items:center;
+                   justify-content:center;cursor:pointer;padding:0;}
+  .searchwrap .clr.show{display:flex;}
+  #pool .searchwrap{margin-bottom:6px;}
+
+  /* edge-fade affordance on horizontal scrollers (timeline gantt, statsbar) */
+  .hscroll-wrap{position:relative;}
+  .hscroll-wrap::before,.hscroll-wrap::after{content:"";position:absolute;top:0;bottom:0;width:20px;
+    pointer-events:none;z-index:15;opacity:0;transition:opacity .15s;}
+  .hscroll-wrap::before{left:0;background:linear-gradient(to right,rgba(247,247,249,.96),transparent);}
+  .hscroll-wrap::after{right:0;background:linear-gradient(to left,rgba(247,247,249,.96),transparent);}
+  .hscroll-wrap.fade-l::before{opacity:1;} .hscroll-wrap.fade-r::after{opacity:1;}
+
+  /* collapsible venue / floor accordions (great on mobile, harmless on desktop) */
+  .venue>h2{cursor:pointer;user-select:none;}
+  .venue>h2 .vchev{display:inline-block;width:14px;text-align:center;font-size:11px;transition:transform .15s;}
+  .floorgrp>h3 .fchev{display:inline-block;width:12px;text-align:center;font-size:10px;transition:transform .15s;}
+  .venue.collapsed>h2 .vchev,.floorgrp.collapsed>h3 .fchev{transform:rotate(-90deg);}
+  .venue.collapsed .floorgrp{display:none;}
+  .floorgrp>h3{cursor:pointer;user-select:none;display:flex;align-items:center;gap:6px;}
+  .floorgrp>h3 .fcount{margin-left:auto;font-weight:600;color:#999;font-size:11px;}
+  .floorgrp.collapsed .rooms{display:none;}
+
+  /* sticky “jump to floor” control — mobile only (built in JS) */
+  #jumpbar{display:none;}
+
+  /* fixed bottom action bar + 더보기 bottom sheet — mobile only */
+  #mobilebar{display:none;}
+  #sheet[hidden]{display:none;}
+  #sheet{position:fixed;inset:0;z-index:210;background:rgba(0,0,0,.45);display:none;}
+
+  /* timeline per-person card fallback (narrow screens) — toggled in JS */
+  #tlcards{display:none;}
+  .tlcard{border:1px solid var(--line);border-radius:10px;background:#fff;padding:9px 11px;margin:7px 0;
+          display:flex;flex-direction:column;gap:7px;}
+  .tlcard.dup{background:#fff7e6;border-color:#f0d9a0;}
+  .tlcard .top{display:flex;align-items:center;gap:8px;}
+  .tlcard .top .nm{font-weight:700;font-size:14px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .tlcard .cat{font-size:10px;font-weight:700;color:#fff;padding:1px 8px;border-radius:999px;flex:none;}
+  .tlcard .idc{font-family:ui-monospace,Consolas,monospace;font-size:10px;color:#889;flex:none;}
+  .tlcard .meta{display:flex;flex-wrap:wrap;gap:6px;font-size:12px;}
+  .tlcard .meta .pill{background:#eef0f2;color:#5a6470;font-weight:600;padding:2px 9px;border-radius:999px;}
+  .tlcard .staytrack{height:14px;border-radius:7px;background:#eef1f4;position:relative;overflow:hidden;}
+  .tlcard .staytrack .seg{position:absolute;top:0;bottom:0;border-radius:7px;color:#fff;font-size:9px;
+                          font-weight:700;display:flex;align-items:center;justify-content:center;}
+  .tlcard .row2{display:flex;align-items:center;gap:8px;}
+  .tlcard select{flex:1;min-height:44px;font-size:16px;border:1px solid var(--line);border-radius:8px;padding:2px 6px;background:#fff;}
+  .tlcard .det{min-height:44px;min-width:60px;border-radius:8px;}
+  .tlcard .dupflag{color:#c47f00;flex:none;}
+
+  /* ≥44px touch targets for chips, toggles, tabs, search clear */
+  @media (hover:none),(max-width:640px){
+    .chip{min-height:44px;padding:5px 6px;}
+    .chip .lk{min-width:44px;min-height:44px;display:flex;align-items:center;justify-content:center;font-size:18px;padding:0;}
+    .chip .drag{min-width:34px;min-height:44px;display:flex;align-items:center;justify-content:center;font-size:18px;}
+    .searchwrap .search{min-height:44px;padding-right:48px!important;}
+    .searchwrap .clr{width:44px;height:44px;font-size:20px;}
+    .tlcard select,.tlcard .det{min-height:44px;}
+  }
+
+  /* phone layout: action bar, sheet, accordions, jump nav */
+  @media (max-width:640px){
+    /* fixed bottom action bar — two primary actions always visible + 더보기 */
+    #mobilebar{display:flex;gap:8px;position:fixed;left:0;right:0;bottom:0;z-index:120;
+      background:#1f3b57;padding:8px 10px;padding-bottom:max(8px,env(safe-area-inset-bottom));
+      box-shadow:0 -2px 12px rgba(0,0,0,.28);}
+    #mobilebar .mbtn{flex:1;min-height:48px;border:none;border-radius:9px;font-size:13px;font-weight:600;
+      color:#fff;background:#3a6ea5;display:flex;align-items:center;justify-content:center;gap:5px;padding:0 6px;}
+    #mobilebar .mbtn.go{background:#2e7d32;}
+    #mobilebar .mbtn.more{flex:0 0 68px;background:#27496b;}
+    #mobilebar .mbtn:disabled{background:#56657a;opacity:.65;}
+    #mobilebar .mbtn>input[type=file]{display:none;}
+
+    /* keep content clear of the fixed bar */
+    body{padding-bottom:calc(64px + env(safe-area-inset-bottom));}
+    /* the timeline uses a fixed height, so subtract the bar explicitly */
+    #timeline{height:calc(100dvh - var(--topoff,92px) - 64px - env(safe-area-inset-bottom));}
+
+    /* 더보기 bottom sheet */
+    #sheet{display:block;}
+    #sheet .sheet-panel{position:absolute;left:0;right:0;bottom:0;background:#fff;border-radius:16px 16px 0 0;
+      padding:8px 14px calc(16px + env(safe-area-inset-bottom));box-shadow:0 -6px 26px rgba(0,0,0,.3);
+      animation:sheetup .18s ease-out;max-height:80vh;overflow:auto;}
+    @keyframes sheetup{from{transform:translateY(100%);}to{transform:translateY(0);}}
+    #sheet .sheet-grip{width:42px;height:4px;border-radius:2px;background:#cfd6dd;margin:4px auto 10px;}
+    #sheet h3{margin:0 0 6px;font-size:14px;color:#1f3b57;}
+    #sheet .sbtn{display:flex;align-items:center;gap:10px;width:100%;min-height:52px;margin:7px 0;
+      border:1px solid var(--line);border-radius:11px;background:#f7f9fb;color:#222;font-size:14px;
+      padding:0 14px;text-align:left;cursor:pointer;}
+    #sheet .sbtn:disabled{opacity:.5;}
+    #sheet .sbtn .ic{font-size:18px;width:26px;text-align:center;flex:none;}
+    #sheet .sbtn>input[type=file]{display:none;}
+
+    /* sticky jump-to-floor control */
+    #jumpbar{display:flex;gap:6px;position:sticky;top:var(--headerh,52px);z-index:40;background:#fff;
+      border-bottom:1px solid var(--line);padding:6px 8px;}
+    #jumpbar select{flex:1;min-height:40px;font-size:16px;border:1px solid var(--line);border-radius:8px;
+      padding:4px 8px;background:#fff;}
+
+    /* roomy accordion headers + land below the sticky header/jumpbar when jumped to */
+    .venue>h2{min-height:48px;}
+    .floorgrp>h3{min-height:44px;font-size:13px;}
+    .venue,.floorgrp{scroll-margin-top:104px;}
+  }
+
   /* print */
   #printarea{display:none;}
   @media print{
@@ -263,15 +472,25 @@
 <header>
   <h1>ICMDA 2026 숙소배정</h1>
   <div class="toolbtns">
-    <label class="btn" title="참가자·객실 데이터가 담긴 마스터 .xlsx 파일을 불러옵니다.">① 마스터 열기<input type="file" id="fileMaster" accept=".xlsx"></label>
-    <label class="btn alt" title="이전에 저장한 배정 진행 상태(.json)를 불러와 이어서 작업합니다.">진행(JSON) 불러오기<input type="file" id="fileJson" accept=".json"></label>
-    <span class="tbdiv"></span>
-    <button class="go" id="btnAuto" disabled title="성별·정원·온돌·묶음 규칙에 따라 미배정 인원을 방에 자동으로 배치합니다. (잠긴 인원은 제외)">② 자동 배정</button>
-    <span class="tbdiv"></span>
-    <button id="btnExcel" disabled title="현재 배정 결과를 보기용 Excel(.xlsx)로 내려받습니다.">Excel 저장</button>
-    <button id="btnMaster" disabled title="원본 마스터에 배정·수정 내용을 반영해 버전을 올린 새 마스터 파일(v{N})로 내보냅니다.">마스터 내보내기</button>
-    <button class="alt" id="btnJson" disabled title="현재 작업 상태를 .json으로 저장합니다. 나중에 '진행 불러오기'로 이어서 작업할 수 있습니다.">진행 저장(JSON)</button>
-    <button class="alt" id="btnPrint" disabled title="방 배치표를 인쇄하거나 PDF로 저장합니다. (A4 세로)">인쇄 / PDF</button>
+    <!-- ① data input -->
+    <span class="tgroup" role="group" aria-label="1단계 데이터 입력">
+      <span class="tglabel" aria-hidden="true">① 입력</span>
+      <label class="btn" title="참가자·객실 데이터가 담긴 마스터 .xlsx 파일을 불러옵니다.">① 마스터 열기<input type="file" id="fileMaster" accept=".xlsx"></label>
+      <label class="btn alt" title="이전에 저장한 배정 진행 상태(.json)를 불러와 이어서 작업합니다.">진행(JSON) 불러오기<input type="file" id="fileJson" accept=".json"></label>
+    </span>
+    <!-- ② primary action -->
+    <span class="tgroup" role="group" aria-label="2단계 자동 배정">
+      <span class="tglabel" aria-hidden="true">② 실행</span>
+      <button class="go" id="btnAuto" disabled title="성별·정원·온돌·묶음 규칙에 따라 미배정 인원을 방에 자동으로 배치합니다. (잠긴 인원은 제외)">② 자동 배정</button>
+    </span>
+    <!-- ③ exports — 마스터 내보내기 (version bump) sits last + accented as the heavier action -->
+    <span class="tgroup" role="group" aria-label="3단계 내보내기">
+      <span class="tglabel" aria-hidden="true">③ 내보내기</span>
+      <button id="btnExcel" disabled title="현재 배정 결과를 보기용 Excel(.xlsx)로 내려받습니다.">Excel 저장</button>
+      <button class="alt" id="btnJson" disabled title="현재 작업 상태를 .json으로 저장합니다. 나중에 '진행 불러오기'로 이어서 작업할 수 있습니다.">진행 저장(JSON)</button>
+      <button class="alt" id="btnPrint" disabled title="방 배치표를 인쇄하거나 PDF로 저장합니다. (A4 세로)">인쇄 / PDF</button>
+      <button id="btnMaster" disabled title="원본 마스터에 배정·수정 내용을 반영해 버전을 올린 새 마스터 파일(v{N})로 내보냅니다.">마스터 내보내기</button>
+    </span>
   </div>
   <span class="spacer"></span>
   <span class="viewtabs">
@@ -281,31 +500,80 @@
   <span id="srcname" style="font-size:11px;opacity:.8;"></span>
 </header>
 
-<div id="statsbar"><span class="empty-hint" style="padding:4px;">마스터 .xlsx 파일을 열어 시작하세요. (참가자 · 객실 탭 필요)</span></div>
+<div id="statsbarwrap" class="hscroll-wrap"><div id="statsbar"><span class="empty-hint" style="padding:4px;">마스터 .xlsx 파일을 열어 시작하세요. (참가자 · 객실 탭 필요)</span></div></div>
 
 <div id="main">
   <div id="pool">
     <h2>미배정 <span id="poolcount"></span></h2>
-    <input class="search" id="poolsearch" placeholder="이름/ID 검색…">
-    <div id="poollist"></div>
+    <div class="searchwrap">
+      <input class="search" id="poolsearch" placeholder="이름/ID 검색…" aria-label="미배정 인원 검색" autocomplete="off">
+      <button class="clr" id="poolsearchclr" type="button" aria-label="검색어 지우기" title="지우기">×</button>
+    </div>
+    <details id="legend" class="legend">
+      <summary>범례 — 분류 색상 / 표시</summary>
+      <div id="legendgrid" class="legendgrid"></div>
+    </details>
+    <div id="poollist" role="group" aria-label="미배정 인원 목록"></div>
+  </div>
+  <div id="jumpbar" aria-label="객실 그룹으로 이동">
+    <select id="jumpsel" aria-label="숙소·층으로 이동"><option value="">↧ 숙소·층으로 이동…</option></select>
   </div>
   <div id="venues"></div>
 </div>
 
 <div id="timeline" style="display:none;">
   <div id="tlbar">
-    <input class="search" id="tlsearch" placeholder="이름/ID 검색…">
-    <select id="tlvenue"><option value="">전체 숙소</option></select>
-    <select id="tlcat"><option value="">전체 카테고리</option></select>
-    <span id="tlcount" class="muted"></span>
-    <span class="muted">· 막대 양끝을 끌어 숙박기간 조정, 가운데를 끌어 이동</span>
+    <span class="searchwrap" style="width:160px;max-width:60vw;">
+      <input class="search" id="tlsearch" placeholder="이름/ID 검색…" aria-label="타임라인 검색" autocomplete="off">
+      <button class="clr" id="tlsearchclr" type="button" aria-label="검색어 지우기" title="지우기">×</button>
+    </span>
+    <select id="tlvenue" aria-label="숙소 필터"><option value="">전체 숙소</option></select>
+    <select id="tlcat" aria-label="카테고리 필터"><option value="">전체 카테고리</option></select>
+    <span id="tlcount" class="muted" aria-live="polite"></span>
+    <span class="muted" id="tlhint">· 막대 양끝을 끌어 숙박기간 조정, 가운데를 끌어 이동</span>
   </div>
-  <div id="tlhead"></div>
-  <div id="tlrows"></div>
+  <!-- gantt scroller wrapped for edge-fade affordances; #gantt is the scroller -->
+  <div id="ganttwrap" class="hscroll-wrap">
+    <div id="gantt">
+      <div id="tlhead"></div>
+      <div id="tlrows"></div>
+    </div>
+  </div>
+  <!-- per-person card fallback shown on narrow screens (built in JS) -->
+  <div id="tlcards"></div>
 </div>
 
 <div id="warnpanel"></div>
 <div id="printarea"></div>
+
+<!-- screen-reader live region: assignment / validation / selection changes -->
+<div id="live" class="sr-only" aria-live="polite" aria-atomic="true"></div>
+
+<!-- non-blocking toast notifications (success / error / info) -->
+<div id="toasts"></div>
+
+<!-- confirm / info dialog (impactful actions: auto-assign, JSON overwrite, master export) -->
+<div id="dlgbg" style="display:none;"><div id="dlg" role="dialog" aria-modal="true" aria-labelledby="dlgh"></div></div>
+
+<!-- mobile fixed bottom action bar: two primary actions + 더보기 -->
+<div id="mobilebar">
+  <label class="mbtn" id="mbMaster" title="마스터 .xlsx 열기">① 마스터<input type="file" id="mbFileMaster" accept=".xlsx"></label>
+  <button class="mbtn go" id="mbAuto" disabled>② 자동 배정</button>
+  <button class="mbtn more" id="mbMore" aria-haspopup="true" aria-expanded="false" aria-controls="sheet">⋯ 더보기</button>
+</div>
+
+<!-- 더보기 bottom sheet: the remaining (secondary) actions -->
+<div id="sheet" hidden role="dialog" aria-modal="true" aria-label="더보기 메뉴">
+  <div class="sheet-panel" role="document">
+    <div class="sheet-grip"></div>
+    <h3>더보기</h3>
+    <button class="sbtn" id="shExcel" disabled><span class="ic">📊</span> Excel 저장</button>
+    <button class="sbtn" id="shMaster" disabled><span class="ic">📤</span> 마스터 내보내기</button>
+    <button class="sbtn" id="shJson" disabled><span class="ic">💾</span> 진행 저장(JSON)</button>
+    <button class="sbtn" id="shPrint" disabled><span class="ic">🖨</span> 인쇄 / PDF</button>
+    <label class="sbtn" id="shLoad"><span class="ic">📂</span> 진행(JSON) 불러오기<input type="file" id="shFileJson" accept=".json"></label>
+  </div>
+</div>
 
 <div id="modal" class="modal-bg" style="display:none;"><div id="card" class="card"></div></div>
 
@@ -337,6 +605,13 @@ const CAT = {
   "찬양팀":{c:"#7e57c2", ab:"찬양"},
 };
 const catInfo = cat => CAT[cat] || {c:"#888", ab:(cat||"-").slice(0,3)};
+// DESIGN-7: pick #fff or #111 for best contrast on a category colour (WCAG AA for the small badges)
+function catText(hex){
+  const m=/^#?([0-9a-fA-F]{6})$/.exec(hex||""); if(!m) return "#fff";
+  const v=parseInt(m[1],16), lin=c=>{c/=255; return c<=0.03928?c/12.92:Math.pow((c+0.055)/1.055,2.4);};
+  const L=0.2126*lin((v>>16)&255)+0.7152*lin((v>>8)&255)+0.0722*lin(v&255);
+  return (1.05/(L+0.05)) >= ((L+0.05)/0.05) ? "#fff" : "#111";   // whichever yields more contrast
+}
 const state = {
   parties: [],     // {id,name,kname,sex,partySex,hc,party,need,cat,team,group,pre,stay,arr,dep,…detail}
   rooms: [],       // {id,hotel,bldg,floor,rno,type,gender,base,ext,total,period,ondol,note,key}
@@ -350,6 +625,7 @@ const state = {
   tlFilter: {q:"", venue:"", cat:""},
   orderList: [],   // custom vertical order of party ids (timeline)
   collapsed: {},   // venue -> true (timeline fold)
+  collapsedRooms: {}, // rooms-view accordion fold, keyed by venue/floor element id
   colW: [56,58,150,78,84,52],  // resizable widths: ID·분류·이름/팀·호텔·객실번호·수용 (track = 1fr)
   pick: null,      // tap-to-assign: id of the party currently 'picked up'
 };
@@ -375,6 +651,155 @@ function attachLongPress(node, fn, ms=500){
   node.addEventListener("pointercancel",clear);
 }
 
+/* ---------- screen-reader live region ---------- */
+function announce(msg){ const n=$("#live"); if(n) n.textContent=msg; }
+// compose an action message + the current validation summary so a single
+// announcement tells assistive tech both what happened and the new state.
+function announceAssign(msg){
+  let over=0; state.rooms.forEach(r=>{ if(roomLoad(r.key)>r.total) over++; });
+  const un=state.parties.filter(p=>p.need!=="No"&&!state.assign[p.id]).reduce((s,p)=>s+p.hc,0);
+  announce(`${msg}. 미배정 ${un}명, 정원초과 방 ${over}곳.`);
+}
+function dropLabel(key){
+  if(key==="BOOY") return VEN.BOOY;
+  const rm=state.roomById[key]; return rm?`${rm.rno||rm.id}호`:key;
+}
+
+/* ---------- toasts + confirm/info dialog (non-blocking feedback, replaces alert) ---------- */
+function toast(msg, type="info", ms=3600){
+  const wrap=$("#toasts"); if(!wrap){ announce(msg); return; }
+  const t=el("div","toast "+type);
+  t.setAttribute("role", type==="err"?"alert":"status");
+  const m=el("span","tmsg",msg);
+  const x=el("button","tx","×"); x.type="button"; x.setAttribute("aria-label","닫기");
+  t.append(m,x); wrap.append(t);
+  const kill=()=>{ t.style.opacity="0"; setTimeout(()=>t.remove(),200); };
+  x.onclick=kill; if(ms) setTimeout(kill,ms);
+  announce(msg);                                  // also route to the SR live region
+}
+// Confirm/info dialog. Pass onOk → confirm (확인/취소); omit onOk → info (확인 only).
+function dialog({title, body, okText="확인", cancelText="취소", danger=false, onOk}){
+  const bg=$("#dlgbg"), dl=$("#dlg");
+  dl.innerHTML=`<div class="dh" id="dlgh">${esc(title)}</div><div class="db">${esc(body)}</div>`
+    +`<div class="df">${onOk?`<button class="alt" id="dlgCancel">${esc(cancelText)}</button>`:""}`
+    +`<button class="${danger?"":"go"}" id="dlgOk">${esc(okText)}</button></div>`;
+  bg.style.display="flex";
+  const close=()=>{ bg.style.display="none"; document.removeEventListener("keydown",onKey,true); };
+  const ok=()=>{ close(); if(onOk) onOk(); };
+  // capture phase so Esc/Enter here win over the page-level Esc handler
+  const onKey=e=>{ if(e.key==="Escape"){ e.stopPropagation(); close(); } else if(e.key==="Enter"){ e.preventDefault(); ok(); } };
+  document.addEventListener("keydown",onKey,true);
+  bg.onclick=e=>{ if(e.target===bg) close(); };    // tap backdrop to dismiss (= cancel)
+  $("#dlgOk").onclick=ok;
+  const c=$("#dlgCancel"); if(c) c.onclick=close;
+  $("#dlgOk").focus();
+}
+
+// category colour/letter key (DESIGN-4) — decodes the slim 1-char chip badges
+function buildLegend(){
+  const g=$("#legendgrid"); if(!g) return; g.innerHTML="";
+  Object.entries(CAT).forEach(([name,info])=>{
+    const it=el("div","legitem");
+    const b=el("span","legbadge",(info.ab||"-").slice(0,1)); b.style.background=info.c; b.style.color=catText(info.c);
+    it.append(b, el("span",null,`${info.ab} · ${name}`));
+    g.append(it);
+  });
+  const extra=el("div","legitem"); extra.style.gridColumn="1/-1"; extra.style.color="#666";
+  extra.textContent="🔒 잠금(자동배정 제외) · 🔓 해제 · 남/여/혼 = 성별";
+  g.append(extra);
+}
+
+/* ============================================================
+   Pointer-based drag assignment (replaces native HTML5 DnD,
+   which never worked on touch). Works for mouse, pen, and
+   finger. On touch the drag is initiated only from the chip's
+   ⠿ grip, so the chip body stays tappable + the list scrollable.
+   ============================================================ */
+let dragFired=false;                 // set briefly after a real drag, to swallow the trailing click
+const DRAG={pid:null, ghost:null, target:null, raf:null, vy:0, scn:null, lastXY:null};
+
+function scrollParent(node){          // nearest vertically-scrollable ancestor (else null = window/page)
+  for(let n=node; n && n!==document.body && n!==document.documentElement; n=n.parentElement){
+    const s=getComputedStyle(n);
+    if(/(auto|scroll)/.test(s.overflowY) && n.scrollHeight>n.clientHeight+2) return n;
+  }
+  return null;
+}
+function dragTargetUnder(x,y){        // a room card / pool list under the pointer (carries data-dropkey)
+  let n=document.elementFromPoint(x,y);
+  while(n && n!==document.body){ if(n.dataset && n.dataset.dropkey!=null) return n; n=n.parentElement; }
+  return null;
+}
+function setDragTarget(t){
+  if(t===DRAG.target) return;
+  if(DRAG.target) DRAG.target.classList.remove("droptarget");
+  DRAG.target=t; if(t) t.classList.add("droptarget");
+}
+function autoScrollTick(){            // scroll page / inner container while the pointer hugs an edge
+  if(DRAG.pid==null){ DRAG.raf=null; return; }
+  if(DRAG.vy){
+    if(DRAG.scn) DRAG.scn.scrollTop+=DRAG.vy; else window.scrollBy(0,DRAG.vy);
+    if(DRAG.lastXY) setDragTarget(dragTargetUnder(DRAG.lastXY[0],DRAG.lastXY[1]));
+  }
+  DRAG.raf=requestAnimationFrame(autoScrollTick);
+}
+function updateAutoScroll(x,y){
+  const under=document.elementFromPoint(x,y);
+  DRAG.scn=under?scrollParent(under):null;
+  const EDGE=72, SPD=16;
+  let top=0, bot=window.innerHeight;
+  if(DRAG.scn){ const r=DRAG.scn.getBoundingClientRect(); top=r.top; bot=r.bottom; }
+  if(y<top+EDGE) DRAG.vy=-Math.ceil(SPD*Math.min(1,(top+EDGE-y)/EDGE));
+  else if(y>bot-EDGE) DRAG.vy=Math.ceil(SPD*Math.min(1,(y-(bot-EDGE))/EDGE));
+  else DRAG.vy=0;
+}
+function applyDrop(pid,key){
+  const p=state.byId[pid]; if(!p) return;
+  if(key==="__pool__"){ delete state.assign[pid]; state.pick=null; render(); announceAssign(`${p.name} 미배정으로 이동`); }
+  else { state.assign[pid]=key; state.pick=null; render(); announceAssign(`${p.name} ${dropLabel(key)} 배정`); }
+}
+// Begin a drag from `downEvt` for party `p`, visualised by cloning `chipNode`.
+function beginDrag(downEvt, p, chipNode){
+  const pid=downEvt.pointerId, capEl=downEvt.currentTarget;
+  const sx=downEvt.clientX, sy=downEvt.clientY; let started=false;
+  try{ capEl.setPointerCapture(pid); }catch(e){}
+  const onMove=e=>{
+    if(e.pointerId!==pid) return;
+    if(!started){
+      if(Math.abs(e.clientX-sx)<5 && Math.abs(e.clientY-sy)<5) return;   // movement threshold ⇒ it's a drag
+      started=true; DRAG.pid=p.id;
+      chipNode.classList.add("dragging");
+      const g=chipNode.cloneNode(true); g.id="dragghost"; g.classList.remove("dragging");
+      g.removeAttribute("role"); g.removeAttribute("tabindex");
+      document.body.appendChild(g); DRAG.ghost=g;
+      DRAG.raf=requestAnimationFrame(autoScrollTick);
+      announce(`${p.name} 이동 중 — 방 위에 놓으세요`);
+    }
+    e.preventDefault();
+    DRAG.lastXY=[e.clientX,e.clientY];
+    if(DRAG.ghost){ DRAG.ghost.style.left=e.clientX+"px"; DRAG.ghost.style.top=e.clientY+"px"; }
+    setDragTarget(dragTargetUnder(e.clientX,e.clientY));
+    updateAutoScroll(e.clientX,e.clientY);
+  };
+  const finish=e=>{
+    capEl.removeEventListener("pointermove",onMove);
+    capEl.removeEventListener("pointerup",finish);
+    capEl.removeEventListener("pointercancel",finish);
+    try{ capEl.releasePointerCapture(pid); }catch(_){}
+    if(!started) return;
+    DRAG.vy=0; if(DRAG.raf){cancelAnimationFrame(DRAG.raf); DRAG.raf=null;}
+    const tgt=DRAG.target; setDragTarget(null);
+    chipNode.classList.remove("dragging");
+    if(DRAG.ghost){ DRAG.ghost.remove(); DRAG.ghost=null; }
+    DRAG.pid=null; DRAG.lastXY=null;
+    dragFired=true; setTimeout(()=>dragFired=false,400);    // swallow the click that follows pointerup
+    if(e.type!=="pointercancel" && tgt) applyDrop(p.id, tgt.dataset.dropkey);
+  };
+  capEl.addEventListener("pointermove",onMove);
+  capEl.addEventListener("pointerup",finish);
+  capEl.addEventListener("pointercancel",finish);
+}
+
 function headerMap(aoa){           // row index 1 (2nd row) holds headers
   const hdr = aoa[1]||[]; const m={};
   hdr.forEach((h,i)=>{ const k=norm(h); if(k) m[k]=i; });
@@ -385,7 +810,7 @@ function headerMap(aoa){           // row index 1 (2nd row) holds headers
 function loadMaster(arrbuf){
   const wb = XLSX.read(arrbuf,{type:"array",cellFormula:true,cellStyles:true});
   const pSheet = wb.Sheets["참가자"], rSheet = wb.Sheets["객실"];
-  if(!pSheet||!rSheet){ alert("'참가자' 또는 '객실' 탭을 찾을 수 없습니다."); return; }
+  if(!pSheet||!rSheet){ toast("'참가자' 또는 '객실' 탭을 찾을 수 없습니다.","err",6000); return; }
   const pA = XLSX.utils.sheet_to_json(pSheet,{header:1,raw:true,defval:null});
   const rA = XLSX.utils.sheet_to_json(rSheet,{header:1,raw:true,defval:null});
   state.wb=wb; state.masterBuf=arrbuf;          // keep original workbook/bytes for versioned re-export
@@ -398,10 +823,14 @@ function loadMaster(arrbuf){
   state.parties.forEach(p=>{
     if(p.pre.indexOf("부영호텔")>=0){ state.assign[p.id]="BOOY"; state.locked[p.id]=true; }
   });
-  $("#btnAuto").disabled=false; $("#btnExcel").disabled=false;
-  $("#btnJson").disabled=false; $("#btnPrint").disabled=false; $("#btnMaster").disabled=false;
+  setActionsEnabled(true);
   populateFilters();
   render();
+}
+// enable/disable every action control (desktop toolbar + mobile bar + 더보기 sheet)
+function setActionsEnabled(on){
+  ["#btnAuto","#btnExcel","#btnJson","#btnPrint","#btnMaster",
+   "#mbAuto","#shExcel","#shJson","#shPrint","#shMaster"].forEach(s=>{ const n=$(s); if(n) n.disabled=!on; });
 }
 
 function nextDay(label){                        // "6월30일" -> "7월1일"
@@ -577,9 +1006,13 @@ function render(){
   const tl = state.view==="timeline";
   $("#main").style.display = tl?"none":"flex";
   $("#warnpanel").style.display = tl?"none":"block";
-  $("#timeline").style.display = tl?"block":"none";
+  $("#timeline").style.display = tl?"flex":"none";   // flex column (gantt/cards fill remaining height)
   $("#tabRooms").classList.toggle("active",!tl);
   $("#tabTimeline").classList.toggle("active",tl);
+  // tab semantics for assistive tech (idempotent each render)
+  const vt=document.querySelector(".viewtabs"); if(vt) vt.setAttribute("role","tablist");
+  $("#tabRooms").setAttribute("role","tab");     $("#tabRooms").setAttribute("aria-selected",String(!tl));
+  $("#tabTimeline").setAttribute("role","tab");  $("#tabTimeline").setAttribute("aria-selected",String(tl));
   if(tl){ renderTimeline(); }
   else { renderPool(); renderVenues(); renderWarnings(); }
   $("#venues").classList.toggle("picking", !tl && !!state.pick);
@@ -609,51 +1042,95 @@ function renderStats(){
   });
   const capBYYTC=state.rooms.filter(r=>r.hotel===VEN.BYYTC).reduce((s,r)=>s+r.total,0);
   const capYOUUS=state.rooms.filter(r=>r.hotel===VEN.YOUUS).reduce((s,r)=>s+r.total,0);
-  const mk=(label,val)=>{const d=el("span","stat"); d.innerHTML=`${label} <b>${val}</b>`; return d;};
+  const pct=(u,c)=>c>0?Math.min(100,Math.round(u/c*100)):0;
+  const lvl=(u,c)=> u>c?"red":(c>0&&u/c>=0.9)?"amber":"ok";          // green / amber(≥90%) / red(over)
+  const mk=(label,val,extra)=>{const d=el("span","stat"); d.innerHTML=`${label} <b>${val}</b>${extra||""}`; return d;};
+  // venue stat: consistent used/cap fraction + a fullness progress bar
+  const venStat=(label,used,cap)=>mk(label,used,
+    `<span class="frac">/${cap}</span><span class="bar" title="${pct(used,cap)}% 사용"><i class="${lvl(used,cap)}" style="width:${pct(used,cap)}%"></i></span>`);
+  // 미배정 is the number a coordinator acts on → emphasised block (red when >0, green ✓ when clear)
+  const un=el("span","stat "+(unassigned?"alert":"clear"));
+  un.innerHTML = unassigned ? `미배정 <b>${unassigned}</b>명` : `미배정 <b>0</b> ✓`;
   sb.append(
     mk("총 인원",total),
     mk("방 필요",needP),
-    mk("배정완료",assignedP),
-    mk("미배정", unassigned===0?'<span class="pill ok">0</span>':`<span class="pill warn">${unassigned}</span>`),
+    mk("배정완료",assignedP,`<span class="frac">/${needP}</span>`),   // consistent fraction vs 방 필요
+    un,
     mk("방 불필요",noRoom),
-    mk(`부영수련원 ${byBYYTC}/`,capBYYTC),
-    mk(`유어스 ${byYOUUS}/`,capYOUUS),
+    venStat("부영수련원",byBYYTC,capBYYTC),
+    venStat("유어스",byYOUUS,capYOUUS),
     mk("부영호텔(NOC)",byBOOY),
   );
+  // surfaced warning badge → jumps to the detail warning panel (DESIGN-5)
+  const issueN=state.rooms.length?computeIssues().length:0;
+  const warn=el("span","stat warnjump"); warn.tabIndex=0; warn.setAttribute("role","button");
+  warn.setAttribute("aria-label",`경고 ${issueN}건 — 경고 패널로 이동`);
+  warn.innerHTML = issueN ? `<span class="pill warn">⚠ 경고 ${issueN}건</span>` : `<span class="pill ok">경고 0</span>`;
+  warn.title="클릭하면 경고 패널로 이동합니다";
+  warn.onclick=jumpToWarnings;
+  warn.onkeydown=e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); jumpToWarnings(); } };
+  sb.append(warn);
+  updateStatsFades();
 }
 
+// short ARIA description: name · sex · headcount · where assigned · picked?
+function ariaForChip(p){
+  const sex=p.partySex==="MIX"?"가족":p.partySex==="M"?"남성":p.partySex==="F"?"여성":"성별미상";
+  const a=state.assign[p.id];
+  const where=a?(a==="BOOY"?VEN.BOOY:(state.roomById[a]?dropLabel(a):"배정됨")):"미배정";
+  return `${p.name}, ${sex}, ${p.hc}명, ${where}${state.pick===p.id?", 선택됨":""}. `
+       + (a?"두 번 누르면 미배정으로 이동":"누르면 선택, 방을 눌러 배정");
+}
 function chip(p){
   const c=el("div","chip "+(p.partySex==="MIX"?"mix":p.partySex==="M"?"sex-M":p.partySex==="F"?"sex-F":"sex-q"));
-  c.draggable=true; c.dataset.pid=p.id;
+  c.dataset.pid=p.id;
+  c.setAttribute("role","button"); c.tabIndex=0;                 // keyboard-focusable, button semantics
+  c.setAttribute("aria-pressed", state.pick===p.id?"true":"false");
+  c.setAttribute("aria-label", ariaForChip(p));
   if(state.locked[p.id]) c.classList.add("locked");
   const room = state.assign[p.id] && state.assign[p.id]!=="BOOY" ? state.roomById[state.assign[p.id]] : null;
   if(room && matchIssue(room,p)) c.classList.add("badmatch");
+  const grip=el("span","drag","⠿"); grip.setAttribute("aria-hidden","true"); grip.title="끌어서 이동(드래그)";
   const ci=catInfo(p.cat);
-  const cat=el("span","cat", ci.ab); cat.style.background=ci.c; cat.title=p.cat||"";
+  // slim 1-char category badge (colour carries the rest; the legend + hover decode it) → more room for names
+  const cat=el("span","cat", (ci.ab||"-").slice(0,1)); cat.style.background=ci.c; cat.style.color=catText(ci.c); cat.title="분류: "+(p.cat||ci.ab); cat.setAttribute("aria-hidden","true");
   const sx=el("span","sx", p.partySex==="MIX"?"혼":p.partySex==="M"?"남":p.partySex==="F"?"여":"?");
-  sx.title="성별: "+(p.partySex==="MIX"?"혼성":p.partySex==="M"?"남성":p.partySex==="F"?"여성":"미상");
+  sx.title="성별: "+(p.partySex==="MIX"?"혼성":p.partySex==="M"?"남성":p.partySex==="F"?"여성":"미상"); sx.setAttribute("aria-hidden","true");
   const nm=el("span","nm", p.name + (p.kname?` (${p.kname})`:""));
-  nm.title = `${p.id} · ${p.cat} · ${p.partySex} · ${p.arr}~${p.dep}` + (p.pre?` · 사전:${p.pre}`:"");
+  // full name first so a truncated name is recoverable on hover (DESIGN-3)
+  nm.title = `${p.name}${p.kname?` (${p.kname})`:""} · ${p.id} · ${p.cat} · ${p.arr}~${p.dep}` + (p.pre?` · 사전:${p.pre}`:"");
   const hc=el("span","hc", p.hc>1?`👪${p.hc}`:"");
   if(p.hc>1) hc.title=`총 ${p.hc}명 (본인 ${p.party.본인}·배우자 ${p.party.배우자}·자녀 ${p.party.자녀}·기타 ${p.party.기타})`;
   const lk=el("span","lk", state.locked[p.id]?"🔒":"🔓");
+  lk.setAttribute("role","button"); lk.tabIndex=0;
+  lk.setAttribute("aria-pressed", state.locked[p.id]?"true":"false");
+  lk.setAttribute("aria-label", (state.locked[p.id]?"잠금 해제":"잠금")+" — "+p.name+" (자동배정 제외)");
   lk.title="잠금 토글(자동배정 제외)";
-  lk.onclick=ev=>{ ev.stopPropagation(); state.locked[p.id]=!state.locked[p.id]; render(); };
-  c.append(cat,sx,nm,hc,lk);
+  const toggleLock=ev=>{ ev.stopPropagation(); state.locked[p.id]=!state.locked[p.id];
+    announce(`${p.name} ${state.locked[p.id]?"잠금":"잠금 해제"}`); render(); };
+  lk.onclick=toggleLock;
+  lk.addEventListener("keydown",e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); toggleLock(e); } });
+  c.append(grip,cat,sx,nm,hc,lk);
   c.style.cursor="pointer";
-  c.addEventListener("dragstart",e=>{ e.dataTransfer.setData("text/pid",p.id); });
+  // pointer-drag: from the ⠿ grip (all pointer types) and from the chip body (mouse/pen only,
+  // so touch swipes on the body still scroll the list and taps still select).
+  grip.addEventListener("pointerdown",e=>{ if(e.button)return; e.preventDefault(); e.stopPropagation(); beginDrag(e,p,c); });
+  c.addEventListener("pointerdown",e=>{ if(e.pointerType==="touch"||e.button) return; if(e.target===lk||e.target===grip) return; beginDrag(e,p,c); });
   attachLongPress(c,()=>openCard(p));                  // ⑤ touch: long-press opens detail
   // single-click = pick-up / unassign · double-click = detail modal.
   // The single action is deferred briefly so a 2nd click can cancel it (otherwise render() would
   // destroy the chip on the 1st click and the dblclick could never fire).
   const single=()=>{
-    if(state.assign[p.id]){ delete state.assign[p.id]; state.pick=null; }   // assigned → back to 미배정
-    else { state.pick=(state.pick===p.id?null:p.id); }                      // pool → pick up / cancel
-    render();
+    if(state.assign[p.id]){ delete state.assign[p.id]; state.pick=null; render(); announceAssign(`${p.name} 미배정으로 이동`); }   // assigned → back to 미배정
+    else {                                                                  // pool → pick up / cancel
+      state.pick=(state.pick===p.id?null:p.id);
+      announce(state.pick? `${p.name} 선택됨 — 방을 누르면 배정됩니다` : "선택 해제");
+      render();
+    }
   };
   let ctimer=null;
   c.addEventListener("click",e=>{
-    e.stopPropagation(); if(lpFired) return;
+    e.stopPropagation(); if(lpFired||dragFired) return;
     if(ctimer) return;                                 // this is the 2nd click → let dblclick handle it
     ctimer=setTimeout(()=>{ ctimer=null; single(); }, 230);
   });
@@ -661,6 +1138,10 @@ function chip(p){
     e.stopPropagation();
     if(ctimer){ clearTimeout(ctimer); ctimer=null; }   // cancel the pending single action
     openCard(p);
+  });
+  c.addEventListener("keydown",e=>{                    // keyboard: Enter/Space select, F2/i detail
+    if(e.key==="Enter"||e.key===" "){ e.preventDefault(); single(); }
+    else if(e.key==="F2"){ e.preventDefault(); openCard(p); }
   });
   if(state.assign[p.id]){
     c.title=`${nm.title}\n클릭: 미배정으로 이동 · 더블클릭/길게 누르기: 상세`;
@@ -679,41 +1160,59 @@ function renderPool(){
         .sort((a,b)=> (b.partySex==="MIX")-(a.partySex==="MIX") || a.name.localeCompare(b.name));
   $("#poolcount").textContent = `(${un.reduce((s,p)=>s+p.hc,0)}명 / ${un.length}건)`;
   if(state.pick && state.byId[state.pick]){
-    const ph=el("div","pickhint",`✅ ${state.byId[state.pick].name} 선택됨 — 방을 탭하면 배정됩니다 (취소: 다시 탭)`);
+    const ph=el("div","pickhint");
+    ph.append(el("span",null,`✅ ${state.byId[state.pick].name} 선택됨 — 방을 누르면 배정됩니다.`));
+    const cx=el("button","pickcancel","✕ 취소"); cx.type="button"; cx.setAttribute("aria-label","선택 취소(Esc)");
+    cx.onclick=ev=>{ ev.stopPropagation(); state.pick=null; announce("선택 해제"); render(); };
+    ph.append(cx);
     list.append(ph);
   }
-  if(!un.length){ list.append(el("div","empty-hint","미배정 없음 🎉")); }
+  // distinguish "pool is genuinely empty" from "search filtered everything out"
+  if(!un.length){ list.append(el("div","empty-hint", q?`'${$("#poolsearch").value}' 검색 결과가 없습니다`:"미배정 없음 🎉")); }
   un.forEach(p=>list.append(chip(p)));
   makeDrop(list,null);   // drop back to pool = unassign
 }
 
+// Register `node` as a drop target. roomKey===null ⇒ pool (unassign).
+// Pointer-drag drops are handled globally via data-dropkey; here we wire the
+// tap-to-assign + keyboard paths (tap a person, then tap/Enter a room).
 function makeDrop(node, roomKey){
-  node.addEventListener("dragover",e=>{ e.preventDefault(); node.classList.add("dragover"); });
-  node.addEventListener("dragleave",()=>node.classList.remove("dragover"));
-  node.addEventListener("drop",e=>{
-    e.preventDefault(); node.classList.remove("dragover");
-    const pid=e.dataTransfer.getData("text/pid"); if(!pid) return;
-    if(roomKey===null) delete state.assign[pid];
-    else state.assign[pid]=roomKey;
-    state.pick=null; render();
-  });
-  node.addEventListener("click",()=>{                  // tap-to-assign: a person is picked, tap a room to drop
-    if(!state.pick) return;
-    if(roomKey===null) state.pick=null;                // tap the pool = cancel selection
-    else { state.assign[state.pick]=roomKey; state.pick=null; }
-    render();
-  });
+  node.dataset.dropkey = roomKey===null ? "__pool__" : roomKey;
+  const doDrop=()=>{
+    if(!state.pick) return false;
+    if(roomKey===null){ state.pick=null; announce("선택 해제"); render(); }   // tap the pool = cancel
+    else { applyDrop(state.pick, roomKey); }                                 // applyDrop clears pick + announces
+    return true;
+  };
+  node.addEventListener("click",e=>{ if(doDrop()) e.stopPropagation(); });
+  if(roomKey!==null){                                  // rooms double as keyboard drop targets while picking
+    node.addEventListener("keydown",e=>{ if((e.key==="Enter"||e.key===" ")&&state.pick){ e.preventDefault(); doDrop(); } });
+  }
 }
 
 function renderVenues(){
   const root=$("#venues"); root.innerHTML="";
   const order=[VEN.BYYTC,VEN.YOUUS,VEN.BOOY];
-  order.forEach(hotel=>{
-    const div=el("div","venue "+venueClass(hotel));
+  const jumps=[];                                  // {label,id} for the mobile jump-to-floor control
+  // collapsible venue header (accordion). Collapse state is keyed by element id.
+  const venueHeader=(div,vKey,inner)=>{
+    const collapsed=!!state.collapsedRooms[vKey];
+    div.classList.toggle("collapsed",collapsed);
+    const h=el("h2"); h.setAttribute("role","button"); h.tabIndex=0;
+    h.setAttribute("aria-expanded", collapsed?"false":"true");
+    h.innerHTML=`<span class="vchev" aria-hidden="true">▼</span> `+inner;
+    const tog=()=>{ state.collapsedRooms[vKey]=!collapsed; saveUI(); renderVenues(); };
+    h.addEventListener("click",tog);
+    h.addEventListener("keydown",e=>{ if(e.key==="Enter"||e.key===" "){e.preventDefault();tog();} });
+    div.append(h);
+  };
+  order.forEach((hotel,vi)=>{
+    const vId="ven-"+vi;
+    const div=el("div","venue "+venueClass(hotel)); div.id=vId;
     if(hotel===VEN.BOOY){
       const occ=state.parties.filter(p=>state.assign[p.id]==="BOOY");
-      const h=el("h2"); h.innerHTML=`${hotel} <span class="cap">· 외부 예약(NOC) · ${occ.reduce((s,p)=>s+p.hc,0)}명</span>`;
-      div.append(h);
+      venueHeader(div,vId,`${hotel} <span class="cap">· 외부 예약(NOC) · ${occ.reduce((s,p)=>s+p.hc,0)}명</span>`);
+      jumps.push({label:`▸ ${venShort(hotel)}`, id:vId});
       const wrap=el("div","floorgrp"); const rm=el("div","rooms");
       const box=el("div","room"); box.style.minWidth="100%";
       const hd=el("div","rhdr"); hd.innerHTML=`<span class="rno">개별 예약 (부영 리조트)</span><span class="capbadge">${occ.reduce((s,p)=>s+p.hc,0)}명</span>`;
@@ -725,25 +1224,44 @@ function renderVenues(){
     const rooms=state.rooms.filter(r=>r.hotel===hotel);
     const used=rooms.reduce((s,r)=>s+roomLoad(r.key),0);
     const cap=rooms.reduce((s,r)=>s+r.total,0);
-    const h=el("h2"); h.innerHTML=`${hotel} <span class="cap">· ${rooms.length}실 · ${used}/${cap}명</span>`;
-    div.append(h);
+    venueHeader(div,vId,`${hotel} <span class="cap">· ${rooms.length}실 · ${used}/${cap}명</span>`);
+    jumps.push({label:`▸ ${venShort(hotel)}`, id:vId});
     // group by floor (부영) / by type (유어스, since floor blank)
     const groups={};
     rooms.forEach(r=>{ const key = hotel===VEN.BYYTC ? `${r.bldg||"-"}동 ${r.floor||"-"}` : (r.type||"기타"); (groups[key]=groups[key]||[]).push(r); });
-    Object.keys(groups).sort().forEach(gk=>{
-      const fg=el("div","floorgrp"); fg.append(el("h3",null,gk));
+    Object.keys(groups).sort().forEach((gk,gi)=>{
+      const fId=`flr-${vi}-${gi}`, fCollapsed=!!state.collapsedRooms[fId];
+      const fg=el("div","floorgrp"+(fCollapsed?" collapsed":"")); fg.id=fId;
+      const occN=groups[gk].reduce((s,r)=>s+roomLoad(r.key),0);
+      const h3=el("h3"); h3.setAttribute("role","button"); h3.tabIndex=0;
+      h3.setAttribute("aria-expanded", fCollapsed?"false":"true");
+      h3.innerHTML=`<span class="fchev" aria-hidden="true">▼</span><span>${esc(gk)}</span><span class="fcount">${groups[gk].length}실 · ${occN}명</span>`;
+      const tog=()=>{ state.collapsedRooms[fId]=!fCollapsed; saveUI(); renderVenues(); };
+      h3.addEventListener("click",tog);
+      h3.addEventListener("keydown",e=>{ if(e.key==="Enter"||e.key===" "){e.preventDefault();tog();} });
+      fg.append(h3);
       const grid=el("div","rooms");
       groups[gk].sort((a,b)=> (a.rno||"").localeCompare(b.rno||"",undefined,{numeric:true}) || a.id.localeCompare(b.id))
         .forEach(r=>grid.append(roomCard(r)));
       fg.append(grid); div.append(fg);
+      jumps.push({label:` ${gk} (${groups[gk].length})`, id:fId});
     });
     root.append(div);
   });
+  buildJump(jumps);
+}
+// populate the mobile “jump to floor/room” control
+function buildJump(jumps){
+  const sel=$("#jumpsel"); if(!sel) return;
+  sel.length=1;                                    // keep the placeholder option
+  jumps.forEach(j=>sel.add(new Option(j.label, j.id)));
 }
 
 function roomCard(r){
   const load=roomLoad(r.key);
   const card=el("div","room"+(load>r.total?" over":""));
+  card.tabIndex=0; card.setAttribute("role","group");
+  card.setAttribute("aria-label",`${r.rno||r.id}호, ${r.gender||"성별 미지정"}${r.ondol?", 온돌":""}, ${load}/${r.total}명${load>r.total?", 정원 초과":""}. 선택한 인원을 여기에 배정하려면 누르세요`);
   const hdr=el("div","rhdr");
   const left=el("span"); left.innerHTML=`<span class="rno">${r.rno||r.id}</span>`;
   const tags=el("span","tags");
@@ -762,8 +1280,8 @@ function roomCard(r){
   return card;
 }
 
-function renderWarnings(){
-  const wp=$("#warnpanel"); wp.innerHTML="";
+// shared warning computation — used by both the panel and the top warning badge (DESIGN-5)
+function computeIssues(){
   const issues=[];
   const roomLabel=k=> k==="BOOY"?VEN.BOOY : (state.roomById[k]?`${state.roomById[k].rno||state.roomById[k].id}호`:k);
   state.rooms.forEach(r=>{ const l=roomLoad(r.key); if(l>r.total) issues.push(`정원 초과 — ${r.hotel} ${r.rno||r.id}호: 정원 ${r.total}명인데 ${l}명이 배정되어 ${l-r.total}명 초과되었습니다.`); });
@@ -780,6 +1298,19 @@ function renderWarnings(){
     const labels=[...set].map(roomLabel).join(", ");
     issues.push(`묶음 분리 — '${g}' 그룹은 한 방에 함께 배정해야 하지만, 현재 ${set.size}개 방(${labels})에 나뉘어 있습니다. 같은 방(또는 인접 방)으로 모아주세요.`);
   }});
+  return issues;
+}
+// jump to the warning panel (switch to rooms view first if needed), then flash it
+function jumpToWarnings(){
+  if(state.view!=="rooms") setView("rooms");
+  requestAnimationFrame(()=>{ const w=$("#warnpanel"); if(!w) return;
+    w.scrollIntoView({behavior:"smooth",block:"end"});
+    w.classList.add("flash"); setTimeout(()=>w.classList.remove("flash"),1200);
+  });
+}
+function renderWarnings(){
+  const wp=$("#warnpanel"); wp.innerHTML="";
+  const issues=computeIssues();
   const un=state.parties.filter(p=>p.need!=="No"&&!state.assign[p.id]).reduce((s,p)=>s+p.hc,0);
   const wh=el("h3");
   wh.append(el("span","pill "+(issues.length?"warn":"ok"),`경고 ${issues.length}건`));
@@ -841,11 +1372,12 @@ function syncTop(){                                   // keep panels sized to th
   applyColW();   // re-evaluate the night-track floor for the new width
 }
 const UIKEY="icmda_ui";
-function saveUI(){ try{ localStorage.setItem(UIKEY, JSON.stringify({colW:state.colW, collapsed:state.collapsed, view:state.view})); }catch(e){} }
+function saveUI(){ try{ localStorage.setItem(UIKEY, JSON.stringify({colW:state.colW, collapsed:state.collapsed, collapsedRooms:state.collapsedRooms, view:state.view})); }catch(e){} }
 function loadUI(){ try{
   const s=JSON.parse(localStorage.getItem(UIKEY)||"{}");
   if(Array.isArray(s.colW) && s.colW.length===state.colW.length) state.colW=s.colW.map(Number);
   if(s.collapsed && typeof s.collapsed==="object") state.collapsed=s.collapsed;
+  if(s.collapsedRooms && typeof s.collapsedRooms==="object") state.collapsedRooms=s.collapsedRooms;
   if(s.view==="rooms"||s.view==="timeline") state.view=s.view;
 }catch(e){} }
 function makeColGrip(ci){
@@ -865,8 +1397,15 @@ function makeColGrip(ci){
 }
 function renderTimeline(){
   computeDups();
-  const D=state.dates; const n=D.length;
-  const off629 = D.indexOf("6월29일");                        // first official night
+  // DESIGN-6: trim unused buffer columns on the right — render only through the last used night (+1),
+  // so the empty far-right days (7/5–7/8) don't waste horizontal space when nobody stays that long.
+  const Dfull=state.dates;
+  let usedEnd=state.nightCols.length-1;
+  state.parties.forEach(p=>{ if(p.stay) usedEnd=Math.max(usedEnd,p.stay.e); });
+  const showN=Math.min(Dfull.length, Math.max(state.nightCols.length+1, usedEnd+2));
+  const D=Dfull.slice(0,showN); const n=D.length;
+  const off629 = D.indexOf("6월29일");                        // first official (arrival) night
+  const off630 = D.indexOf("6월30일");                        // conference start (event-day highlight)
   const planEnd = state.nightCols.length;                     // index where buffer (연장) zone starts
   // header (ID + 참가자 + date axis)
   const head=$("#tlhead"); head.innerHTML=""; head.style.setProperty("--ncols",n);
@@ -876,7 +1415,8 @@ function renderTimeline(){
   });
   const hn=el("div","nights");
   D.forEach((lab,i)=>{
-    const cls = (off629>=0&&i<off629)?"unofficial":(i>=planEnd?"buffer":null);
+    let cls = (off629>=0&&i<off629)?"unofficial":(i>=planEnd?"buffer":null);
+    if(!cls && off630>=0 && i>=off630) cls="event"+(i===off630?" evstart":"");   // conference days (DESIGN-6)
     hn.append(el("div",cls,lab.replace("월","/").replace("일","")));
   });
   head.append(hn);
@@ -889,6 +1429,11 @@ function renderTimeline(){
     return true;
   });
   $("#tlcount").textContent=`${rows.length}명 표시`;
+  // narrow screens: swap the wide gantt grid for a per-person card list
+  const narrow = window.innerWidth<=560;
+  $("#timeline").classList.toggle("cardmode", narrow);
+  $("#tlhint").style.display = narrow?"none":"";
+  if(narrow){ renderTLCards(rows, off629, planEnd, n); return; }
   const wrap=$("#tlrows"); wrap.innerHTML="";
   if(!rows.length){ wrap.append(el("div","empty-hint","해당 조건의 참가자가 없습니다.")); return; }
   // ② group by hotel (horizontal split) · ⑤ foldable · custom vertical order
@@ -913,6 +1458,58 @@ function renderTimeline(){
     list.forEach((p,ri)=>{ if(shown<CAP){ const r=tlRow(p,n,off629,planEnd); if(ri%2) r.classList.add("alt"); wrap.append(r); shown++; } });
   });
   if(shown<rows.length) wrap.append(el("div","muted",`… 외 ${rows.length-shown}명 (검색/필터로 좁혀 보세요)`));
+  updateGanttFades();
+}
+/* ---------- timeline: per-person card fallback (narrow screens) ---------- */
+function renderTLCards(rows, off629, planEnd, n){
+  const wrap=$("#tlcards"); wrap.innerHTML="";
+  if(!rows.length){ wrap.append(el("div","empty-hint","해당 조건의 참가자가 없습니다.")); return; }
+  const order=[VEN.BYYTC,VEN.YOUUS,VEN.BOOY,"(미배정)"];
+  const groups={}; rows.forEach(p=>{ const v=partyVenue(p); (groups[v]=groups[v]||[]).push(p); });
+  const pos={}; state.orderList.forEach((id,i)=>pos[id]=i);
+  if(n==null) n=state.dates.length;   // fallback if called without the trimmed column count
+  order.forEach(v=>{
+    const list=groups[v]; if(!list||!list.length) return;
+    list.sort((a,b)=>(pos[a.id]??1e9)-(pos[b.id]??1e9));
+    const people=list.reduce((s,p)=>s+p.hc,0);
+    const vc = v===VEN.BYYTC?"byytc":v===VEN.YOUUS?"youus":v===VEN.BOOY?"booyoung":"unassigned";
+    const open=!state.collapsed[v];
+    const gh=el("div","tlgroup "+vc);
+    gh.append(el("span","chev"+(open?" open":""),"▶"), el("span","glabel",`${v} — ${list.length}건 / ${people}명`));
+    gh.onclick=()=>{ state.collapsed[v]=open; saveUI(); renderTimeline(); };
+    wrap.append(gh);
+    if(!open) return;
+    list.forEach(p=>wrap.append(tlCard(p,n,off629,planEnd)));
+  });
+}
+function tlCard(p,n){
+  const ri=partyRoomInfo(p), ci=catInfo(p.cat);
+  const card=el("div","tlcard"+(state.dups&&state.dups.has(p.id)?" dup":""));
+  const top=el("div","top");
+  const cb=el("span","cat",ci.ab); cb.style.background=ci.c; cb.style.color=catText(ci.c);
+  top.append(cb, el("span","nm",p.name+(p.hc>1?` 👪${p.hc}`:"")));
+  if(state.dups&&state.dups.has(p.id)){ const d=el("span","dupflag","⚠");
+    d.title="중복 의심 — 동일 이름/이메일"; top.append(d); }
+  top.append(el("span","idc",p.id));
+  card.append(top);
+  const meta=el("div","meta");
+  meta.append(el("span","pill",ri.vshort), el("span","pill",ri.rno),
+              el("span","pill", p.stay?`${stayNights(p)}박 ${p.arr}~${p.dep}`:"숙박 없음"));
+  card.append(meta);
+  if(p.stay){                                       // mini stay bar mirroring the gantt
+    const tr=el("div","staytrack"); const seg=el("div","seg"); seg.style.background=ci.c; seg.style.color=catText(ci.c);
+    seg.style.left=`calc(${p.stay.s}/${n}*100%)`; seg.style.width=`calc(${stayNights(p)}/${n}*100%)`;
+    seg.textContent=`${stayNights(p)}박`; tr.append(seg); card.append(tr);
+  }
+  const row2=el("div","row2");
+  const sel=el("select"); sel.setAttribute("aria-label",p.name+" 숙소 변경");
+  [["","미배정"],[VEN.BYYTC,venShort(VEN.BYYTC)],[VEN.YOUUS,venShort(VEN.YOUUS)],[VEN.BOOY,venShort(VEN.BOOY)]]
+    .forEach(([val,lab])=>{ const o=new Option(lab,val); if(partyVenue(p)===(val||"(미배정)")) o.selected=true; sel.add(o); });
+  sel.addEventListener("change",()=>{ assignToHotel(p, sel.value||"(미배정)"); renderTimeline();
+    announceAssign(`${p.name} ${sel.value?venShort(sel.value):"미배정"}`); });
+  const det=el("button","det","상세"); det.type="button"; det.onclick=()=>openCard(p);
+  row2.append(sel,det); card.append(row2);
+  return card;
 }
 // vertical reorder + cross-hotel move ---------------------------------
 function tlReorder(srcId,tgtId,after){
@@ -924,7 +1521,7 @@ function assignToHotel(p,hotel){
   if(hotel==="(미배정)"){ delete state.assign[p.id]; return; }
   if(hotel===VEN.BOOY){ state.assign[p.id]="BOOY"; return; }
   let cands=state.rooms.filter(rm=>rm.hotel===hotel && compatible(rm,p));
-  if(!cands.length){ alert(`${hotel}에 ${p.name} 배치 가능한 방이 없습니다(성별/정원).`); return; }
+  if(!cands.length){ toast(`${hotel}에 ${p.name} 배치 가능한 방이 없습니다 (성별/정원).`,"warn"); return; }
   cands.sort((a,b)=>(a.total-(roomLoad(a.key)+p.hc))-(b.total-(roomLoad(b.key)+p.hc)));
   state.assign[p.id]=cands[0].key;
 }
@@ -932,7 +1529,7 @@ function tlRow(p,n,off629,planEnd){
   const row=el("div","tlrow"); row.style.setProperty("--ncols",n); row.dataset.pid=p.id;
   const idc=el("div","idc",p.id);                                   // ⑤ unique-ID column
   const ci=catInfo(p.cat); const catc=el("div","catc");
-  const cb=el("span","cat",ci.ab); cb.style.background=ci.c; cb.title=p.cat||""; catc.append(cb);
+  const cb=el("span","cat",ci.ab); cb.style.background=ci.c; cb.style.color=catText(ci.c); cb.title=p.cat||""; catc.append(cb);
   const who=el("div","who");
   const grip=el("span","tlgrip","⠿"); grip.title="끌어서 순서 변경";
   const nm=el("span","nm",p.name+(p.hc>1?` 👪${p.hc}`:""));
@@ -975,7 +1572,7 @@ function tlRow(p,n,off629,planEnd){
   if(off629>0){ const u=el("div","unoff"); u.style.left="0"; u.style.width=`calc(${off629}/${n}*100%)`; track.append(u); }
   if(planEnd<n){ const bz=el("div","bufz"); bz.style.left=`calc(${planEnd}/${n}*100%)`; bz.style.right="0"; track.append(bz); }
   if(p.stay){
-    const bar=el("div","bar"); bar.style.background=catInfo(p.cat).c;
+    const bar=el("div","bar"); bar.style.background=catInfo(p.cat).c; bar.style.color=catText(catInfo(p.cat).c);
     const place=()=>{ bar.style.left=`calc(${p.stay.s}/${n}*100%)`; bar.style.width=`calc(${(p.stay.e-p.stay.s+1)}/${n}*100%)`; bar.textContent=`${stayNights(p)}박`; };
     place();
     bar.title="끝을 끌어 기간조정 · 가운데 끌어 이동 · 더블클릭: 상세";
@@ -1182,6 +1779,7 @@ function exportExcel(){
   if(booy.length) ros.push([VEN.BOOY,"","","개별","","",booy.reduce((s,p)=>s+p.hc,0),booy.reduce((s,p)=>s+p.hc,0),booy.map(o=>o.name).join(", ")]);
   XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(ros),"객실roster");
   XLSX.writeFile(wb,"ICMDA 숙소배정 결과.xlsx");
+  toast("Excel 저장 완료 — 'ICMDA 숙소배정 결과.xlsx'","ok");
 }
 
 /* ---------- export updated MASTER (versioned) ---------- */
@@ -1197,7 +1795,7 @@ function xSet(ws,r,c,v,t){
   ws[addr]={t:t||(typeof v==="number"?"n":"s"),v};
 }
 function exportMaster(){
-  if(!state.masterBuf){ alert("먼저 ① 마스터 파일을 여세요."); return; }
+  if(!state.masterBuf){ toast("먼저 ① 마스터 파일을 여세요.","warn"); return; }
   const wb=XLSX.read(state.masterBuf,{type:"array",cellFormula:true,cellStyles:true});  // fresh copy from original
   const ws=wb.Sheets["참가자"]; const H=state.pH; const HR=1;     // header row = 2nd row
   const range=XLSX.utils.decode_range(ws['!ref']);
@@ -1240,7 +1838,8 @@ function exportMaster(){
   let msg=`'${outName}' 저장 완료 — 변경 ${changed}건.\n· 배정동/배정층/배정호실/배정객실ID 열을 추가했습니다.\n· 총인원·도착일·출발일·숙박일수는 수식이라 그대로 두었습니다.`;
   if(beyond.length) msg+=`\n\n⚠ 마스터 박 범위를 벗어난 연장 숙박은 기록할 칸이 없어 누락: ${beyond.join(", ")}`;
   msg+=`\n\n※ 버전 규칙: 이전 파일은 history/ 폴더로 옮기고 기록하세요(브라우저에서 자동 이동 불가). 셀 서식/색상은 보존되지 않을 수 있습니다.`;
-  alert(msg);
+  toast(`마스터 내보내기 완료 — '${outName}' (변경 ${changed}건)`,"ok",5000);
+  dialog({title:"마스터 내보내기 완료", body:msg});   // detail (version rule + any warnings) in a dismissible dialog
 }
 
 /* ---------- progress JSON ---------- */
@@ -1250,6 +1849,7 @@ function saveJson(){
               orderList:state.orderList,collapsed:state.collapsed};
   const blob=new Blob([JSON.stringify(data,null,1)],{type:"application/json"});
   const a=el("a"); a.href=URL.createObjectURL(blob); a.download="숙소배정 진행.json"; a.click();
+  toast("진행 상태(JSON) 저장 완료","ok");
 }
 function loadJson(text){
   try{
@@ -1259,7 +1859,8 @@ function loadJson(text){
     if(Array.isArray(d.orderList)) state.orderList=d.orderList;
     if(d.collapsed) state.collapsed=d.collapsed;
     render();
-  }catch(e){ alert("JSON 읽기 실패: "+e.message); }
+    toast("진행 상태 불러오기 완료","ok");
+  }catch(e){ toast("JSON 읽기 실패: "+e.message,"err",6000); }
 }
 
 /* ---------- print ---------- */
@@ -1305,34 +1906,155 @@ function buildPrint(){
 }
 
 /* ---------- wire up ---------- */
-$("#fileMaster").addEventListener("change",e=>{
+// shared action handlers (reused by desktop toolbar, mobile bar, and 더보기 sheet)
+// run `fn` behind the spinner (after a paint tick); toast + log any error, always hide.
+function withLoading(label, fn){
+  const o=$("#loading"), t=$("#loadtxt"); if(t) t.textContent=label||"처리 중…";
+  o.style.display="flex";
+  setTimeout(()=>{
+    try{ fn(); }
+    catch(err){ console.error(err); toast("오류: "+((err&&err.message)||err),"err",6000); }
+    finally{ o.style.display="none"; if(t) t.textContent="자동 배정 중…"; }
+  },30);
+}
+function runAuto(){                                // spinner, then run (let the browser paint first)
+  $("#loading").style.display="flex";
+  setTimeout(()=>{ try{ autoAssign(); announceAssign("자동 배정 완료"); toast("자동 배정 완료","ok"); } finally{ $("#loading").style.display="none"; } },30);
+}
+// auto-assign is destructive (it clears + re-packs every unlocked person) → confirm with an impact summary
+function confirmAuto(){
+  const need=p=>p.need!=="No";
+  const un=state.parties.filter(p=>need(p)&&!state.locked[p.id]&&!state.assign[p.id]).reduce((s,p)=>s+p.hc,0);
+  const movable=state.parties.filter(p=>need(p)&&!state.locked[p.id]&&state.assign[p.id]&&state.assign[p.id]!=="BOOY").reduce((s,p)=>s+p.hc,0);
+  dialog({title:"② 자동 배정", danger:true, okText:"자동 배정 실행",
+    body:`성별·정원·온돌·묶음 규칙에 따라 미배정 ${un}명을 방에 배치합니다.\n`
+        +`잠기지 않은 기존 배정 ${movable}명도 재배치될 수 있습니다. (🔒 잠긴 인원은 그대로)\n\n계속할까요?`,
+    onOk:runAuto});
+}
+// master export has real side effects (version bump, files to move) → confirm first
+function confirmMaster(){
+  if(!state.masterBuf){ toast("먼저 ① 마스터 파일을 여세요.","warn"); return; }
+  const assigned=state.parties.filter(p=>p.need!=="No"&&state.assign[p.id]).reduce((s,p)=>s+p.hc,0);
+  dialog({title:"마스터 내보내기", okText:"내보내기",
+    body:`배정 결과(배정숙소·배정동/층/호실)를 원본 마스터에 반영해 새 버전(v{N})으로 저장합니다.\n`
+        +`현재 배정 ${assigned}명. 수식 열(총인원·도착일·출발일·숙박일수)은 그대로 둡니다.\n\n계속할까요?`,
+    onOk:()=>withLoading("마스터 내보내는 중…",exportMaster)});
+}
+function doPrint(){ buildPrint(); window.print(); }
+function onMasterFile(e){
   const f=e.target.files[0]; if(!f) return;
   $("#srcname").textContent=f.name; state.masterName=f.name;
-  const rd=new FileReader(); rd.onload=()=>loadMaster(rd.result); rd.readAsArrayBuffer(f);
-});
-$("#fileJson").addEventListener("change",e=>{
+  const rd=new FileReader();
+  rd.onload=()=>withLoading("마스터 불러오는 중…",()=>loadMaster(rd.result));   // XLSX.read can throw on a bad file
+  rd.onerror=()=>toast("파일을 읽지 못했습니다.","err");
+  rd.readAsArrayBuffer(f);
+  e.target.value="";                              // allow re-picking the same file
+}
+function onJsonFile(e){
   const f=e.target.files[0]; if(!f) return;
-  const rd=new FileReader(); rd.onload=()=>loadJson(rd.result); rd.readAsText(f);
-});
-$("#btnAuto").onclick=()=>{                       // show spinner, then run (let the browser paint first)
-  $("#loading").style.display="flex";
-  setTimeout(()=>{ try{ autoAssign(); } finally{ $("#loading").style.display="none"; } },30);
-};
-$("#btnExcel").onclick=exportExcel;
-$("#btnMaster").onclick=exportMaster;
+  const rd=new FileReader();
+  rd.onload=()=>{
+    const text=rd.result;
+    const go=()=>{ loadJson(text); closeSheet(); };
+    // loading JSON over existing work overwrites it → confirm first
+    if(Object.keys(state.assign).length){
+      dialog({title:"진행 불러오기", danger:true, okText:"불러오기(덮어쓰기)",
+        body:"현재 배정 작업을 불러온 파일 내용으로 덮어씁니다.\n저장하지 않은 변경사항은 사라집니다.\n\n계속할까요?",
+        onOk:go});
+    } else go();
+  };
+  rd.onerror=()=>toast("파일을 읽지 못했습니다.","err");
+  rd.readAsText(f);
+  e.target.value="";
+}
+// desktop toolbar
+$("#fileMaster").addEventListener("change",onMasterFile);
+$("#fileJson").addEventListener("change",onJsonFile);
+$("#btnAuto").onclick=confirmAuto;
+$("#btnExcel").onclick=()=>withLoading("Excel 저장 중…",exportExcel);
+$("#btnMaster").onclick=confirmMaster;
 $("#btnJson").onclick=saveJson;
-$("#btnPrint").onclick=()=>{ buildPrint(); window.print(); };
-$("#poolsearch").addEventListener("input",renderPool);
+$("#btnPrint").onclick=doPrint;
+// mobile bottom bar
+$("#mbFileMaster").addEventListener("change",onMasterFile);
+$("#mbAuto").onclick=confirmAuto;
+$("#mbMore").onclick=openSheet;
+// 더보기 bottom sheet
+function openSheet(){ $("#sheet").hidden=false; $("#mbMore").setAttribute("aria-expanded","true"); }
+function closeSheet(){ $("#sheet").hidden=true; $("#mbMore").setAttribute("aria-expanded","false"); }
+$("#sheet").addEventListener("click",e=>{ if(e.target.id==="sheet") closeSheet(); });   // tap backdrop to dismiss
+$("#shExcel").onclick=()=>{ closeSheet(); withLoading("Excel 저장 중…",exportExcel); };
+$("#shMaster").onclick=()=>{ closeSheet(); confirmMaster(); };
+$("#shJson").onclick=()=>{ closeSheet(); saveJson(); };
+$("#shPrint").onclick=()=>{ closeSheet(); doPrint(); };
+$("#shFileJson").addEventListener("change",onJsonFile);
+
+// search: live filter + clear (×) button (shows when non-empty)
+function wireSearchClear(inputSel, clrSel, onChange){
+  const inp=$(inputSel), clr=$(clrSel);
+  const sync=()=>clr.classList.toggle("show", !!inp.value);
+  inp.addEventListener("input",()=>{ sync(); onChange(); });
+  clr.addEventListener("click",()=>{ inp.value=""; sync(); onChange(); inp.focus(); });
+  sync();
+}
+wireSearchClear("#poolsearch","#poolsearchclr",renderPool);
+wireSearchClear("#tlsearch","#tlsearchclr",()=>{ state.tlFilter.q=$("#tlsearch").value; renderTimeline(); });
+
+// mobile jump-to-floor: expand the target accordion, then smooth-scroll to it
+$("#jumpsel").addEventListener("change",e=>{
+  const id=e.target.value; e.target.selectedIndex=0; if(!id) return;
+  delete state.collapsedRooms[id];
+  if(id.indexOf("flr-")===0){ const vi=id.split("-")[1]; delete state.collapsedRooms["ven-"+vi]; }  // also open its venue
+  renderVenues();
+  requestAnimationFrame(()=>{ const n=document.getElementById(id); if(n) n.scrollIntoView({behavior:"smooth",block:"start"}); });
+});
+
 // view tabs + timeline filters + modal
 $("#tabRooms").onclick=()=>setView("rooms");
 $("#tabTimeline").onclick=()=>setView("timeline");
-$("#tlsearch").addEventListener("input",e=>{ state.tlFilter.q=e.target.value; renderTimeline(); });
 $("#tlvenue").addEventListener("change",e=>{ state.tlFilter.venue=e.target.value; renderTimeline(); });
 $("#tlcat").addEventListener("change",e=>{ state.tlFilter.cat=e.target.value; renderTimeline(); });
 $("#modal").addEventListener("click",e=>{ if(e.target.id==="modal") closeCard(); });
-document.addEventListener("keydown",e=>{ if(e.key==="Escape") closeCard(); });
+
+// Esc: dismiss the sheet, else clear a tap-to-assign selection, else close the modal
+document.addEventListener("keydown",e=>{
+  if(e.key!=="Escape") return;
+  if(!$("#sheet").hidden){ closeSheet(); return; }
+  if(state.pick){ state.pick=null; announce("선택 해제"); render(); return; }
+  closeCard();
+});
+// tapping empty space deselects a picked person (chips/rooms have their own handlers)
+document.addEventListener("click",e=>{
+  if(!state.pick) return;
+  if(e.target.closest(".chip,.room,#poollist,.pickhint,.vtab,#mobilebar,#jumpbar,#sheet,.venue>h2,.floorgrp>h3")) return;
+  state.pick=null; announce("선택 해제"); render();
+});
+
+// edge-fade affordances for horizontal scrollers (gantt + mobile statsbar)
+function updateFades(scrollerSel, wrapSel){
+  const sc=$(scrollerSel), wp=$(wrapSel); if(!sc||!wp) return;
+  const max=sc.scrollWidth-sc.clientWidth;
+  wp.classList.toggle("fade-l", sc.scrollLeft>2);
+  wp.classList.toggle("fade-r", max>2 && sc.scrollLeft<max-2);
+}
+function updateGanttFades(){     // right fade only — a left fade would cover the frozen ID/이름 pane
+  const sc=$("#gantt"), wp=$("#ganttwrap"); if(!sc||!wp) return;
+  const max=sc.scrollWidth-sc.clientWidth;
+  wp.classList.remove("fade-l");
+  wp.classList.toggle("fade-r", max>2 && sc.scrollLeft<max-2);
+}
+function updateStatsFades(){ updateFades("#statsbar","#statsbarwrap"); }
+$("#gantt").addEventListener("scroll",updateGanttFades,{passive:true});
+$("#statsbar").addEventListener("scroll",updateStatsFades,{passive:true});
+
 loadUI();   // restore column widths, collapsed groups, and last view
-window.addEventListener("resize",syncTop);
+buildLegend();   // static category key (DESIGN-4)
+let _rsT=null;
+window.addEventListener("resize",()=>{
+  syncTop(); updateGanttFades(); updateStatsFades();
+  // debounced timeline re-render so the gantt↔card threshold (560px) is honoured on rotate/resize
+  if(state.view==="timeline"){ clearTimeout(_rsT); _rsT=setTimeout(renderTimeline,150); }
+});
 syncTop();
 </script>
 </body>
