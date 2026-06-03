@@ -467,7 +467,6 @@
   /* small phones */
   @media (max-width:400px){
     header h1{font-size:14px;}
-    .rooms{grid-template-columns:1fr;}
     #statsbar{font-size:11px;}
     #statsbar .stat b{font-size:13px;}
     button,label.btn{font-size:11px;padding:7px 10px;}
@@ -656,7 +655,7 @@
     #venues{gap:10px;}
     .floorgrp{padding:4px 8px;}
     .floorgrp h3{margin:6px 2px 3px;}
-    .rooms{gap:6px;}
+    .rooms{grid-template-columns:minmax(0,1fr);gap:6px;}   /* phones: one room pane per row (full width). minmax(0,…) lets it shrink so wide chips can't blow the pane past the screen edge */
     .room{min-height:0;padding:4px 6px;}
     .room .rhdr{margin-bottom:2px;}
     .chip{margin:1px 0;}
@@ -669,8 +668,8 @@
      heading looks intentional rather than a giant default <h2>. */
   .pgroup h2,#printprev .ppbody h2{font-size:15px;border-bottom:2px solid #333;padding-bottom:3px;margin:0 0 6px;}
   .pgroup h3,#printprev .ppbody h3{font-size:12px;margin:8px 0 3px;background:#eee;padding:2px 6px;}
-  table.proom{width:100%;border-collapse:collapse;margin-bottom:4px;font-size:11px;}
-  table.proom th,table.proom td{border:1px solid var(--text2);padding:2px 5px;text-align:left;vertical-align:top;}
+  table.proom{width:100%;border-collapse:collapse;margin-bottom:4px;font-size:10px;line-height:1.15;}   /* 10px + tight line-height (CJK 'normal' is ~1.4) → shorter rows, more people per A4 */
+  table.proom th,table.proom td{border:1px solid var(--text2);padding:1px 5px;text-align:left;vertical-align:top;}   /* slim vertical padding (was 2px) for shorter rows */
   table.proom th{background:#ddd;}
   table.proom td.rno{font-weight:700;width:48px;}
   table.proom td.meta{width:120px;color:#333;}
@@ -875,7 +874,7 @@
 "use strict";
 // ⚑ index.html build version — shown bottom-right on the start screen. BUMP ON EACH DEPLOY.
 //   Format: vYYYY.MM.DD-N  (N = same-day build counter; reset to 1 on a new date).
-const APP_VERSION = "v2026.06.02-31";
+const APP_VERSION = "v2026.06.03-3";
 /* ============================================================
    ICMDA 2026 Room Assignment Dashboard (single file)
    - reads the live master .xlsx (columns mapped by HEADER NAME)
