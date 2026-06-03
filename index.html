@@ -101,6 +101,7 @@
   #warnpanel h3{margin:0 0 4px;font-size:12px;color:var(--warn);position:sticky;top:0;background:#fff8f8;padding:4px 0;display:flex;gap:6px;align-items:center;z-index:1;}
   #warnpanel .warnnote{color:#777;font-size:11px;margin:0 0 4px;}
   #warnpanel li{margin:1px 0;line-height:1.45;}
+  .warnchev{display:none;}   /* 점검 panel expand/collapse affordance — shown on mobile only */
   .empty-hint{color:var(--text-muted);padding:30px;text-align:center;}
   .muted{color:var(--text-muted);font-size:11px;}
   /* ④ category badge on chips */
@@ -420,12 +421,12 @@
      actions move to the fixed bottom action bar (#mobilebar) + 더보기 sheet,
      so nothing hides in an invisible horizontal scroller anymore. */
   @media (max-width:640px){
-    header{flex-direction:row;flex-wrap:wrap;align-items:center;gap:8px;padding:8px 10px;
-           padding-top:max(8px,env(safe-area-inset-top));}
-    header h1{font-size:15px;margin:0;flex:1 1 auto;min-width:0;text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+    header{flex-direction:row;flex-wrap:wrap;align-items:center;gap:8px;padding:5px 10px;
+           padding-top:max(5px,env(safe-area-inset-top));}
+    header h1{font-size:14px;margin:0;flex:1 1 auto;min-width:0;text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
     header .toolbtns,header .spacer,#srcname,header .tbdiv{display:none;}
     .viewtabs{display:flex;width:auto;margin:0;gap:0;order:0;flex:none;}    /* top-right, inline with the title — replaces the old full-width 2nd row */
-    .viewtabs .vtab{flex:none;min-height:34px;font-size:12px;padding:6px 11px;}
+    .viewtabs .vtab{flex:none;min-height:32px;font-size:12px;padding:5px 11px;}
     button,label.btn{padding:8px 12px;font-size:12px;min-height:44px;}   /* larger tap targets */
     /* start screen stacks: dropzone (CTA) first, intro below */
     #startscreen{padding:18px 14px;}
@@ -435,13 +436,18 @@
     .ss-version{display:none;}   /* version stamp is desktop-only */
     .ss-title{font-size:21px;}
     /* single horizontal scroll lane — fixed order, never reflows; .hscroll-wrap edge-fade hints "more →" (updateStatsFades runs after render + on resize) */
-    #statsbar{gap:8px;padding:7px 10px;flex-wrap:nowrap;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x proximity;align-items:center;scrollbar-width:none;}
+    #statsbar{gap:8px;padding:4px 10px;flex-wrap:nowrap;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x proximity;align-items:center;scrollbar-width:none;}
     #statsbar::-webkit-scrollbar{display:none;}                              /* hide the bar — the edge-fade is the scroll affordance */
-    #statsbar .stat{flex:none;scroll-snap-align:start;border-right:none;padding:3px 9px;border-radius:8px;white-space:nowrap;}
+    #statsbar .stat{flex:none;scroll-snap-align:start;border-right:none;padding:2px 9px;border-radius:8px;white-space:nowrap;}
     #statsbar .stat:not(.alert):not(.clear):not(.warnjump){background:var(--bg);}   /* plain stats → subtle chips; 미배정(red)/clear(green)/경고(badge) keep their own emphasis */
     #main{padding:8px;gap:8px;}
     #pool{max-height:38vh;}
-    #timeline{padding:6px 8px;}
+    #timeline{padding:4px 8px;}
+    /* 점검 panel: phones show only the summary line; tap the h3 (chevron ▸/▾) to expand */
+    #warnpanel h3{cursor:pointer;}
+    #warnpanel .warnchev{display:inline-block;margin-left:auto;color:var(--warn);font-size:12px;line-height:1;}
+    #warnpanel.collapsed{max-height:none;overflow:visible;}
+    #warnpanel.collapsed>:not(h3){display:none;}
     .card{width:96%;max-height:90vh;}
     .card .cbody{grid-template-columns:1fr;gap:2px 0;}                    /* edit mode: labels above values, single column */
     .card .cbody .k{margin-top:6px;}
@@ -593,7 +599,7 @@
     .searchwrap .search{min-height:34px;padding-right:44px!important;}   /* compact search — was 44px */
     .searchwrap .clr{width:40px;height:34px;font-size:18px;}             /* clear-× matches the shorter input */
     /* timeline filter bar → ONE even row: search + 숙소 + 카테고리 flex equally, count trails compact; shorter 30px. #tlsel (selection status) drops to its own line only when present. */
-    #tlbar{gap:6px;}
+    #tlbar{gap:6px;margin-bottom:2px;}
     #tlbar .searchwrap{flex:1;min-width:0;width:auto!important;max-width:none!important;}        /* beat the inline width:160px;max-width:60vw so it shares the row evenly */
     #tlbar .searchwrap .search{width:100%;max-width:none;height:auto;min-height:30px;padding-right:34px!important;}   /* tlbar-scoped: pool-view .searchwrap stays 34px */
     #tlbar .searchwrap .clr{width:30px;height:30px;font-size:16px;}
@@ -608,9 +614,9 @@
   @media (max-width:640px){
     /* fixed bottom action bar — two primary actions always visible + 더보기 */
     #mobilebar{display:flex;gap:8px;position:fixed;left:0;right:0;bottom:0;z-index:120;
-      background:var(--ink);padding:8px 10px;padding-bottom:max(8px,env(safe-area-inset-bottom));
+      background:var(--ink);padding:5px 10px;padding-bottom:max(5px,env(safe-area-inset-bottom));
       box-shadow:0 -2px 12px rgba(0,0,0,.28);}
-    #mobilebar .mbtn{flex:1;min-height:48px;border:none;border-radius:9px;font-size:13px;font-weight:600;
+    #mobilebar .mbtn{flex:1;min-height:44px;border:none;border-radius:9px;font-size:13px;font-weight:600;
       color:#fff;background:var(--primary);display:flex;align-items:center;justify-content:center;gap:5px;padding:0 6px;}
     #mobilebar .mbtn.go{background:var(--success);}
     #mobilebar .mbtn.more{flex:0 0 68px;background:#27496b;}
@@ -618,9 +624,9 @@
     #mobilebar .mbtn>input[type=file]{display:none;}
 
     /* keep content clear of the fixed bar */
-    body{padding-bottom:calc(64px + env(safe-area-inset-bottom));}
+    body{padding-bottom:calc(54px + env(safe-area-inset-bottom));}
     /* the timeline uses a fixed height, so subtract the bar explicitly */
-    #timeline{height:calc(100dvh - var(--topoff,92px) - 64px - env(safe-area-inset-bottom) - var(--warnh,0px));}
+    #timeline{height:calc(100dvh - var(--topoff,92px) - 54px - env(safe-area-inset-bottom) - var(--warnh,0px));}
 
     /* 더보기 bottom sheet */
     #sheet{display:block;}
@@ -874,7 +880,7 @@
 "use strict";
 // ⚑ index.html build version — shown bottom-right on the start screen. BUMP ON EACH DEPLOY.
 //   Format: vYYYY.MM.DD-N  (N = same-day build counter; reset to 1 on a new date).
-const APP_VERSION = "v2026.06.03-4";
+const APP_VERSION = "v2026.06.03-5";
 /* ============================================================
    ICMDA 2026 Room Assignment Dashboard (single file)
    - reads the live master .xlsx (columns mapped by HEADER NAME)
@@ -918,6 +924,7 @@ const state = {
   tlSel: new Set(),// timeline multi-select: party ids selected for group drag
   tlSort: {key:null, dir:"asc"},  // timeline sort: key "id"|"name"|"room"|"cap" (null = manual drag order), dir asc|desc
   roomOrder: {},   // roomKey -> [pid,...] manual occupant order inside a room (drag-to-reorder); absent = sort by name
+  warnOpen: false, // 점검 panel: collapsed to its summary line by default on mobile (desktop CSS always shows it full)
 };
 
 /* ---------- helpers ---------- */
@@ -1792,8 +1799,10 @@ function computeIssues(){
 }
 // jump to the warning panel (switch to rooms view first if needed), then flash it
 function jumpToWarnings(){
+  state.warnOpen=true;                     // expand the panel when jumped to (mobile collapses it by default)
   if(state.view!=="rooms") setView("rooms");
   requestAnimationFrame(()=>{ const w=$("#warnpanel"); if(!w) return;
+    w.classList.remove("collapsed"); const c=w.querySelector(".warnchev"); if(c) c.textContent="▾"; syncTop();
     w.scrollIntoView({behavior:"smooth",block:"end"});
     w.classList.add("flash"); setTimeout(()=>w.classList.remove("flash"),1200);
   });
@@ -1802,9 +1811,14 @@ function renderWarnings(issues){
   const wp=$("#warnpanel"); wp.innerHTML="";
   if(issues===undefined) issues=computeIssues();
   const un=state.parties.filter(p=>p.need!=="No"&&!state.assign[p.id]).reduce((s,p)=>s+p.hc,0);
+  wp.classList.toggle("collapsed", !state.warnOpen);   // mobile: show only the summary line until tapped (desktop CSS ignores .collapsed)
   const wh=el("h3");
   wh.append(el("span","pill "+(issues.length?"warn":"ok"),`경고 ${issues.length}건`));
   if(un) wh.append(el("span","pill warn",`미배정 ${un}명`));
+  const chev=el("span","warnchev",state.warnOpen?"▾":"▸");
+  wh.append(chev); wh.title="점검 결과 펼치기 / 접기";
+  wh.addEventListener("click",()=>{ state.warnOpen=!state.warnOpen;
+    wp.classList.toggle("collapsed",!state.warnOpen); chev.textContent=state.warnOpen?"▾":"▸"; syncTop(); });
   wp.append(wh);
   wp.append(el("div","warnnote","아래는 배정 점검 결과입니다 — 정원 초과, 성별/조건 불일치, 그리고 같은 묶음(그룹)이 여러 방에 흩어진 경우를 안내합니다."));
   if(!issues.length){ const d=el("div"); d.innerHTML=un?"용량/성별 충돌 없음. 미배정 인원을 수동 배치하세요.":`문제 없음 ${ico('check')}`; wp.append(d); return; }
