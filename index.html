@@ -860,7 +860,7 @@
 "use strict";
 // ⚑ index.html build version — shown bottom-right on the start screen. BUMP ON EACH DEPLOY.
 //   Format: vYYYY.MM.DD-N  (N = same-day build counter; reset to 1 on a new date).
-const APP_VERSION = "v2026.06.02-25";
+const APP_VERSION = "v2026.06.02-26";
 /* ============================================================
    ICMDA 2026 Room Assignment Dashboard (single file)
    - reads the live master .xlsx (columns mapped by HEADER NAME)
@@ -1971,8 +1971,9 @@ function tlCard(p,n){
     d.title="중복 의심 — 동일 이름/이메일"; card.append(d); }
   card.append(el("span","idc",p.id), el("span","chev","›"));
   const open=()=>openRowSheet(p,card);
-  card.onclick=open;
+  card.onclick=()=>{ if(lpFired) return; open(); };          // tap → action sheet (long-press handles multi-select)
   card.onkeydown=e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); open(); } };
+  attachLongPress(card,()=>toggleTlSel(p.id,card));          // touch: long-press toggles multi-select (no button needed)
   return card;
 }
 // vertical reorder + cross-hotel move (single or multi) ---------------
@@ -2225,8 +2226,7 @@ function openRowSheet(p,row){
        <button class="rsbtn${cur==null?" cur":""}" data-act="venue" data-h=""><span class="ic">${ico('undo')}</span>미배정${cur==null?ico('check'):""}</button>
      </div>
      <div class="rs-row">
-       <button class="rsbtn" data-act="select"><span class="ic">${ico('checkSquare')}</span>${state.tlSel.has(p.id)?"다중 선택에서 빼기":"다중 선택에 추가"}</button>
-       <button class="rsbtn danger" data-act="delete"><span class="ic">${ico('trash')}</span>삭제</button>
+       <button class="rsbtn danger" data-act="delete" style="grid-column:1/-1"><span class="ic">${ico('trash')}</span>삭제</button>
      </div>`;
   sh.hidden=false;
   const close=()=>{ sh.hidden=true; sh.onclick=null; panel.onclick=null; document.removeEventListener("keydown",onKey); };
@@ -2244,7 +2244,6 @@ function openRowSheet(p,row){
       else { assignToHotel(p,h); toast(`${p.name||p.id} → ${venShort(h)} 이동`,"ok"); }
       render();
     }
-    else if(act==="select"){ close(); toggleTlSel(p.id,row); }
     else if(act==="delete"){ close(); deleteCard(p); }
   };
 }
