@@ -67,14 +67,14 @@
   .rooms{display:grid;grid-template-columns:repeat(auto-fill,minmax(185px,1fr));gap:8px;}
   .room{border:1px solid var(--line);border-radius:8px;padding:5px 6px;background:#fafafa;min-height:62px;}
   .room.over{border-color:var(--warn);background:#fff5f5;}
-  .room .rhdr{display:flex;justify-content:space-between;align-items:center;font-size:11px;color:var(--text2);margin-bottom:3px;gap:4px;}
+  .room .rhdr{display:flex;align-items:center;font-size:11px;color:var(--text2);margin-bottom:3px;gap:4px;}   /* room# + tags left-pack together; cap badge pushed right (margin-left:auto below) so tags sit next to the number, not floating mid-row */
   .room .rno{font-weight:700;color:#111;}
   .room .tags{display:flex;gap:3px;flex-wrap:wrap;}
   .tag{font-size:9px;padding:0 4px;border-radius:3px;border:1px solid #bbb;background:#fff;}
   .tag.M{background:#e6f0fb;border-color:#9cc;} .tag.F{background:#fde9f1;border-color:#d9a;}
   .tag.ondol{background:#fff0c8;border-color:#d4a;}
   .tag.staff{background:#eee;}
-  .capbadge{font-weight:700;}
+  .capbadge{font-weight:700;margin-left:auto;}   /* keep occupancy badge pinned to the right edge of .rhdr */
   .capbadge.over{color:var(--warn);} .capbadge.full{color:var(--warning-fill);} .capbadge.ok{color:var(--ok);}
   .capedit{width:46px;font-size:11px;font-weight:600;padding:0 3px;border:1px solid #88a;border-radius:3px;}
   .chip{display:flex;align-items:center;gap:4px;font-size:11px;padding:2px 5px;margin:2px 0;border-radius:4px;background:#eef2f6;border:1px solid #d6dee6;cursor:grab;}
@@ -874,7 +874,7 @@
 "use strict";
 // ⚑ index.html build version — shown bottom-right on the start screen. BUMP ON EACH DEPLOY.
 //   Format: vYYYY.MM.DD-N  (N = same-day build counter; reset to 1 on a new date).
-const APP_VERSION = "v2026.06.03-3";
+const APP_VERSION = "v2026.06.03-4";
 /* ============================================================
    ICMDA 2026 Room Assignment Dashboard (single file)
    - reads the live master .xlsx (columns mapped by HEADER NAME)
