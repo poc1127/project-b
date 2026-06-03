@@ -7,6 +7,7 @@
 <title>ICMDA 2026 숙소배정 대시보드</title>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%23cf4631'/><g fill='%23fff'><rect x='10.5' y='8.8' width='11' height='3.4' rx='1'/><rect x='14.2' y='8.8' width='3.6' height='14.4' rx='.5'/><rect x='10.5' y='19.8' width='11' height='3.4' rx='1'/></g></svg>">
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/fflate@0.8.2/umd/index.js"></script><!-- tiny zip (unzipSync/zipSync) — lets 마스터 업데이트 edit the original .xlsx in place, preserving styles SheetJS drops on write -->
 <style>
   :root{
     /* venue + category accents (unchanged — carry meaning) */
@@ -152,7 +153,7 @@
      scroller (so frozen columns + sticky date header resolve against it and
      the edge-fade overlays can pin to the non-scrolling #ganttwrap). */
   #timeline{padding:8px 14px;display:flex;flex-direction:column;min-height:0;
-            height:calc(100vh - var(--topoff,92px));height:calc(100dvh - var(--topoff,92px));}
+            height:calc(100vh - var(--topoff,92px) - var(--warnh,0px));height:calc(100dvh - var(--topoff,92px) - var(--warnh,0px));}
   #ganttwrap{position:relative;flex:1;min-height:0;display:flex;}
   #gantt{overflow:auto;flex:1;min-width:0;}
   #tlcards{flex:1;min-height:0;}
@@ -370,7 +371,14 @@
   #tlhead .nights div.event.evstart{box-shadow:inset 2px 0 0 0 var(--success);}
   /* ===== responsive — fluid across desktop / tablet / mobile ===== */
   #timeline,#pool,#statsbar{-webkit-overflow-scrolling:touch;}
-  html,body{max-width:100%;}
+  html,body{max-width:100%;overflow-x:clip;}   /* no page-level sideways scroll; inner panes keep their own overflow:auto */
+
+  /* below ~1300px the title + labelled toolbar + view tabs + filename stop fitting on one row; drop the
+     tabs to their own full-width segmented row BEFORE they can wrap into an awkward half-empty right-aligned row */
+  @media (max-width:1300px){
+    .viewtabs{width:100%;order:3;margin:8px 0 0;}
+    .viewtabs .vtab{flex:1;}
+  }
 
   /* tablet landscape & small laptop — tighten chrome, keep two-pane layout */
   @media (max-width:1024px){
@@ -379,9 +387,6 @@
     .venue>h2{font-size:13px;}
     button,label.btn{padding:6px 10px;}
     #statsbar{gap:10px;}
-    /* tablet: view tabs become a full-width segmented row below the actions */
-    .viewtabs{width:100%;order:3;margin:8px 0 0;}
-    .viewtabs .vtab{flex:1;}
   }
 
   /* tablet portrait — stack the pool above the venues */
@@ -395,6 +400,13 @@
     .poolToggle{display:inline-flex;align-items:center;justify-content:center;min-height:32px;}
     #pool.collapsed{max-height:none;}
     #pool.collapsed #poollist{display:none;}   /* keep title + search + legend; hide only the list */
+  }
+
+  /* stacked but not mobile: the full-width pool wastes space as 1 column — lay the chips out 2-up */
+  @media (min-width:641px) and (max-width:860px){
+    #poollist{display:grid;grid-template-columns:1fr 1fr;gap:6px 8px;align-content:start;}
+    #poollist .chip{margin:0;}                                   /* grid gap handles the row rhythm */
+    #poollist>.pickhint,#poollist>.empty-hint{grid-column:1/-1;} /* banners span both columns */
   }
 
   /* phones — header keeps only the title + full-width view tabs; ALL toolbar
@@ -531,12 +543,12 @@
   .tlcard{border:1px solid var(--line);border-radius:10px;background:#fff;padding:9px 11px;margin:7px 0;
           display:flex;flex-direction:column;gap:7px;}
   .tlcard.dup{background:#fff7e6;border-color:#f0d9a0;}
-  .tlcard .top{display:flex;align-items:center;gap:8px;}
-  .tlcard .top .nm{font-weight:700;font-size:14px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  /* header row carries the name + the meta pills (hotel · room · stay) inline; wraps if it runs out of width */
+  .tlcard .top{display:flex;align-items:center;flex-wrap:wrap;gap:5px 8px;}
+  .tlcard .top .nm{font-weight:700;font-size:14px;flex:0 1 auto;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   .tlcard .cat{font-size:10px;font-weight:700;color:#fff;padding:1px 8px;border-radius:999px;flex:none;}
   .tlcard .idc{font-family:ui-monospace,Consolas,monospace;font-size:10px;color:#889;flex:none;}
-  .tlcard .meta{display:flex;flex-wrap:wrap;gap:6px;font-size:12px;}
-  .tlcard .meta .pill{background:#eef0f2;color:#5a6470;font-weight:600;padding:2px 9px;border-radius:999px;}
+  .tlcard .pill{background:#eef0f2;color:#5a6470;font-weight:600;padding:1px 8px;border-radius:999px;font-size:11px;}
   .tlcard .staytrack{height:14px;border-radius:7px;background:#eef1f4;position:relative;overflow:hidden;}
   .tlcard .staytrack .seg{position:absolute;top:0;bottom:0;border-radius:7px;color:#fff;font-size:9px;
                           font-weight:700;display:flex;align-items:center;justify-content:center;}
@@ -545,11 +557,13 @@
   .tlcard .det{min-height:44px;min-width:60px;border-radius:8px;}
   .tlcard .dupflag{color:var(--warning);flex:none;}
 
-  /* ≥44px touch targets for chips, toggles, tabs, search clear */
+  /* compact chip rows (fit more people per screen) + ≥44px touch targets for toggles, tabs, search clear */
   @media (hover:none),(max-width:640px){
-    .chip{min-height:44px;padding:5px 6px;}
-    .chip .lk{min-width:44px;min-height:44px;display:flex;align-items:center;justify-content:center;font-size:18px;padding:0;}
-    .chip .drag{min-width:34px;min-height:44px;display:flex;align-items:center;justify-content:center;font-size:18px;}
+    /* person chips: short rows so more fit in one view (~56px→~36px). lk/drag keep WIDE
+       horizontal hit areas so they stay tappable despite the reduced height. */
+    .chip{min-height:0;padding:3px 6px;}
+    .chip .lk{min-width:40px;min-height:28px;display:flex;align-items:center;justify-content:center;font-size:16px;padding:0;}
+    .chip .drag{min-width:30px;min-height:28px;display:flex;align-items:center;justify-content:center;font-size:16px;}
     .searchwrap .search{min-height:44px;padding-right:48px!important;}
     .searchwrap .clr{width:44px;height:44px;font-size:20px;}
     #tlbar .search,#tlbar select{height:auto;min-height:44px;}   /* match search + selects at touch size */
@@ -572,7 +586,7 @@
     /* keep content clear of the fixed bar */
     body{padding-bottom:calc(64px + env(safe-area-inset-bottom));}
     /* the timeline uses a fixed height, so subtract the bar explicitly */
-    #timeline{height:calc(100dvh - var(--topoff,92px) - 64px - env(safe-area-inset-bottom));}
+    #timeline{height:calc(100dvh - var(--topoff,92px) - 64px - env(safe-area-inset-bottom) - var(--warnh,0px));}
 
     /* 더보기 bottom sheet */
     #sheet{display:block;}
@@ -601,6 +615,18 @@
     .venue,.floorgrp{scroll-margin-top:104px;}
   }
 
+  /* mobile: denser room cards — fit more rooms (and people) per screen. 1 column, tap targets unchanged;
+     the win is dropping the forced room min-height + trimming chrome so half-empty rooms stop wasting space. */
+  @media (max-width:640px){
+    #venues{gap:10px;}
+    .floorgrp{padding:4px 8px;}
+    .floorgrp h3{margin:6px 2px 3px;}
+    .rooms{gap:6px;}
+    .room{min-height:0;padding:4px 6px;}
+    .room .rhdr{margin-bottom:2px;}
+    .chip{margin:1px 0;}
+  }
+
   /* print — visual styles are global so the on-screen preview matches; only layout/page rules stay in @media print */
   #printarea{display:none;}
   .pgroup h2{font-size:15px;border-bottom:2px solid #333;padding-bottom:3px;}
@@ -610,12 +636,8 @@
   table.proom th{background:#ddd;}
   table.proom td.rno{font-weight:700;width:48px;}
   table.proom td.meta{width:120px;color:#333;}
-  @media print{
-    header,#statsbar,#main,#warnpanel,#printprev,#modal,#dlgbg{display:none !important;}
-    #printarea{display:block;}
-    .pgroup{page-break-after:always;}
-    @page{size:A4 portrait;margin:12mm;}
-  }
+  table.proom td.num{width:34px;text-align:center;}
+  table.proom td.dt{width:64px;white-space:nowrap;color:#333;}
   /* print preview modal — shows the built #printarea content before the OS print/PDF dialog */
   #printprev{position:fixed;inset:0;background:rgba(20,28,38,.5);z-index:480;display:flex;align-items:center;justify-content:center;padding:16px;}
   #printprev .pp-box{background:#fff;border-radius:14px;width:100%;max-width:860px;max-height:92vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 18px 50px rgba(20,30,45,.3);}
@@ -624,14 +646,40 @@
   #printprev .pp-x{margin-left:auto;cursor:pointer;font-size:20px;line-height:1;background:none;border:none;color:var(--text-muted);padding:2px 4px;}
   #printprev .pp-x:hover{color:var(--text);}
   #printprev .pp-scroll{flex:1 1 auto;overflow:auto;min-height:0;background:#e9edf1;padding:20px;display:flex;justify-content:center;}
-  #printprev .psheet{background:#fff;width:100%;max-width:780px;padding:26px 30px;box-shadow:0 2px 12px rgba(0,0,0,.14);color:#111;height:max-content;}
-  #printprev .psheet .pgroup+.pgroup{margin-top:22px;border-top:2px dashed #c4ccd4;padding-top:18px;}
+  /* paginated A4 page cards, stacked vertically with a gap + page number between each (PAGE_W/PAGE_H mirror paginatePrint()) */
+  #printprev .ppages{display:flex;flex-direction:column;align-items:center;gap:22px;color:#111;}
+  #printprev .ppage-wrap{display:flex;flex-direction:column;align-items:stretch;gap:6px;}
+  #printprev .pp-num{font-size:11px;color:var(--text-muted);text-align:center;}
+  #printprev .ppage{background:#fff;width:794px;min-height:1123px;box-sizing:border-box;box-shadow:0 2px 14px rgba(0,0,0,.18);}
+  #printprev .ppbody{padding:45px;}
   #printprev .pp-foot{flex:none;padding:14px 20px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end;}
   #printprev .pp-foot button{padding:9px 18px;min-height:44px;border-radius:8px;font-weight:600;}
   #printprev .pp-foot .alt{background:var(--bg);color:var(--text2);border:1px solid var(--border);}
   #printprev .pp-foot .alt:hover{background:#e3e8ef;}
   #printprev .pp-foot .pp-go{background:var(--primary);color:#fff;}
   #printprev .pp-foot .pp-go:hover{background:var(--primary-hover);}
+  /* mobile: go full-bleed and scale the A4 sheet to fit the screen (zoom set by fitPrintPrev) so the
+     preview keeps true print proportions instead of cramming the table into the phone width. */
+  @media (max-width:640px){
+    #printprev{padding:0;}
+    #printprev .pp-box{max-width:none;max-height:100vh;max-height:100dvh;border-radius:0;}
+    #printprev .pp-scroll{padding:8px;}
+  }
+  /* print: render the paginated preview pages themselves (each .ppage = one A4 page) so the PDF matches the
+     preview exactly. MUST stay after the base #printprev rules so these overrides win on source order. */
+  @media print{
+    header,#statsbar,#main,#warnpanel,#modal,#dlgbg{display:none !important;}
+    #printprev{position:static;display:block !important;background:none;padding:0;}
+    #printprev .pp-box{box-shadow:none;border-radius:0;max-width:none;max-height:none;overflow:visible;}
+    #printprev .pp-head,#printprev .pp-foot,#printprev .pp-num{display:none !important;}
+    #printprev .pp-scroll{overflow:visible;background:none;padding:0;display:block;}
+    #printprev .ppages{display:block;zoom:1 !important;gap:0;}
+    #printprev .ppage-wrap{display:block;}
+    #printprev .ppage{box-shadow:none;width:auto;min-height:0;page-break-after:always;break-after:page;}
+    #printprev .ppage-wrap:last-child .ppage{page-break-after:auto;break-after:auto;}
+    #printprev .ppbody{padding:0;}                /* @page margin supplies the page margin */
+    @page{size:A4 portrait;margin:12mm;}
+  }
 </style>
 </head>
 <body>
@@ -745,7 +793,7 @@
 <div id="printprev" style="display:none">
   <div class="pp-box">
     <div class="pp-head">인쇄 미리보기 <span class="pp-sub">방 배치표 · A4 세로</span><button class="pp-x" onclick="closePrintPrev()" aria-label="닫기">×</button></div>
-    <div class="pp-scroll"><div class="psheet" id="ppBody"></div></div>
+    <div class="pp-scroll"><div class="ppages" id="ppBody"></div></div>
     <div class="pp-foot"><button class="alt" onclick="closePrintPrev()">취소</button><button class="pp-go" onclick="window.print()">인쇄 / PDF</button></div>
   </div>
 </div>
@@ -788,7 +836,7 @@
 "use strict";
 // ⚑ index.html build version — shown bottom-right on the start screen. BUMP ON EACH DEPLOY.
 //   Format: vYYYY.MM.DD-N  (N = same-day build counter; reset to 1 on a new date).
-const APP_VERSION = "v2026.06.02-1";
+const APP_VERSION = "v2026.06.02-6";
 /* ============================================================
    ICMDA 2026 Room Assignment Dashboard (single file)
    - reads the live master .xlsx (columns mapped by HEADER NAME)
@@ -1076,7 +1124,7 @@ function headerMap(aoa){           // row index 1 (2nd row) holds headers
 
 /* ---------- load master ---------- */
 function loadMaster(arrbuf){
-  const wb = XLSX.read(arrbuf,{type:"array",cellFormula:true});   // styles not consumed (raw:true read; export discards them)
+  const wb = XLSX.read(arrbuf,{type:"array",cellFormula:true});   // values only; export edits the original bytes surgically (see exportMaster) so styles survive
   const pSheet = wb.Sheets["참가자"], rSheet = wb.Sheets["객실"];
   if(!pSheet||!rSheet){ toast("'참가자' 또는 '객실' 탭을 찾을 수 없습니다.","err",6000); return; }
   const pA = XLSX.utils.sheet_to_json(pSheet,{header:1,raw:true,defval:null});
@@ -1324,7 +1372,7 @@ function render(){
     renderStats(issues);
     const tl = state.view==="timeline";
     $("#main").style.display = tl?"none":"flex";
-    $("#warnpanel").style.display = tl?"none":"block";
+    $("#warnpanel").style.display = "block";            // 점검 결과 panel stays visible in both views
     $("#timeline").style.display = tl?"flex":"none";   // flex column (gantt/cards fill remaining height)
     $("#tabRooms").classList.toggle("active",!tl);
     $("#tabTimeline").classList.toggle("active",tl);
@@ -1333,7 +1381,8 @@ function render(){
     $("#tabRooms").setAttribute("role","tab");     $("#tabRooms").setAttribute("aria-selected",String(!tl));
     $("#tabTimeline").setAttribute("role","tab");  $("#tabTimeline").setAttribute("aria-selected",String(tl));
     if(tl){ renderTimeline(); }
-    else { renderPool(); renderVenues(); renderWarnings(issues); }
+    else { renderPool(); renderVenues(); }
+    renderWarnings(issues);                            // panel shows in both rooms + timeline views
     $("#venues").classList.toggle("picking", !tl && !!state.pick);
     syncTop();
   } finally { _occ=null; }         // snapshot is valid only for this synchronous pass
@@ -1739,11 +1788,13 @@ function applyColW(){
   tl.style.setProperty("--c2", (w[0]+w[1])+"px");
 }
 function syncTop(){                                   // keep panels sized to the space below header/statsbar at any width
-  const h=document.querySelector("header"), sb=$("#statsbar"), th=$("#tlhead");
+  const h=document.querySelector("header"), sb=$("#statsbar"), th=$("#tlhead"), wp=$("#warnpanel");
   const hh=h?h.offsetHeight:52, sbh=sb?sb.offsetHeight:0, thh=th?th.offsetHeight:0;   // read all heights before any write (no layout thrash)
+  const wph=(wp&&wp.offsetParent!==null)?wp.offsetHeight:0;   // 점검 결과 panel height → carve room below the timeline so it stays on-screen
   const ds=document.documentElement.style;
   ds.setProperty("--headerh",hh+"px");              // pool sticky offset (rooms view)
   ds.setProperty("--topoff",(hh+sbh)+"px");         // timeline panel height
+  ds.setProperty("--warnh",wph+"px");               // subtracted from #timeline height (both views show the panel)
   if(thh) ds.setProperty("--tlheadh",thh+"px");     // only when the timeline header is visible (matches prior guard)
   applyColW();   // re-evaluate the night-track floor for the new width
 }
@@ -1876,14 +1927,13 @@ function tlCard(p,n){
   const top=el("div","top");
   const cb=el("span","cat",ci.ab); cb.style.background=ci.c;
   const nm0=el("span","nm"); nm0.innerHTML=esc(p.name)+(p.hc>1?` ${ico('users')}${p.hc}`:""); top.append(cb, nm0);
+  // meta pills (hotel · room · stay) sit inline on the header row, right after the name
+  top.append(el("span","pill",ri.vshort), el("span","pill",ri.rno),
+             el("span","pill", p.stay?`${stayNights(p)}박 ${p.arr}~${p.dep}`:"숙박 없음"));
   if(state.dups&&state.dups.has(p.id)){ const d=el("span","dupflag"); d.innerHTML=ico('alert');
     d.title="중복 의심 — 동일 이름/이메일"; top.append(d); }
   top.append(el("span","idc",p.id));
   card.append(top);
-  const meta=el("div","meta");
-  meta.append(el("span","pill",ri.vshort), el("span","pill",ri.rno),
-              el("span","pill", p.stay?`${stayNights(p)}박 ${p.arr}~${p.dep}`:"숙박 없음"));
-  card.append(meta);
   if(p.stay){                                       // mini stay bar mirroring the gantt
     const tr=el("div","staytrack"); const seg=el("div","seg"); seg.style.background=ci.c;
     seg.style.left=`calc(${p.stay.s}/${n}*100%)`; seg.style.width=`calc(${stayNights(p)}/${n}*100%)`;
@@ -2328,37 +2378,105 @@ function bumpMasterName(name){
   return m ? `${m[1]}v${(+m[2])+1}.xlsx` : `${stem} v2.xlsx`;
 }
 function xCell(ws,r,c){ const x=ws[XLSX.utils.encode_cell({r,c})]; return x?x.v:null; }
-function xSet(ws,r,c,v,t){
-  const addr=XLSX.utils.encode_cell({r,c});
-  if(v===""||v==null){ delete ws[addr]; return; }
-  ws[addr]={t:t||(typeof v==="number"?"n":"s"),v};
+// ---- surgical .xlsx writer ----
+// SheetJS (community) drops every fill/font/color/border on write. So instead of round-tripping the
+// workbook through SheetJS, we unzip the ORIGINAL bytes, edit only the changed cells in the worksheet
+// XML, and rezip. Everything we don't touch (styles, formulas, comments, other sheets) stays byte-for-byte.
+const XLNS="http://schemas.openxmlformats.org/spreadsheetml/2006/main";
+function xlsxSheetPaths(files){                 // sheet name -> "xl/worksheets/sheetN.xml"
+  const td=new TextDecoder(), dp=new DOMParser();
+  const wbx=dp.parseFromString(td.decode(files["xl/workbook.xml"]),"application/xml");
+  const rels=dp.parseFromString(td.decode(files["xl/_rels/workbook.xml.rels"]),"application/xml");
+  const RNS="http://schemas.openxmlformats.org/officeDocument/2006/relationships";
+  const tgt={}; Array.from(rels.getElementsByTagName("Relationship")).forEach(r=>{ tgt[r.getAttribute("Id")]=r.getAttribute("Target"); });
+  const out={};
+  Array.from(wbx.getElementsByTagName("sheet")).forEach(s=>{
+    const id=s.getAttribute("r:id")||s.getAttributeNS(RNS,"id");
+    let t=tgt[id]||""; t=(t.charAt(0)==="/")?t.slice(1):"xl/"+t;   // Target may be absolute ("/xl/..") or relative ("worksheets/..")
+    out[s.getAttribute("name")]=t;
+  });
+  return out;
+}
+// editor over one parsed worksheet DOM: set(row,col,value[,type[,styleFromCol]]) — rows/cols are 0-based (SheetJS indices)
+function sheetWriter(doc,path){
+  const XNS="http://www.w3.org/XML/1998/namespace";
+  const sd=doc.getElementsByTagName("sheetData")[0];
+  if(!sd) throw new Error("worksheet XML 형식이 올바르지 않습니다: "+path);
+  const rows={}; Array.from(sd.getElementsByTagName("row")).forEach(e=>{ rows[+e.getAttribute("r")]=e; });
+  const rowOf=(ri,make)=>{
+    const rn=ri+1; let e=rows[rn]; if(e||!make) return e||null;
+    e=doc.createElementNS(XLNS,"row"); e.setAttribute("r",String(rn));
+    let nx=null; for(const x of Array.from(sd.children)){ if(+x.getAttribute("r")>rn){ nx=x; break; } }
+    sd.insertBefore(e,nx); rows[rn]=e; return e;
+  };
+  const cellOf=(ri,ci,make)=>{
+    const ref=XLSX.utils.encode_cell({r:ri,c:ci}), re=rowOf(ri,make); if(!re) return null;
+    for(const x of Array.from(re.children)){ if(x.getAttribute("r")===ref) return x; }
+    if(!make) return null;
+    const e=doc.createElementNS(XLNS,"c"); e.setAttribute("r",ref);
+    let nx=null; for(const x of Array.from(re.children)){ if(XLSX.utils.decode_cell(x.getAttribute("r")).c>ci){ nx=x; break; } }   // keep cells in column order
+    re.insertBefore(e,nx); return e;
+  };
+  const clear=e=>{ while(e.firstChild) e.removeChild(e.firstChild); };
+  const set=(ri,ci,v,t,styleFrom)=>{
+    if(v===""||v==null){ const e=cellOf(ri,ci,false); if(e){ clear(e); e.removeAttribute("t"); } return; }   // blank: keep the styled cell shell, drop value/formula
+    const e=cellOf(ri,ci,true); clear(e);
+    if(styleFrom!=null && e.getAttribute("s")==null){   // new column inherits the nearest styled cell to its left (trailing cols can be sparse/styleless)
+      for(let sc=styleFrom; sc>=0; sc--){ const src=cellOf(ri,sc,false), s=src&&src.getAttribute("s"); if(s!=null){ e.setAttribute("s",s); break; } }
+    }
+    if(t==="n"||(t==null&&typeof v==="number")){ e.setAttribute("t","n"); const ve=doc.createElementNS(XLNS,"v"); ve.textContent=String(v); e.appendChild(ve); }
+    else{
+      e.setAttribute("t","inlineStr");
+      const is=doc.createElementNS(XLNS,"is"), te=doc.createElementNS(XLNS,"t"), sv=String(v);
+      if(/^\s|\s$/.test(sv)) te.setAttributeNS(XNS,"xml:space","preserve");
+      te.appendChild(doc.createTextNode(sv)); is.appendChild(te); e.appendChild(is);
+    }
+  };
+  const setDim=(lastC,lastR)=>{ const d=doc.getElementsByTagName("dimension")[0]; if(d) d.setAttribute("ref",XLSX.utils.encode_range({s:{r:0,c:0},e:{r:lastR,c:lastC}})); };
+  return {doc,path,set,setDim};
+}
+function downloadBytes(bytes,name,mime){
+  const url=URL.createObjectURL(new Blob([bytes],{type:mime||"application/octet-stream"}));
+  const a=document.createElement("a"); a.href=url; a.download=name; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),1500);
 }
 function exportMaster(){
   if(!state.masterBuf){ toast("먼저 ① 마스터 파일을 여세요.","warn"); return; }
-  const wb=XLSX.read(state.masterBuf,{type:"array",cellFormula:true});  // fresh copy from original (cellFormula kept to round-trip 도착일/출발일/숙박일수/총인원)
+  const wb=XLSX.read(state.masterBuf,{type:"array",cellFormula:true});  // read VALUES only (for comparisons/range) — writes go through the surgical editor below
   const ws=wb.Sheets["참가자"]; const H=state.pH; const HR=1;     // header row = 2nd row
   const range=XLSX.utils.decode_range(ws['!ref']);
   const origEndC=range.e.c;                 // last original column (before we append room-detail cols)
   // add room-detail columns at the right
   let c=range.e.c+1; const NC={동:c++,층:c++,호실:c++,객실ID:c++};
-  xSet(ws,HR,NC.동,"배정동"); xSet(ws,HR,NC.층,"배정층"); xSet(ws,HR,NC.호실,"배정호실"); xSet(ws,HR,NC.객실ID,"배정객실ID");
+  // open the ORIGINAL bytes as a zip and edit cells in place → all fills/fonts/colors/borders/formulas/other sheets preserved
+  const files=fflate.unzipSync(new Uint8Array(state.masterBuf));
+  const paths=xlsxSheetPaths(files), writers={};
+  const writerFor=name=>{
+    if(writers[name]) return writers[name];
+    const path=paths[name]; if(!path||!files[path]) throw new Error(`'${name}' 시트 XML을 찾을 수 없습니다.`);
+    return writers[name]=sheetWriter(new DOMParser().parseFromString(new TextDecoder().decode(files[path]),"application/xml"),path);
+  };
+  const P=writerFor("참가자");
+  const set=(r,cc,v,t)=>P.set(r,cc,v,t);
+  const setNC=(r,cc,v)=>P.set(r,cc,v,null,origEndC);     // new columns inherit the same-row last-original-column style
+  setNC(HR,NC.동,"배정동"); setNC(HR,NC.층,"배정층"); setNC(HR,NC.호실,"배정호실"); setNC(HR,NC.객실ID,"배정객실ID");
   const nrm=v=>v==null?"":String(v).trim();
   const offN=state.nightCols.indexOf("6월29일");
   let changed=0; const beyond=[];
   state.parties.forEach(p=>{
     const r=p._row, ed=p._edits||new Set();
     // detail fields — write only what the user edited in the modal
-    Object.entries(FIELD_HDR).forEach(([k,h])=>{ if(ed.has(h)&&H[h]!=null){ xSet(ws,r,H[h],nrm(p[k])); changed++; } });
-    ["본인","배우자","자녀","기타"].forEach(k=>{ if(ed.has(k)&&H[k]!=null){ xSet(ws,r,H[k],p.party[k]||0,"n"); changed++; } });
+    Object.entries(FIELD_HDR).forEach(([k,h])=>{ if(ed.has(h)&&H[h]!=null){ set(r,H[h],nrm(p[k])); changed++; } });
+    ["본인","배우자","자녀","기타"].forEach(k=>{ if(ed.has(k)&&H[k]!=null){ set(r,H[k],p.party[k]||0,"n"); changed++; } });
     // assignment → 배정숙소 (venue) + room-detail columns
     const a=state.assign[p.id];
     if(a){
       const ven=partyVenue(p);
-      if(H["배정숙소"]!=null && nrm(ven)!==nrm(xCell(ws,r,H["배정숙소"]))){ xSet(ws,r,H["배정숙소"],ven); changed++; }
+      if(H["배정숙소"]!=null && nrm(ven)!==nrm(xCell(ws,r,H["배정숙소"]))){ set(r,H["배정숙소"],ven); changed++; }
       let bd="",fl="",rn="",rid="";
       if(a==="BOOY"){ rid="개별예약(부영호텔)"; }
       else if(state.roomById[a]){ const rm=state.roomById[a]; bd=rm.bldg||""; fl=rm.floor||""; rn=rm.rno||rm.id; rid=rm.id; }
-      xSet(ws,r,NC.동,bd); xSet(ws,r,NC.층,fl); xSet(ws,r,NC.호실,rn); xSet(ws,r,NC.객실ID,rid);
+      setNC(r,NC.동,bd); setNC(r,NC.층,fl); setNC(r,NC.호실,rn); setNC(r,NC.객실ID,rid);
     }
     // stay → night columns (surgical: only if span changed). 도착일/출발일/숙박일수 are formulas → untouched.
     const os=p._os, ns=p.stay;
@@ -2366,7 +2484,7 @@ function exportMaster(){
     if(stayChanged){
       state.nightIdx.forEach((o,k)=>{
         let mark=""; if(ns&&k>=ns.s&&k<=ns.e) mark=(offN>=0&&k<offN)?"✓*":"✓";
-        xSet(ws,r,o.i,mark);
+        set(r,o.i,mark);
       });
       if(ns&&ns.e>=state.nightCols.length) beyond.push(`${p.name}(${p.id})`);
       changed++;
@@ -2376,29 +2494,33 @@ function exportMaster(){
   let delCount=0;
   if(state.deletedRows && state.deletedRows.length){
     [...new Set(state.deletedRows)].forEach(r=>{
-      for(let cc=range.s.c; cc<=origEndC; cc++) xSet(ws,r,cc,"");
+      for(let cc=range.s.c; cc<=origEndC; cc++) set(r,cc,"");
       delCount++; changed++;
     });
   }
-  range.e.c=Math.max(range.e.c,NC.객실ID); ws['!ref']=XLSX.utils.encode_range(range);
+  P.setDim(Math.max(range.e.c,NC.객실ID), range.e.r);     // extend the sheet dimension to cover the new columns
   // write edited room capacities back to the '객실' tab (추가인원·총가능인원). Surgical: only changed rooms.
-  let capChanged=0; const rws=wb.Sheets["객실"], RH=state.rH;
-  if(rws && RH){
+  let capChanged=0; const RH=state.rH;
+  if(RH){
+    const R=writerFor("객실");
     state.rooms.forEach(rm=>{
       if(rm._row==null || (rm.ext===rm._oext && rm.total===rm._ototal)) return;
-      if(RH["추가인원"]!=null) xSet(rws,rm._row,RH["추가인원"],rm.ext,"n");
-      if(RH["총가능인원"]!=null) xSet(rws,rm._row,RH["총가능인원"],rm.total,"n");
+      if(RH["추가인원"]!=null) R.set(rm._row,RH["추가인원"],rm.ext,"n");
+      if(RH["총가능인원"]!=null) R.set(rm._row,RH["총가능인원"],rm.total,"n");
       capChanged++;
     });
     changed+=capChanged;
   }
+  // serialize edited sheets back into the zip (untouched entries pass through byte-for-byte) and download
+  const decl='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\r\n', te=new TextEncoder(), xs=new XMLSerializer();
+  Object.values(writers).forEach(w=>{ files[w.path]=te.encode(decl+xs.serializeToString(w.doc.documentElement)); });
   const outName=bumpMasterName(state.masterName);
-  XLSX.writeFile(wb,outName);
+  downloadBytes(fflate.zipSync(files,{level:6}),outName,"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
   let msg=`'${outName}' 저장 완료 — 변경 ${changed}건.\n· 배정동/배정층/배정호실/배정객실ID 열을 추가했습니다.\n· 총인원·도착일·출발일·숙박일수는 수식이라 그대로 두었습니다.`;
   if(capChanged) msg+=`\n· 객실 수용(추가인원·총가능인원) ${capChanged}건을 '객실' 탭에 반영했습니다.`;
   if(delCount) msg+=`\n· 삭제한 기록 ${delCount}건의 행을 '참가자' 탭에서 비웠습니다.`;
   if(beyond.length) msg+=`\n\n마스터 박 범위를 벗어난 연장 숙박은 기록할 칸이 없어 누락: ${beyond.join(", ")}`;
-  msg+=`\n\n※ 버전 규칙: 이전 파일은 history/ 폴더로 옮기고 기록하세요(브라우저에서 자동 이동 불가). 셀 서식/색상은 보존되지 않을 수 있습니다.`;
+  msg+=`\n\n※ 원본 .xlsx의 셀 서식·색상·테두리·수식은 그대로 보존됩니다(변경한 칸만 다시 씁니다). 버전 규칙: 이전 파일은 history/ 폴더로 옮기고 기록하세요(브라우저에서 자동 이동 불가).`;
   toast(`마스터 업데이트 완료 — '${outName}' (변경 ${changed}건)`,"ok",5000);
   dialog({title:"마스터 업데이트 완료", body:msg});   // detail (version rule + any warnings) in a dismissible dialog
 }
@@ -2419,16 +2541,27 @@ function buildPrint(){
     Object.keys(groups).sort().forEach(gk=>{
       g.append(el("h3",null,gk));
       const t=el("table","proom");
-      t.innerHTML="<tr><th>호실</th><th>유형 / 성별</th><th>정원</th><th>점유</th><th>투숙자 (인원 · 도착~출발)</th></tr>";
+      t.innerHTML="<tr><th>호실</th><th>유형 / 성별</th><th>정원</th><th>점유</th><th>투숙자</th><th>도착</th><th>출발</th></tr>";
       groups[gk].sort((a,b)=>(a.rno||"").localeCompare(b.rno||"",undefined,{numeric:true})).forEach(r=>{
         const occ=roomOccupants(r.key);
-        const tr=el("tr");
-        tr.append(el("td","rno",r.rno||r.id));
-        tr.append(el("td","meta",`${r.type||""}${r.gender?" / "+r.gender:""}${r.ondol?" / 온돌":""}`));
-        tr.append(el("td",null,String(r.total)));
-        tr.append(el("td",null,String(roomLoad(r.key))));
-        tr.append(el("td",null, occ.map(o=>`${o.name}${o.hc>1?`(${o.hc})`:""}${o.arr?` [${o.arr}~${o.dep}]`:""}`).join(" · ")||"—"));
-        t.append(tr);
+        const span=Math.max(occ.length,1);           // room cells merge down across one row per occupant
+        const meta=`${r.type||""}${r.gender?" / "+r.gender:""}${r.ondol?" / 온돌":""}`;
+        const head=()=>{                              // 호실/유형/정원/점유 — emitted once, rowspan=span
+          const c1=el("td","rno",r.rno||r.id), c2=el("td","meta",meta),
+                c3=el("td","num",String(r.total)), c4=el("td","num",String(roomLoad(r.key)));
+          [c1,c2,c3,c4].forEach(c=>c.rowSpan=span); return [c1,c2,c3,c4];
+        };
+        if(!occ.length){                              // empty room → single placeholder row
+          const tr=el("tr"); tr.append(...head(), el("td","occ","—"), el("td","dt",""), el("td","dt",""));
+          t.append(tr);
+        } else occ.forEach((o,i)=>{
+          const tr=el("tr");
+          if(i===0) tr.append(...head());             // room cells span the whole block, only on first row
+          tr.append(el("td","occ",`${o.name}${o.hc>1?`(${o.hc})`:""}`));
+          tr.append(el("td","dt",o.arr||""));
+          tr.append(el("td","dt",o.dep||""));
+          t.append(tr);
+        });
       });
       g.append(t);
     });
@@ -2438,9 +2571,9 @@ function buildPrint(){
   const booy=state.parties.filter(p=>state.assign[p.id]==="BOOY");
   if(booy.length){
     const g=el("div","pgroup"); g.append(el("h2",null,`${VEN.BOOY} (개별 예약 · ${booy.reduce((s,p)=>s+p.hc,0)}명)`));
-    const t=el("table","proom"); t.innerHTML="<tr><th>이름</th><th>인원</th><th>도착~출발</th><th>비고</th></tr>";
+    const t=el("table","proom"); t.innerHTML="<tr><th>이름</th><th>인원</th><th>도착</th><th>출발</th><th>비고</th></tr>";
     booy.sort((a,b)=>a.name.localeCompare(b.name)).forEach(p=>{
-      const tr=el("tr"); tr.append(el("td",null,p.name),el("td",null,String(p.hc)),el("td",null,`${p.arr}~${p.dep}`),el("td",null,p.note||""));
+      const tr=el("tr"); tr.append(el("td",null,p.name),el("td","num",String(p.hc)),el("td","dt",p.arr||""),el("td","dt",p.dep||""),el("td",null,p.note||""));
       t.append(tr);
     });
     g.append(t); pa.append(g);
@@ -2483,8 +2616,67 @@ function confirmMaster(){
     onOk:()=>withLoading("마스터 내보내는 중…",exportMaster)});
 }
 function doPrint(){ buildPrint(); openPrintPrev(); }
-function openPrintPrev(){ $("#ppBody").innerHTML=$("#printarea").innerHTML; $("#printprev").style.display="flex"; }   // clone built content for on-screen preview
+function openPrintPrev(){ paginatePrint(); $("#printprev").style.display="flex"; fitPrintPrev(); }
 function closePrintPrev(){ $("#printprev").style.display="none"; }
+// Split the built #printarea flow into A4-sized page cards (.ppage) stacked in #ppBody. The SAME pages
+// are printed (each .ppage = one physical page), so the preview's page splits match the printed PDF.
+function paginatePrint(){
+  const PAGE_W=794, PAGE_H=1123, PAD=45;                   // A4 @96dpi + ~12mm margin (mirror the CSS .ppage/.ppbody)
+  const CONTENT_H=PAGE_H-2*PAD-8, CONTENT_W=PAGE_W-2*PAD;  // -8 safety so a page never overruns onto a 2nd printed page
+  const dst=$("#ppBody"); dst.innerHTML=""; dst.style.zoom="";
+  // hidden measuring copy at the true content width (the global print styles apply to it)
+  const meas=el("div"); meas.style.cssText=`position:absolute;left:-99999px;top:0;width:${CONTENT_W}px;visibility:hidden;`;
+  meas.innerHTML=$("#printarea").innerHTML; document.body.append(meas);
+  const ht=n=>{ const cs=getComputedStyle(n); return n.getBoundingClientRect().height+parseFloat(cs.marginTop||0)+parseFloat(cs.marginBottom||0); };
+  const pages=[]; let cur=null;
+  const newPage=()=>{ const wrap=el("div","ppage-wrap"), num=el("div","pp-num"), page=el("div","ppage"), body=el("div","ppbody");
+    wrap.append(num,page); page.append(body); dst.append(wrap); cur={num,body,used:0}; pages.push(cur); };
+  const space=()=>CONTENT_H-cur.used;
+  const fresh=()=>el("table","proom");
+  // group a table's body rows into atomic blocks: a new block starts on any row that ISN'T an occupant
+  // continuation (continuations begin with td.occ). So room-head rows + standalone BOOY rows each open a block.
+  const groupRows=rows=>{ const b=[]; rows.forEach(r=>{ const f=r.firstElementChild;
+    if(!(f&&f.classList.contains("occ"))||!b.length) b.push({rows:[],h:0}); b[b.length-1].rows.push(r); });
+    b.forEach(g=>{ const a=g.rows[0].getBoundingClientRect(), z=g.rows[g.rows.length-1].getBoundingClientRect(); g.h=z.bottom-a.top; }); return b; };
+  const placeTableRows=(header, blocks, h3)=>{
+    const hh=ht(header); let t=fresh(); t.append(header.cloneNode(true)); cur.body.append(t); cur.used+=hh;
+    for(const blk of blocks){
+      if(space()<blk.h){ newPage();
+        if(h3){ const c=h3.cloneNode(true); c.textContent=h3.textContent+" (계속)"; cur.body.append(c); cur.used+=ht(h3); }
+        t=fresh(); t.append(header.cloneNode(true)); cur.body.append(t); cur.used+=hh;
+      }
+      blk.rows.forEach(r=>t.append(r.cloneNode(true))); cur.used+=blk.h;
+    }
+    cur.used+=6;                                           // table margin-bottom breathing room
+  };
+  const placeTable=(table, h3)=>{
+    const rows=[...table.rows], header=rows[0], blocks=groupRows(rows.slice(1));
+    const need=ht(header)+(blocks[0]?blocks[0].h:0)+(h3?ht(h3):0);
+    if(cur.used>0 && space()<need) newPage();
+    if(h3){ cur.body.append(h3.cloneNode(true)); cur.used+=ht(h3); }
+    placeTableRows(header, blocks, h3);
+  };
+  newPage();
+  [...meas.children].forEach((mg,gi)=>{                     // each .pgroup (hotel section)
+    if(gi>0 && cur.used>0) newPage();                       // each hotel starts on a fresh page (matches the old page-break)
+    const kids=[...mg.children];
+    for(let i=0;i<kids.length;i++){ const node=kids[i];
+      if(node.tagName==="H2"){ const h=ht(node); if(cur.used>0 && space()<h+40) newPage(); cur.body.append(node.cloneNode(true)); cur.used+=h; }
+      else if(node.tagName==="H3"){ placeTable(kids[i+1], node); i++; }   // h3 + its table
+      else if(node.tagName==="TABLE"){ placeTable(node, null); }          // BOOY: h2 then bare table
+    }
+  });
+  meas.remove();
+  const total=pages.length; pages.forEach((p,i)=>{ p.num.textContent=`${i+1} / ${total} 쪽`; });
+}
+// scale the fixed-width A4 page stack down to fit the scroller width (never up); vertical scroll handles the rest
+function fitPrintPrev(){
+  const pages=$("#ppBody"); if(!pages) return;
+  const scroll=pages.parentElement, cs=getComputedStyle(scroll);
+  const avail=scroll.clientWidth-parseFloat(cs.paddingLeft||0)-parseFloat(cs.paddingRight||0);
+  pages.style.zoom=Math.max(.1,Math.min(1,avail/794));     // 794 = PAGE_W in paginatePrint()/CSS
+}
+window.addEventListener("resize",()=>{ if($("#printprev").style.display!=="none") fitPrintPrev(); });   // re-fit on rotate/resize while open
 $("#printprev").addEventListener("click",e=>{ if(e.target.id==="printprev") closePrintPrev(); });   // tap backdrop = close
 function onMasterFile(e){ const f=e.target.files[0]; if(f) loadFile(f); e.target.value=""; }  // allow re-picking the same file
 function loadFile(f){
