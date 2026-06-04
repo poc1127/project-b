@@ -73,6 +73,10 @@
   .floorgrp h3{font-size:12px;color:#555;margin:8px 2px 4px;border-bottom:1px dashed #ddd;}
   .rooms{display:grid;grid-template-columns:repeat(auto-fill,minmax(185px,1fr));gap:8px;}
   .room{border:1px solid var(--line);border-radius:8px;padding:5px 6px;background:#fafafa;min-height:62px;}
+  /* 부영호텔(NOC) individual list: a flat 29-name roster — flow chips into a responsive multi-column grid instead of one tall column */
+  .room.booylist{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:3px 8px;align-content:start;}
+  .room.booylist .rhdr{grid-column:1/-1;}
+  .room.booylist .chip{margin:0;}
   .room.over{border-color:var(--warn);background:#fff5f5;}
   .room.locked{background:#fff7df;border-color:#e6cf8a;}
   .room.locked.over{background:#fbeed0;border-color:var(--warn);}   /* over-capacity warning border still wins when a locked room is overfull */
@@ -193,10 +197,10 @@
   #tlhead,.tlrow{display:grid;grid-template-columns:var(--tlcols,56px 58px 150px 78px 84px 52px minmax(260px,1fr));align-items:center;}
   #tlhead{position:sticky;top:0;background:var(--bg);z-index:10;border-bottom:2px solid #bbb;font-size:10px;font-weight:700;}
   .tlrow .idc{font-family:ui-monospace,Consolas,monospace;font-size:10px;color:#667;padding:0 5px;text-align:center;white-space:nowrap;overflow:hidden;border-right:1px solid #eee;}
-  .tlrow .catc{padding:0 4px;text-align:center;overflow:hidden;border-right:1px solid #eee;white-space:nowrap;}
-  .tlrow .venc{padding:0 4px;text-align:center;overflow:hidden;border-right:1px solid #eee;white-space:nowrap;}
-  .tlrow .roomc{padding:0 4px;text-align:center;overflow:hidden;border-right:1px solid #eee;white-space:nowrap;}
-  .tlrow .capc{padding:0 4px;text-align:center;border-right:1px solid #eee;white-space:nowrap;}
+  .tlrow .catc{padding:0 4px;overflow:hidden;border-right:1px solid #eee;white-space:nowrap;display:flex;align-items:center;justify-content:center;}
+  .tlrow .venc{padding:0 4px;overflow:hidden;border-right:1px solid #eee;white-space:nowrap;display:flex;align-items:center;justify-content:center;}
+  .tlrow .roomc{padding:0 4px;overflow:hidden;border-right:1px solid #eee;white-space:nowrap;display:flex;align-items:center;justify-content:center;}
+  .tlrow .capc{padding:0 4px;border-right:1px solid #eee;white-space:nowrap;display:flex;align-items:center;justify-content:center;}
   .tlrow .pill{display:inline-block;vertical-align:middle;height:16px;line-height:16px;font-size:10px;font-weight:700;padding:0 8px;border-radius:999px;max-width:100%;overflow:hidden;text-overflow:ellipsis;}
   /* informational pills are quiet/neutral — colour is reserved for status (warn/ok/dup/over) */
   .tlrow .pill.ven{background:#eef0f2;color:#5a6470;font-weight:600;}
@@ -236,7 +240,7 @@
   .tlgroup:hover .ghint{opacity:.95;}
   .tlgroup.byytc{background:var(--byytc);} .tlgroup.youus{background:var(--youus);}
   .tlgroup.booyoung{background:var(--booyoung);} .tlgroup.unassigned{background:#e9e9ec;color:#666;}
-  .tlrow{border-bottom:1px solid #e8e8ec;transition:opacity .12s ease;}
+  .tlrow{border-bottom:1px solid #e8e8ec;transition:opacity .12s ease;align-items:stretch;}   /* cells fill the full row height so the zebra fill + dup marker reach top/bottom (no stray padding) */
   .tlrow.alt{background:#f6f7f9;}                 /* soft, neutral zebra — subtle so the table reads clean */
   .tlrow:hover{background:#f3f7fb;}
   /* frozen pane — ID·분류·이름 stay pinned to the left while the night axis scrolls */
@@ -911,7 +915,7 @@
 "use strict";
 // ⚑ index.html build version — shown bottom-right on the start screen. BUMP ON EACH DEPLOY.
 //   Format: vYYYY.MM.DD-N  (N = same-day build counter; reset to 1 on a new date).
-const APP_VERSION = "v2026.06.04-20";
+const APP_VERSION = "v2026.06.04-22";
 /* ============================================================
    ICMDA 2026 Room Assignment Dashboard (single file)
    - reads the live master .xlsx (columns mapped by HEADER NAME)
@@ -1776,7 +1780,7 @@ function renderVenues(){
       venueHeader(div,vId,`${hotel} <span class="cap">· 외부 예약(NOC) · ${occ.reduce((s,p)=>s+p.hc,0)}명</span>`);
       jumps.push({label:`▸ ${venShort(hotel)}`, id:vId});
       const wrap=el("div","floorgrp"); const rm=el("div","rooms");
-      const box=el("div","room"); box.style.minWidth="100%";
+      const box=el("div","room booylist"); box.style.minWidth="100%";
       const hd=el("div","rhdr"); hd.innerHTML=`<span class="rno">개별 예약 (부영 리조트)</span><span class="capbadge">${occ.reduce((s,p)=>s+p.hc,0)}명</span>`;
       box.append(hd);
       occ.forEach(p=>box.append(chip(p)));
