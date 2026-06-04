@@ -273,6 +273,8 @@
   .card .chead .sub{margin-top:3px;opacity:.92;font-size:12px;font-weight:500;}
   .card .cedit{cursor:pointer;font-size:12px;font-weight:700;color:#fff;background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.55);border-radius:8px;padding:6px 13px;white-space:nowrap;flex:none;}
   .card .cedit:hover{background:rgba(255,255,255,.34);}
+  .card .cunassign{background:rgba(0,0,0,.16);border-color:rgba(255,255,255,.45);}
+  .card .cunassign:hover{background:rgba(0,0,0,.28);}
   .card .cx{cursor:pointer;font-size:20px;line-height:1;background:none;border:none;color:#fff;opacity:.85;padding:2px 4px;flex:none;}
   .card .cx:hover{opacity:1;}
   .card .cbody{padding:16px 22px 20px;display:grid;grid-template-columns:max-content 1fr;gap:10px 20px;font-size:13px;align-items:baseline;flex:1 1 auto;overflow:auto;min-height:0;}
@@ -885,7 +887,7 @@
 "use strict";
 // ⚑ index.html build version — shown bottom-right on the start screen. BUMP ON EACH DEPLOY.
 //   Format: vYYYY.MM.DD-N  (N = same-day build counter; reset to 1 on a new date).
-const APP_VERSION = "v2026.06.04-1";
+const APP_VERSION = "v2026.06.04-2";
 /* ============================================================
    ICMDA 2026 Room Assignment Dashboard (single file)
    - reads the live master .xlsx (columns mapped by HEADER NAME)
@@ -1570,11 +1572,9 @@ function chip(p){
   // The single action is deferred briefly so a 2nd click can cancel it (otherwise render() would
   // destroy the chip on the 1st click and the dblclick could never fire).
   const single=()=>{
-    if(state.assign[p.id]){ delete state.assign[p.id]; state.pick=null; render(); announceAssign(`${p.name} 미배정으로 이동`); }   // assigned → back to 미배정
-    else {                                                                  // pool → pick up / cancel
-      const want=(state.pick===p.id?null:p.id);
-      setPick(want, want? `${p.name} 선택됨 — 방을 누르면 배정됩니다` : "선택 해제");
-    }
+    if(state.assign[p.id]) return;                                          // assigned chip: single click is non-destructive — 미배정은 상세 카드에서 (오작동 방지)
+    const want=(state.pick===p.id?null:p.id);                               // pool → pick up / cancel
+    setPick(want, want? `${p.name} 선택됨 — 방을 누르면 배정됩니다` : "선택 해제");
   };
   let ctimer=null;
   c.addEventListener("click",e=>{
@@ -1592,7 +1592,7 @@ function chip(p){
     else if(e.key==="F2"){ e.preventDefault(); openCard(p); }
   });
   if(state.assign[p.id]){
-    c.title=`${nm.title}\n클릭: 미배정으로 이동 · 더블클릭/길게 누르기: 상세`;
+    c.title=`${nm.title}\n더블클릭/길게 누르기: 상세 (미배정은 상세 카드의 '미배정으로 빼기')`;
   }else{
     if(state.pick===p.id) c.classList.add("picked");
     c.title=`${nm.title}\n클릭: 선택 후 방을 탭하여 배정 · 더블클릭/길게 누르기: 상세`;
@@ -2266,10 +2266,14 @@ function openCard(p){
     `<div class="chead" style="background:${ci.c}">
        <div class="htitle"><h2>${p.name||p.id}${p.kname?` <span style="font-weight:400">(${p.kname})</span>`:""}</h2>
        <div class="sub">${p.id} · ${p.cat||""}${p.team?" · "+p.team:""}${p.group?" · 묶음 "+p.group:""}</div></div>
+       ${a?`<button class="cedit cunassign" id="cardUnassignBtn">미배정으로 빼기</button>`:""}
        <button class="cedit" id="cardEditBtn">수정</button>
        <button class="cx" onclick="closeCard()">×</button>
      </div><div class="cbody">${body}</div>`;
   $("#cardEditBtn").onclick=()=>editCard(p);
+  const unb=$("#cardUnassignBtn");
+  if(unb) unb.onclick=()=>{ delete state.assign[p.id]; state.pick=null; closeCard(); render();
+    announceAssign(`${p.name||p.id} 미배정으로 이동`); toast(`${p.name||p.id} 미배정으로 이동`,"ok"); };
   $("#modal").style.display="flex";
 }
 function closeCard(){ $("#modal").style.display="none"; }
