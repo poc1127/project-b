@@ -80,6 +80,8 @@
   /* 일정 보기: read-only program timetable from the '일정' tab */
   #schedule{overflow:auto;padding:12px 16px;background:var(--bg);min-height:0;
             height:calc(100vh - var(--topoff,92px) - var(--warnh,0px));height:calc(100dvh - var(--topoff,92px) - var(--warnh,0px));}
+  .sched-bar{display:flex;align-items:center;gap:10px;margin:0 0 10px;}
+  .sched-bar .sched-hint{margin:0;}
   .sched-hint{font-size:12px;color:var(--text-faint);margin:0 0 10px;}
   .sched-title{font-size:16px;font-weight:800;color:var(--ink);margin:2px 0 10px;}
   .schedscroll{overflow:auto;border:1px solid var(--line);border-radius:8px;}
@@ -88,7 +90,7 @@
   [data-r][contenteditable]:hover{outline:1px dashed var(--line);outline-offset:-1px;}
   [data-r][contenteditable]:focus{outline:2px solid var(--primary);outline-offset:-2px;background:#fffef5;border-radius:2px;}
   table.schedtbl{border-collapse:collapse;width:100%;font-size:12px;background:#fff;}
-  table.schedtbl th,table.schedtbl td{border:1px solid var(--line);padding:5px 8px;vertical-align:top;text-align:center;line-height:1.35;}
+  table.schedtbl th,table.schedtbl td{border:1px solid var(--line);padding:2px 8px;vertical-align:middle;text-align:center;line-height:1.25;}
   table.schedtbl thead th{position:sticky;top:0;z-index:2;background:var(--ink);color:#fff;font-weight:700;white-space:pre-line;}
   table.schedtbl .timecol{background:#f3f5f8;font-weight:700;white-space:nowrap;color:var(--text);position:sticky;left:0;z-index:1;}
   table.schedtbl thead .timecol{z-index:3;}
@@ -939,7 +941,7 @@
 "use strict";
 // ⚑ index.html build version — shown bottom-right on the start screen. BUMP ON EACH DEPLOY.
 //   Format: vYYYY.MM.DD-N  (N = same-day build counter; reset to 1 on a new date).
-const APP_VERSION = "v2026.06.04-28";
+const APP_VERSION = "v2026.06.04-30";
 /* ============================================================
    ICMDA 2026 Room Assignment Dashboard (single file)
    - reads the live master .xlsx (columns mapped by HEADER NAME)
@@ -977,7 +979,9 @@ const state = {
   view: "rooms",   // "rooms" | "timeline" | "schedule"
   schedule: null,  // aoa from the '일정' tab (null if absent) → 일정 보기
   scheduleMerges: null,  // '일정' tab merged ranges (SheetJS !merges) → rowspan/colspan in 일정 보기
+  scheduleFills: null,   // '일정' tab per-cell fill colors {"r,c":"#hex"} read from the xlsx → program color-coding in 일정 보기
   scheduleDirty: null,  // Set of "r,c" cells edited in 일정 보기 → written back to the '일정' tab on 마스터 업데이트
+  scheduleEdit: false,  // 일정 보기 edit-lock: cells are read-only until the 수정 button unlocks them
   tlFilter: {q:"", venue:"", cat:""},
   orderList: [],   // custom vertical order of party ids (timeline)
   collapsed: {},   // venue -> true (timeline fold)
@@ -1257,6 +1261,7 @@ function loadMaster(arrbuf){
   const sSheet = wb.Sheets["일정"];             // optional 일정 tab → editable 일정 보기 timetable
   state.schedule = sSheet ? XLSX.utils.sheet_to_json(sSheet,{header:1,raw:false,defval:""}) : null;
   state.scheduleMerges = sSheet ? (sSheet["!merges"]||[]) : null;   // merged ranges → rowspan/colspan in 일정 보기 (Student Conference, Departure, meals…)
+  state.scheduleFills = sSheet ? extractScheduleFills(arrbuf,"일정") : null;   // per-cell xlsx fills → program color-coding (yellow=Student, green=Pre-Conf, blue=Congress)
   state.scheduleDirty = new Set();              // fresh master → no pending 일정 edits
   state.masterBuf=arrbuf;                       // keep original bytes for versioned re-export
   state.edited=false;
@@ -1539,6 +1544,7 @@ function renderSchedule(){
   const ncol=aoa.reduce((m,r)=>Math.max(m,r?r.length:0),0);
   // merged ranges from the '일정' sheet → rowspan/colspan, so sessions that span multiple time
   // slots (e.g. Student Conference) or all days (meals, Departure) render as ONE cell, not duplicates.
+  const fills=state.scheduleFills||{};        // {"r,c":"#hex"} program color-coding read from the xlsx
   const span={}, covered=new Set();          // span["r,c"]={rs,cs} for anchors; covered = cells hidden under a span
   (state.scheduleMerges||[]).forEach(m=>{
     const rs=m.e.r-m.s.r+1, cs=m.e.c-m.s.c+1;
@@ -1550,9 +1556,20 @@ function renderSchedule(){
   const cellHTML=txt=>nz(txt).split("\n").map(line=>{
     const l=esc(line); return /\((?:NOC|ICMDA)\)/.test(line)?`<span class="key">${l}</span>`:l;
   }).join("<br>");
-  const edit=(node,r,c)=>{ node.setAttribute("contenteditable","plaintext-only"); node.dataset.r=r; node.dataset.c=c; return node; };  // click-to-edit; persisted to the '일정' tab on 마스터 업데이트
+  // cells carry their source (r,c) always; they're only editable once the 수정 button unlocks edit mode
+  const edit=(node,r,c)=>{ node.dataset.r=r; node.dataset.c=c; if(state.scheduleEdit) node.setAttribute("contenteditable","plaintext-only"); return node; };
+  const PXMIN=0.7;   // px per minute → row height visually reflects each slot's duration (compact: fits one screen)
+  const slotMinutes=t=>{ const m=/(\d{1,2}):(\d{2})\s*[~\-–]\s*(\d{1,2}):(\d{2})/.exec(t||""); if(!m) return 0; const d=(+m[3]*60+ +m[4])-(+m[1]*60+ +m[2]); return d>0?d:0; };
   const frag=document.createDocumentFragment();
-  frag.append(el("div","sched-hint","셀을 클릭해 직접 수정할 수 있습니다. 변경 내용은 ‘마스터 업데이트 (v+1)’를 누르면 ‘일정’ 탭에 저장됩니다."));
+  // edit-lock bar: 수정 toggles editability; the notice states edits land in the master .xlsx file
+  const bar=el("div","sched-bar");
+  const btn=el("button",state.scheduleEdit?"go":"alt"); btn.type="button"; btn.textContent=state.scheduleEdit?"✓ 편집 잠금":"✎ 수정";
+  btn.onclick=()=>{ state.scheduleEdit=!state.scheduleEdit; renderSchedule(); };
+  bar.append(btn);
+  bar.append(el("div","sched-hint", state.scheduleEdit
+    ? "편집 모드입니다. 셀을 클릭해 수정하세요. 변경 내용은 ‘마스터 업데이트 (v+1)’를 누르면 마스터 엑셀 파일(.xlsx)의 ‘일정’ 탭에 저장됩니다."
+    : "‘수정’ 버튼을 눌러야 셀을 편집할 수 있습니다. 편집한 내용은 ‘마스터 업데이트 (v+1)’ 시 마스터 엑셀 파일(.xlsx)의 ‘일정’ 탭에 그대로 반영됩니다."));
+  frag.append(bar);
   let hi=aoa.findIndex(r=>r&&r.some(c=>nz(c)==="시간"));   // header row = the one starting the time column
   if(hi<0) hi=0;
   for(let i=0;i<hi;i++){ const t=nz((aoa[i]||[])[0]); if(t){ const d=el("div","sched-title"); d.innerHTML=cellHTML(t); frag.append(edit(d,i,0)); } }
@@ -1569,7 +1586,8 @@ function renderSchedule(){
     if(!row.some(c=>nz(c)) && !through) continue;            // skip rows with no content and no span through them
     const band = !first && row.slice(1).some(c=>nz(c));      // labels with no time = program-phase band
     const tr=el("tr",band?"band":null);
-    for(let c=0;c<ncol;c++){ if(covered.has(i+","+c)) continue; const td=el(c===0?"th":"td",c===0?"timecol":null); td.innerHTML=cellHTML(row[c]); tr.append(spanAttr(edit(td,i,c),i,c)); }
+    const dur=slotMinutes(first); if(dur) tr.style.height=Math.round(dur*PXMIN)+"px";   // row height ∝ slot duration
+    for(let c=0;c<ncol;c++){ if(covered.has(i+","+c)) continue; const td=el(c===0?"th":"td",c===0?"timecol":null); td.innerHTML=cellHTML(row[c]); const bg=fills[i+","+c]; if(bg) td.style.background=bg; tr.append(spanAttr(edit(td,i,c),i,c)); }
     tbody.append(tr);
   }
   table.append(tbody); wrapT.append(table); frag.append(wrapT);
@@ -2735,6 +2753,33 @@ function xlsxSheetPaths(files){                 // sheet name -> "xl/worksheets/
     out[s.getAttribute("name")]=t;
   });
   return out;
+}
+// read a sheet's per-cell solid fill colors from the xlsx bytes (styles.xml + sheet XML) → {"r,c":"#rrggbb"}.
+// 일정 보기 uses this to color-code cells by program (yellow=Student, green=Pre-Conf, blue=Congress). All fills in this file are direct ARGB.
+function extractScheduleFills(buf,sheetName){
+  try{
+    const files=fflate.unzipSync(new Uint8Array(buf)), td=new TextDecoder(), dp=new DOMParser();
+    if(!files["xl/styles.xml"]) return null;
+    const sdoc=dp.parseFromString(td.decode(files["xl/styles.xml"]),"application/xml");
+    const fills=Array.from(sdoc.getElementsByTagName("fills")[0]?.getElementsByTagName("fill")||[]).map(f=>{
+      const pf=f.getElementsByTagName("patternFill")[0];
+      if(!pf||pf.getAttribute("patternType")!=="solid") return null;
+      const fg=pf.getElementsByTagName("fgColor")[0], rgb=fg&&fg.getAttribute("rgb");
+      return rgb&&rgb.length>=6 ? "#"+rgb.slice(-6) : null;     // ARGB → #RRGGBB (only direct rgb, theme/indexed skipped)
+    });
+    const xfFill=Array.from(sdoc.getElementsByTagName("cellXfs")[0]?.getElementsByTagName("xf")||[]).map(x=>+(x.getAttribute("fillId")||0));
+    const path=xlsxSheetPaths(files)[sheetName];
+    if(!path||!files[path]) return null;
+    const wdoc=dp.parseFromString(td.decode(files[path]),"application/xml"), out={};
+    Array.from(wdoc.getElementsByTagName("c")).forEach(c=>{
+      const s=c.getAttribute("s"); if(s==null) return;
+      const rgb=fills[xfFill[+s]]; if(!rgb) return;
+      const m=/^([A-Z]+)(\d+)$/.exec(c.getAttribute("r")||""); if(!m) return;
+      let col=0; for(const ch of m[1]) col=col*26+(ch.charCodeAt(0)-64);
+      out[(+m[2]-1)+","+(col-1)]=rgb;                          // 0-based "row,col"
+    });
+    return out;
+  }catch(e){ return null; }
 }
 // editor over one parsed worksheet DOM: set(row,col,value[,type[,styleFromCol]]) — rows/cols are 0-based (SheetJS indices)
 function sheetWriter(doc,path){
