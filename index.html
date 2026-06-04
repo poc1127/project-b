@@ -156,10 +156,15 @@
   .sess-capinp{width:64px;font-size:12px;border:1px solid var(--line);border-radius:5px;padding:3px 6px;}
   .sess-members{display:flex;flex-wrap:wrap;gap:4px;}
   .sess-empty{font-size:11px;color:var(--text-faint);font-style:italic;}
-  .sess-mem{display:inline-flex;align-items:center;gap:4px;font-size:11px;background:#eef2f6;border-radius:5px;padding:2px 5px 2px 7px;color:var(--text2);}
+  .sess-mem{display:inline-flex;align-items:center;gap:4px;font-size:11px;background:#eef2f6;border-radius:5px;padding:2px 5px 2px 7px;color:var(--text2);cursor:grab;touch-action:pan-y;}
   .sess-mem.ineligible{background:#fbe7e2;color:#b23a2e;}
   .sess-memx{cursor:pointer;color:var(--text-faint);font-size:11px;}
   .sess-memx:hover{color:var(--danger);}
+  /* drag-to-assign (mirrors the 숙소배정 animation): pool rows + member chips drag onto session cards */
+  .sess-prow{touch-action:pan-y;}
+  .sess-prow.dragging,.sess-mem.dragging{opacity:.4;}
+  .sess-card.droptarget{outline:2px solid var(--success);outline-offset:1px;background:#f1f8f1;}
+  .sess-poollist.droptarget{outline:2px dashed #c2557a;outline-offset:-2px;border-radius:6px;}
   .room.over{border-color:var(--warn);background:#fff5f5;}
   .room.locked{background:#fff7df;border-color:#e6cf8a;}
   .room.locked.over{background:#fbeed0;border-color:var(--warn);}   /* over-capacity warning border still wins when a locked room is overfull */
@@ -1006,7 +1011,7 @@
 "use strict";
 // ⚑ index.html build version — shown bottom-right on the start screen. BUMP ON EACH DEPLOY.
 //   Format: vYYYY.MM.DD-N  (N = same-day build counter; reset to 1 on a new date).
-const APP_VERSION = "v2026.06.04-44";
+const APP_VERSION = "v2026.06.04-45";
 /* ============================================================
    ICMDA 2026 Room Assignment Dashboard (single file)
    - reads the live master .xlsx (columns mapped by HEADER NAME)
@@ -1255,7 +1260,8 @@ function beginDrag(downEvt, p, chipNode, opts){
   const pid=downEvt.pointerId, capEl=downEvt.currentTarget;
   const sx=downEvt.clientX, sy=downEvt.clientY; let started=false;
   // dragging a selected pool chip while >1 are selected ⇒ move the whole selection as a group
-  const grp = (state.picks.has(p.id) && state.picks.size>1) ? [...state.picks] : null;
+  const picks = opts.picks || state.picks;                 // which selection set drives group-drag (rooms: state.picks · 세션: state.sessPicks)
+  const grp = (picks.has(p.id) && picks.size>1) ? [...picks] : null;
   let mark=null, markAfter=false, markKey=null;          // chip-level insertion slot (reorder within a room)
   const clearMark=()=>{ if(mark){ mark.classList.remove("dropmark","dm-before","dm-after"); mark=null; markKey=null; } };
   const evalMark=(x,y)=>{                                 // mark the occupant under the pointer as the drop slot (line above/below it)
@@ -1306,6 +1312,7 @@ function beginDrag(downEvt, p, chipNode, opts){
     DRAG.pid=null; DRAG.lastXY=null;
     dragFired=true; setTimeout(()=>dragFired=false,400);    // swallow the click that follows pointerup
     if(e.type==="pointercancel") return;
+    if(opts.onDrop){ opts.onDrop(tgt?tgt.dataset.dropkey:null, grp); return; }   // caller-supplied drop (세션 배정 — reuses the room drag animation)
     if(grp){ if(tgt) applyDropMany(grp, tgt.dataset.dropkey); }    // group drag → assign the whole selection to the drop target
     else if(mk && mkk) reorderInRoom(p.id, mkk, mk.dataset.pid, mka);   // dropped over an occupant → reorder (and assign, if from elsewhere)
     else if(tgt) applyDrop(p.id, tgt.dataset.dropkey);            // dropped on empty room area / pool → plain assign
@@ -1757,6 +1764,41 @@ function sessAddPicks(key){
 }
 function sessRemove(key,pid){ const set=state.sessionAssign[key]; if(set){ set.delete(pid); renderSession(); } }
 function sessSetCap(key,val){ const n=parseInt(val,10); state.sessionCap[key]=(val===""||isNaN(n))?null:Math.max(0,n); renderSession(); }
+// drag drop result: add ids to the target session (and, if dragged from another session, remove them there → "move").
+// targetKey "__sesspool__" = dropped back on the pool → remove from the source session. A participant may sit in many
+// sessions (one per time-slot across days), so dropping never clears their other assignments.
+function sessApplyDrop(ids, targetKey, fromKey){
+  if(!targetKey || targetKey===fromKey) return;
+  if(targetKey==="__sesspool__"){
+    if(fromKey){ const src=state.sessionAssign[fromKey]; if(src) ids.forEach(id=>src.delete(id)); }
+    state.sessPicks.clear(); renderSession(); return;
+  }
+  const set=state.sessionAssign[targetKey]||(state.sessionAssign[targetKey]=new Set());
+  ids.forEach(id=>set.add(id));
+  if(fromKey){ const src=state.sessionAssign[fromKey]; if(src) ids.forEach(id=>src.delete(id)); }
+  state.sessPicks.clear(); renderSession();
+}
+// wire a pool row / member chip for pointer-drag onto session cards (reuses beginDrag's ghost + autoscroll).
+// fromKey = the session a member chip currently sits in (null for a pool row). Mouse/pen grab from the body;
+// touch needs a long-press so list-scroll and tap-to-select still work.
+function wireSessDrag(node, p, fromKey){
+  const onDrop=(key,grp)=> sessApplyDrop((grp&&grp.length)?grp:[p.id], key, fromKey);
+  node.addEventListener("pointerdown",e=>{ if(e.pointerType==="touch"||e.button) return; if(e.target.closest(".sess-memx")) return; beginDrag(e,p,node,{picks:state.sessPicks,onDrop}); });
+  let hT=null,hPid=null,hX=0,hY=0;
+  const hStop=()=>{ if(hT){clearTimeout(hT);hT=null;} node.removeEventListener("pointermove",hMv); node.removeEventListener("pointerup",hStop); node.removeEventListener("pointercancel",hStop); };
+  const hMv=e=>{ if(e.pointerId===hPid && (Math.abs(e.clientX-hX)>10||Math.abs(e.clientY-hY)>10)) hStop(); };
+  node.addEventListener("pointerdown",e=>{
+    if(e.pointerType!=="touch") return;
+    if(e.target.closest(".sess-memx")) return;
+    hPid=e.pointerId; hX=e.clientX; hY=e.clientY;
+    node.addEventListener("pointermove",hMv); node.addEventListener("pointerup",hStop); node.addEventListener("pointercancel",hStop);
+    hT=setTimeout(()=>{ hStop(); if(navigator.vibrate){try{navigator.vibrate(18);}catch(_){}}
+      lpFired=true; setTimeout(()=>lpFired=false,600);
+      node.classList.add("dragging"); setDragging(true);
+      beginDrag({pointerId:hPid,currentTarget:node,clientX:hX,clientY:hY}, p, node, {picks:state.sessPicks,onDrop,armed:true});
+    }, 450);
+  });
+}
 
 function renderSession(){
   const root=$("#session"); root.innerHTML="";
@@ -1773,8 +1815,8 @@ function renderSession(){
   [...new Set(state.parties.map(p=>p.cat).filter(Boolean))].sort().forEach(c=>catSel.append(new Option(c,c)));
   catSel.value=state.sessFilter.cat; catSel.onchange=()=>{ state.sessFilter.cat=catSel.value; fillPool(); };
   tools.append(search,catSel); pool.append(tools);
-  pool.append(el("div","sess-hint","참가자를 선택한 뒤, 오른쪽 세션 카드를 클릭하면 배정됩니다. 카드 안 ✕로 제외합니다."));
-  const plist=el("div","sess-poollist"); pool.append(plist);
+  pool.append(el("div","sess-hint","참가자를 끌어다 세션 카드에 놓아 배정합니다. (여러 명: 클릭해 선택 후 함께 드래그하거나 카드를 클릭) · 세션 간 드래그로 이동 · 풀로 끌면 제외"));
+  const plist=el("div","sess-poollist"); plist.dataset.dropkey="__sesspool__"; pool.append(plist);   // member chip dragged here → removed from its session
   function fillPool(){
     const q=(state.sessFilter.q||"").toLowerCase(), cat=state.sessFilter.cat;
     const ppl=state.parties.filter(p=>!cat||p.cat===cat)
@@ -1790,7 +1832,8 @@ function renderSession(){
       const nm=el("span","sess-nm",p.name+(p.kname?` (${p.kname})`:""));
       const sub=el("span","sess-sub",[p.aff,p.title].filter(Boolean).join(" · "));
       row.append(badge,nm,sub);
-      row.onclick=()=>{ if(state.sessPicks.has(p.id)) state.sessPicks.delete(p.id); else state.sessPicks.add(p.id); fillPool(); };
+      row.onclick=()=>{ if(lpFired||dragFired) return; if(state.sessPicks.has(p.id)) state.sessPicks.delete(p.id); else state.sessPicks.add(p.id); fillPool(); };
+      wireSessDrag(row,p,null);
       plist.append(row);
     });
   }
@@ -1808,7 +1851,7 @@ function renderSession(){
 function sessionCard(s){
   const set=state.sessionAssign[s.key]||new Set(), cap=state.sessionCap[s.key];
   const over=cap!=null && set.size>cap;
-  const card=el("div","sess-card prog-"+(s.prog||"none"));
+  const card=el("div","sess-card prog-"+(s.prog||"none")); card.dataset.dropkey=s.key;   // drop target for drag-to-assign
   const head=el("div","sess-cardhead"); head.title="선택한 참가자를 이 세션에 추가";
   head.append(el("span","sess-cardname",s.name), el("span","sess-count"+(over?" over":""), cap!=null?`${set.size}/${cap}`:`${set.size}`));
   head.onclick=()=>sessAddPicks(s.key); card.append(head);
@@ -1823,7 +1866,7 @@ function sessionCard(s){
     const chip=el("span","sess-mem"+(elg?"":" ineligible"));
     if(!elg) chip.title="참가예정행사가 이 세션과 맞지 않을 수 있습니다: "+(p.event||"미상");
     const x=el("span","sess-memx","✕"); x.title="제외"; x.onclick=e=>{ e.stopPropagation(); sessRemove(s.key,p.id); };
-    chip.append(el("span","sess-memnm",(elg?"":"⚠ ")+p.name), x); mem.append(chip);
+    chip.append(el("span","sess-memnm",(elg?"":"⚠ ")+p.name), x); chip.title=(chip.title?chip.title+"\n":"")+"끌어서 다른 세션으로 이동 · 풀로 끌면 제외"; wireSessDrag(chip,p,s.key); mem.append(chip);
   });
   card.append(mem);
   return card;
