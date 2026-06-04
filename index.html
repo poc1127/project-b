@@ -67,6 +67,7 @@
   .venue>h2 .vlk:hover{background:rgba(0,0,0,.18);}
   .venue>h2 .vlk .ico{width:14px;height:14px;}
   .venue>h2 .vlk.locked{background:#b8860b;color:#fff;border-color:#9c7209;}
+  .venue>h2 .vlk.hempty{margin-left:0;}   /* only the lock pushes right; the empty button clusters next to it */
   .venue.vlocked>h2{box-shadow:inset 4px 0 0 #b8860b;}   /* whole-hotel lock cue on the header */
   .floorgrp{padding:6px 10px;}
   .floorgrp h3{font-size:12px;color:#555;margin:8px 2px 4px;border-bottom:1px dashed #ddd;}
@@ -212,7 +213,9 @@
   .tlrow.dropmark.dm-before::after{top:-1px;}
   .tlrow.dropmark.dm-after::after{bottom:-1px;}
   #tlhead .nights,.tlrow .track{display:grid;grid-template-columns:repeat(var(--ncols),1fr);}
-  #tlhead .nights div{padding:3px 1px;text-align:center;border-left:1px solid #e3e3e3;}
+  #tlhead .nights div{padding:3px 1px;text-align:center;border-left:1px solid #e3e3e3;display:flex;flex-direction:column;line-height:1.1;}
+  #tlhead .nights div .wd{font-size:9px;font-weight:600;color:var(--text-faint);}
+  #tlhead .nights div .wd.we{color:#c0392b;}
   #tlhead .nights div.unofficial{background:#f3e6e6;color:#a55;}
   #tlhead .nights div.buffer{background:#eef1f4;color:#5a6675;}
   #tlhead .lbl{padding:3px 6px;position:relative;align-self:stretch;display:flex;align-items:center;}
@@ -234,27 +237,24 @@
   .tlgroup.byytc{background:var(--byytc);} .tlgroup.youus{background:var(--youus);}
   .tlgroup.booyoung{background:var(--booyoung);} .tlgroup.unassigned{background:#e9e9ec;color:#666;}
   .tlrow{border-bottom:1px solid #e8e8ec;transition:opacity .12s ease;}
-  .tlrow.alt{background:#eef2f6;}                 /* stronger zebra (DESIGN-6) */
+  .tlrow.alt{background:#f6f7f9;}                 /* soft, neutral zebra — subtle so the table reads clean */
   .tlrow:hover{background:#f3f7fb;}
   /* frozen pane — ID·분류·이름 stay pinned to the left while the night axis scrolls */
   .tlrow .idc{position:sticky;left:0;z-index:4;background:#fff;display:flex;align-items:center;gap:3px;}
   .tlrow .idc .idtxt{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   .tlrow .catc{position:sticky;left:var(--c1,56px);z-index:4;background:#fff;}
   .tlrow .who{position:sticky;left:var(--c2,114px);z-index:4;background:#fff;box-shadow:1px 0 0 0 #dcdce0;}
-  .tlrow.alt .idc,.tlrow.alt .catc,.tlrow.alt .who{background:#eef2f6;}
+  .tlrow.alt .idc,.tlrow.alt .catc,.tlrow.alt .who{background:#f6f7f9;}
   .tlrow:hover .idc,.tlrow:hover .catc,.tlrow:hover .who{background:#f3f7fb;}
-  .tlrow.dup .idc,.tlrow.dup .catc,.tlrow.dup .who{background:#fff7e6;}
-  .tlrow.dup:hover .idc,.tlrow.dup:hover .catc,.tlrow.dup:hover .who{background:#ffeecc;}
+  .tlrow.dup .idc{box-shadow:inset 3px 0 0 var(--warning);}   /* 중복 의심: small amber left marker instead of a full cream fill → zebra stays even; the ⚠ icon carries the rest */
   /* multi-select highlight (group drag) — wins over zebra so the selection is unambiguous */
   .tlrow.selected{background:#e3edff;}
   .tlrow.selected .idc,.tlrow.selected .catc,.tlrow.selected .who{background:#e3edff;}
   .tlrow.selected .who{box-shadow:1px 0 0 0 #9bbcf0;}
   /* 호텔·객실번호·수용 follow the same row-state fills as the 이름 column */
   .tlrow .venc,.tlrow .roomc,.tlrow .capc{background:#fff;}   /* base white — these sit in the scrolling pane, which isn't white */
-  .tlrow.alt .venc,.tlrow.alt .roomc,.tlrow.alt .capc{background:#eef2f6;}
+  .tlrow.alt .venc,.tlrow.alt .roomc,.tlrow.alt .capc{background:#f6f7f9;}
   .tlrow:hover .venc,.tlrow:hover .roomc,.tlrow:hover .capc{background:#f3f7fb;}
-  .tlrow.dup .venc,.tlrow.dup .roomc,.tlrow.dup .capc{background:#fff7e6;}
-  .tlrow.dup:hover .venc,.tlrow.dup:hover .roomc,.tlrow.dup:hover .capc{background:#ffeecc;}
   .tlrow.selected .venc,.tlrow.selected .roomc,.tlrow.selected .capc{background:#e3edff;}
   #tlhead .lbl:nth-child(1){position:sticky;left:0;z-index:12;background:var(--bg);}
   #tlhead .lbl:nth-child(2){position:sticky;left:var(--c1,56px);z-index:12;background:var(--bg);}
@@ -265,9 +265,7 @@
   .tlrow .tlgrip:active{cursor:grabbing;color:var(--primary);}
   .tlrow.selected .tlgrip{color:var(--primary);}
   .tlrow .cat{display:inline-block;vertical-align:middle;font-size:10px;font-weight:700;line-height:15px;color:#fff;padding:0 7px;border-radius:999px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-  .tlrow.dup{background:#fff7e6;}
-  .tlrow.dup:hover{background:#ffeecc;}
-  .tlrow .dupflag{margin-left:4px;font-size:10px;color:var(--warning);cursor:help;flex:none;}
+  .tlrow .dupflag{margin-left:4px;font-size:11px;color:var(--warning);cursor:help;flex:none;}
   .dupflag .ico{width:13px;height:13px;}
   .tlrow .track{position:relative;height:17px;background:
      repeating-linear-gradient(to right,transparent,transparent calc(100%/var(--ncols) - 1px),#ececec calc(100%/var(--ncols) - 1px),#ececec calc(100%/var(--ncols)));}
@@ -913,7 +911,7 @@
 "use strict";
 // ⚑ index.html build version — shown bottom-right on the start screen. BUMP ON EACH DEPLOY.
 //   Format: vYYYY.MM.DD-N  (N = same-day build counter; reset to 1 on a new date).
-const APP_VERSION = "v2026.06.04-16";
+const APP_VERSION = "v2026.06.04-20";
 /* ============================================================
    ICMDA 2026 Room Assignment Dashboard (single file)
    - reads the live master .xlsx (columns mapped by HEADER NAME)
@@ -2097,7 +2095,11 @@ function renderTimeline(){
   D.forEach((lab,i)=>{
     let cls = (off629>=0&&i<off629)?"unofficial":(i>=planEnd?"buffer":null);
     if(!cls && off630>=0 && i>=off630) cls="event"+(i===off630?" evstart":"");   // conference days (DESIGN-6)
-    hn.append(el("div",cls,lab.replace("월","/").replace("일","")));
+    const cell=el("div",cls);
+    cell.append(el("span","d",lab.replace("월","/").replace("일","")));
+    const wm=/(\d+)월(\d+)일/.exec(lab);                                          // 요일 (day-of-week) on a second line
+    if(wm){ const wi=new Date(2026,+wm[1]-1,+wm[2]).getDay(); const w=el("span","wd"+(wi===0||wi===6?" we":""),`(${WDAY[wi]})`); cell.append(w); }
+    hn.append(cell);
   });
   head.append(hn);
   // filter
