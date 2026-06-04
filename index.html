@@ -82,6 +82,9 @@
             height:calc(100vh - var(--topoff,92px) - var(--warnh,0px));height:calc(100dvh - var(--topoff,92px) - var(--warnh,0px));}
   .sched-bar{display:flex;align-items:center;gap:10px;margin:0 0 10px;}
   .sched-bar .sched-hint{margin:0;}
+  .sched-legend{display:flex;flex-wrap:wrap;gap:8px 18px;align-items:center;margin:0 0 10px;padding:8px 12px;background:#fff;border:1px solid var(--line);border-radius:8px;}
+  .lg-item{display:inline-flex;align-items:center;gap:7px;font-size:12px;font-weight:600;color:var(--text);}
+  .lg-sw{width:14px;height:14px;border-radius:3px;border:1px solid rgba(0,0,0,.18);flex:none;}
   .sched-hint{font-size:12px;color:var(--text-faint);margin:0 0 10px;}
   .sched-title{font-size:16px;font-weight:800;color:var(--ink);margin:2px 0 10px;}
   .schedscroll{overflow:auto;border:1px solid var(--line);border-radius:8px;}
@@ -90,12 +93,11 @@
   [data-r][contenteditable]:hover{outline:1px dashed var(--line);outline-offset:-1px;}
   [data-r][contenteditable]:focus{outline:2px solid var(--primary);outline-offset:-2px;background:#fffef5;border-radius:2px;}
   table.schedtbl{border-collapse:collapse;width:100%;font-size:12px;background:#fff;}
-  table.schedtbl th,table.schedtbl td{border:1px solid var(--line);padding:2px 8px;vertical-align:middle;text-align:center;line-height:1.25;}
+  table.schedtbl th,table.schedtbl td{border:1px solid #8b97a5;padding:2px 8px;vertical-align:middle;text-align:center;line-height:1.25;}   /* clearer grid lines (was faint --line) */
   table.schedtbl thead th{position:sticky;top:0;z-index:2;background:var(--ink);color:#fff;font-weight:700;white-space:pre-line;}
   table.schedtbl .timecol{background:#f3f5f8;font-weight:700;white-space:nowrap;color:var(--text);position:sticky;left:0;z-index:1;}
   table.schedtbl thead .timecol{z-index:3;}
   table.schedtbl tbody tr:nth-child(even) td{background:#fafbfc;}
-  table.schedtbl tr.band td,table.schedtbl tr.band th{background:#eef5ee;font-weight:700;color:#39673d;}
   table.schedtbl td[rowspan],table.schedtbl th[rowspan]{vertical-align:middle;background:#fffdf3;font-weight:600;}  /* multi-slot sessions (Student Conference, Departure…) */
   table.schedtbl .key{color:#c0392b;font-weight:700;}
   .sched-note{font-size:11px;color:var(--text-faint);margin-top:8px;line-height:1.5;}
@@ -941,7 +943,7 @@
 "use strict";
 // ⚑ index.html build version — shown bottom-right on the start screen. BUMP ON EACH DEPLOY.
 //   Format: vYYYY.MM.DD-N  (N = same-day build counter; reset to 1 on a new date).
-const APP_VERSION = "v2026.06.04-30";
+const APP_VERSION = "v2026.06.04-33";
 /* ============================================================
    ICMDA 2026 Room Assignment Dashboard (single file)
    - reads the live master .xlsx (columns mapped by HEADER NAME)
@@ -1544,7 +1546,7 @@ function renderSchedule(){
   const ncol=aoa.reduce((m,r)=>Math.max(m,r?r.length:0),0);
   // merged ranges from the '일정' sheet → rowspan/colspan, so sessions that span multiple time
   // slots (e.g. Student Conference) or all days (meals, Departure) render as ONE cell, not duplicates.
-  const fills=state.scheduleFills||{};        // {"r,c":"#hex"} program color-coding read from the xlsx
+  const fills=state.scheduleFills||{};        // {"r,c":"#hex"} program color-coding read from the xlsx — legend swatches + grid cells share this single source so they always match
   const span={}, covered=new Set();          // span["r,c"]={rs,cs} for anchors; covered = cells hidden under a span
   (state.scheduleMerges||[]).forEach(m=>{
     const rs=m.e.r-m.s.r+1, cs=m.e.c-m.s.c+1;
@@ -1570,13 +1572,14 @@ function renderSchedule(){
     ? "편집 모드입니다. 셀을 클릭해 수정하세요. 변경 내용은 ‘마스터 업데이트 (v+1)’를 누르면 마스터 엑셀 파일(.xlsx)의 ‘일정’ 탭에 저장됩니다."
     : "‘수정’ 버튼을 눌러야 셀을 편집할 수 있습니다. 편집한 내용은 ‘마스터 업데이트 (v+1)’ 시 마스터 엑셀 파일(.xlsx)의 ‘일정’ 탭에 그대로 반영됩니다."));
   frag.append(bar);
+  const legend=el("div","sched-legend"); frag.append(legend);   // program color key, lifted from the band row(s) to the top
   let hi=aoa.findIndex(r=>r&&r.some(c=>nz(c)==="시간"));   // header row = the one starting the time column
   if(hi<0) hi=0;
   for(let i=0;i<hi;i++){ const t=nz((aoa[i]||[])[0]); if(t){ const d=el("div","sched-title"); d.innerHTML=cellHTML(t); frag.append(edit(d,i,0)); } }
   const wrapT=el("div","schedscroll"); const table=el("table","schedtbl");
   const thead=el("thead"), htr=el("tr"), hrow=aoa[hi]||[];
   const spanAttr=(node,r,c)=>{ const sp=span[r+","+c]; if(sp){ if(sp.rs>1)node.rowSpan=sp.rs; if(sp.cs>1)node.colSpan=sp.cs; } return node; };
-  for(let c=0;c<ncol;c++){ if(covered.has(hi+","+c)) continue; const th=el("th",c===0?"timecol":null); th.innerHTML=cellHTML(hrow[c]); htr.append(spanAttr(edit(th,hi,c),hi,c)); }
+  for(let c=0;c<ncol;c++){ if(covered.has(hi+","+c)) continue; const th=el("th",c===0?"timecol":null); th.innerHTML=nz(hrow[c]).split("\n").map(esc).join(" "); htr.append(spanAttr(edit(th,hi,c),hi,c)); }   // header on ONE line (e.g. "Day 1 6/30 (화)")
   thead.append(htr); table.append(thead);
   const tbody=el("tbody"); const notes=[];
   for(let i=hi+1;i<aoa.length;i++){
@@ -1584,12 +1587,17 @@ function renderSchedule(){
     if(first.startsWith("■")){ const ci=row.findIndex(c=>nz(c)); notes.push({r:i,c:ci<0?0:ci,txt:nz(row[ci<0?0:ci])}); continue; }
     let through=false; for(let c=0;c<ncol;c++){ if(covered.has(i+","+c)){ through=true; break; } }   // a vertical span passing through keeps the row alive
     if(!row.some(c=>nz(c)) && !through) continue;            // skip rows with no content and no span through them
-    const band = !first && row.slice(1).some(c=>nz(c));      // labels with no time = program-phase band
-    const tr=el("tr",band?"band":null);
+    const band = !first && row.slice(1).some(c=>nz(c));      // labels with no time = program color band → lift to the top legend
+    if(band){
+      for(let c=0;c<ncol;c++){ const t=nz(row[c]); if(!t) continue; const item=el("span","lg-item"); const sw=el("span","lg-sw"); const col=fills[i+","+c]; if(col) sw.style.background=col; const lbl=el("span","lg-lbl"); lbl.textContent=t; item.append(sw,edit(lbl,i,c)); legend.append(item); }
+      continue;
+    }
+    const tr=el("tr");
     const dur=slotMinutes(first); if(dur) tr.style.height=Math.round(dur*PXMIN)+"px";   // row height ∝ slot duration
     for(let c=0;c<ncol;c++){ if(covered.has(i+","+c)) continue; const td=el(c===0?"th":"td",c===0?"timecol":null); td.innerHTML=cellHTML(row[c]); const bg=fills[i+","+c]; if(bg) td.style.background=bg; tr.append(spanAttr(edit(td,i,c),i,c)); }
     tbody.append(tr);
   }
+  if(!legend.children.length) legend.remove();   // no program band in this file → no legend
   table.append(tbody); wrapT.append(table); frag.append(wrapT);
   notes.forEach(n=>{ const d=el("div","sched-note"); d.innerHTML=cellHTML(n.txt); frag.append(edit(d,n.r,n.c)); });
   wrap.replaceChildren(frag);
