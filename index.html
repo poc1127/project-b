@@ -78,6 +78,10 @@
   .rlk{cursor:pointer;display:inline-flex;align-items:center;color:var(--text-faint);}
   .rlk .ico{width:13px;height:13px;}
   .room.locked .rlk{color:#b8860b;}
+  /* 비우기 (empty-to-미배정) buttons sit beside the lock buttons at room/그룹/호텔 level; red on hover to signal removal */
+  .hempty{color:var(--text-faint);}
+  .room.locked .hempty{color:var(--text-faint);}   /* a locked room's empty button stays neutral (lock amber is for the lock only) */
+  .hempty:hover,.venue>h2 .vlk.hempty:hover,.floorgrp>h3 .glk.hempty:hover{color:var(--warn);background:rgba(207,70,49,.12);}
   .room .rhdr{display:flex;align-items:center;font-size:11px;color:var(--text2);margin-bottom:3px;gap:4px;}   /* room# + tags left-pack together; cap badge pushed right (margin-left:auto below) so tags sit next to the number, not floating mid-row */
   .room .rno{font-weight:700;color:#111;}
   .room .tags{display:flex;gap:3px;flex-wrap:wrap;}
@@ -909,7 +913,7 @@
 "use strict";
 // ⚑ index.html build version — shown bottom-right on the start screen. BUMP ON EACH DEPLOY.
 //   Format: vYYYY.MM.DD-N  (N = same-day build counter; reset to 1 on a new date).
-const APP_VERSION = "v2026.06.04-14";
+const APP_VERSION = "v2026.06.04-16";
 /* ============================================================
    ICMDA 2026 Room Assignment Dashboard (single file)
    - reads the live master .xlsx (columns mapped by HEADER NAME)
@@ -1755,7 +1759,13 @@ function renderVenues(){
           if(allLocked) rms.forEach(r=>delete state.roomLocked[r.key]); else rms.forEach(r=>state.roomLocked[r.key]=true);
           announce(`${lockHotel} ${allLocked?"전체 잠금 해제":"전체 잠금"}`); render(); });
         vlk.addEventListener("keydown",e=>{ if(e.key==="Enter"||e.key===" ") e.stopPropagation(); });  // let the native button click fire, but keep it from collapsing the venue
-        h.append(vlk);
+        // hotel-wide empty: send every (unlocked) occupant in this venue back to 미배정
+        const vem=el("button","vlk hempty"); vem.type="button"; vem.innerHTML=ico('undo');
+        vem.title="이 호텔을 비웁니다 (배정 인원 모두 미배정으로)";
+        vem.setAttribute("aria-label","호텔 비우기 — "+lockHotel);
+        vem.addEventListener("click",e=>{ e.stopPropagation(); confirmEmpty(rms.map(r=>r.key), lockHotel); });
+        vem.addEventListener("keydown",e=>{ if(e.key==="Enter"||e.key===" ") e.stopPropagation(); });
+        h.append(vlk,vem);
       }
     }
     div.append(h);
@@ -1805,7 +1815,13 @@ function renderVenues(){
         if(gAll) grms.forEach(r=>delete state.roomLocked[r.key]); else grms.forEach(r=>state.roomLocked[r.key]=true);
         announce(`${gk} ${gAll?"잠금 해제":"전체 잠금"}`); render(); });
       glk.addEventListener("keydown",e=>{ if(e.key==="Enter"||e.key===" ") e.stopPropagation(); });  // native click fires; just don't collapse the group
-      h3.append(glk);
+      // group empty: send every (unlocked) occupant in this 동·층 / 타입 group back to 미배정
+      const gem=el("button","glk hempty"); gem.type="button"; gem.innerHTML=ico('undo');
+      gem.title="이 구역을 비웁니다 (배정 인원 모두 미배정으로)";
+      gem.setAttribute("aria-label","구역 비우기 — "+gk);
+      gem.addEventListener("click",e=>{ e.stopPropagation(); confirmEmpty(grms.map(r=>r.key), gk); });
+      gem.addEventListener("keydown",e=>{ if(e.key==="Enter"||e.key===" ") e.stopPropagation(); });
+      h3.append(glk,gem);
       fg.append(h3);
       const grid=el("div","rooms");
       groups[gk].sort((a,b)=> (a.rno||"").localeCompare(b.rno||"",undefined,{numeric:true}) || a.id.localeCompare(b.id))
@@ -1856,6 +1872,17 @@ function roomCard(r){
   rlk.addEventListener("click",toggleRoomLock);
   rlk.addEventListener("keydown",e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); toggleRoomLock(e); } });
   hdr.append(left,tags,cap,rlk);
+  // room empty: send this room's (unlocked) occupants back to 미배정 — only shown when the room has someone in it
+  if(load>0){
+    const rem=el("span","rlk hempty"); rem.innerHTML=ico('undo');
+    rem.setAttribute("role","button"); rem.tabIndex=0;
+    rem.title="이 방을 비웁니다 (배정 인원 미배정으로)";
+    rem.setAttribute("aria-label",`방 비우기 — ${r.rno||r.id}호`);
+    const doEmpty=ev=>{ ev.stopPropagation(); confirmEmpty([r.key], `${r.rno||r.id}호`); };
+    rem.addEventListener("click",doEmpty);
+    rem.addEventListener("keydown",e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); doEmpty(e); } });
+    hdr.append(rem);
+  }
   card.append(hdr);
   card.title=`${r.type||""} ${r.gender||"미지정"} 기준${r.base}+추가${r.ext}=${r.total}`+(r.note?` · ${r.note}`:"");
   roomOccupants(r.key).forEach(p=>card.append(chip(p)));
@@ -2776,7 +2803,7 @@ function buildPrint(){
     Object.keys(groups).sort().forEach(gk=>{
       g.append(el("h3",null,gk));
       const t=el("table","proom");
-      t.innerHTML="<tr><th>호실</th><th>유형 / 성별</th><th>정원</th><th class='cnt'>총배정인원</th><th>투숙자</th><th>도착</th><th>출발</th></tr>";
+      t.innerHTML="<tr><th>호실</th><th>유형 / 성별</th><th>정원</th><th class='cnt'>총배정인원</th><th>투숙자</th><th>체크인</th><th>체크아웃</th></tr>";
       groups[gk].sort((a,b)=>(a.rno||"").localeCompare(b.rno||"",undefined,{numeric:true})).forEach(r=>{
         const occ=roomOccupants(r.key);
         const span=Math.max(occ.length,1);           // room cells merge down across one row per occupant
@@ -2806,7 +2833,7 @@ function buildPrint(){
   const booy=state.parties.filter(p=>state.assign[p.id]==="BOOY");
   if(booy.length){
     const g=el("div","pgroup"); g.append(el("h2",null,`${VEN.BOOY} (개별 예약 · ${booy.reduce((s,p)=>s+p.hc,0)}명)`));
-    const t=el("table","proom"); t.innerHTML="<tr><th>이름</th><th>인원</th><th>도착</th><th>출발</th><th>비고</th></tr>";
+    const t=el("table","proom"); t.innerHTML="<tr><th>이름</th><th>인원</th><th>체크인</th><th>체크아웃</th><th>비고</th></tr>";
     booy.sort((a,b)=>a.name.localeCompare(b.name)).forEach(p=>{
       const tr=el("tr"); tr.append(el("td",null,p.name),el("td","num",String(p.hc)),el("td","dt",dateWD(p.arr)),el("td","dt",dateWD(p.dep)),el("td",null,p.note||""));
       t.append(tr);
@@ -2858,6 +2885,24 @@ function confirmClear(){
   dialog({title:"배정 초기화", danger:true, okText:"초기화 실행",
     body:`잠기지 않은 배정 ${n}명을 미배정으로 되돌립니다. 잠긴 인원·잠긴 방·잠긴 호텔·개별예약(NOC)은 그대로 유지됩니다. 계속할까요?`,
     onOk:()=>withLoading("배정 초기화 중…",clearAssignExceptLocked)});
+}
+// "비우기": send every (non-person-locked) occupant of the given rooms back to 미배정. Used at room / 동·층 group / hotel level.
+// Person-locks (🔒 on a chip) are respected so a locked person stays put — consistent with 배정 초기화 + 자동 배정.
+function emptyLoad(roomKeys){
+  const set=new Set(roomKeys); let n=0;
+  for(const pid in state.assign){ if(set.has(state.assign[pid]) && !state.locked[pid]) n+=state.byId[pid].hc; } return n;
+}
+function emptyRooms(roomKeys,label){
+  const set=new Set(roomKeys); let n=0;
+  for(const pid in state.assign){ if(set.has(state.assign[pid]) && !state.locked[pid]){ delete state.assign[pid]; n+=state.byId[pid].hc; } }
+  render(); announceAssign(`${label} 비우기 — ${n}명 미배정`); toast(`${label} 비우기 — ${n}명 미배정으로`,"ok");
+}
+function confirmEmpty(roomKeys,label){
+  const n=emptyLoad(roomKeys);
+  if(!n){ toast(`${label}: 비울 인원이 없습니다. (비어 있거나 모두 잠금)`,"info"); return; }
+  dialog({title:`${label} 비우기`, danger:true, okText:"비우기",
+    body:`${label}에 배정된 ${n}명을 미배정으로 되돌립니다. (잠긴 인원은 그대로) 계속할까요?`,
+    onOk:()=>emptyRooms(roomKeys,label)});
 }
 // master export has real side effects (version bump, files to move) → confirm first
 function confirmMaster(){
