@@ -77,6 +77,20 @@
   .room.booylist{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:3px 8px;align-content:start;}
   .room.booylist .rhdr{grid-column:1/-1;}
   .room.booylist .chip{margin:0;}
+  /* 일정 보기: read-only program timetable from the '일정' tab */
+  #schedule{overflow:auto;padding:12px 16px;background:var(--bg);min-height:0;
+            height:calc(100vh - var(--topoff,92px) - var(--warnh,0px));height:calc(100dvh - var(--topoff,92px) - var(--warnh,0px));}
+  .sched-title{font-size:16px;font-weight:800;color:var(--ink);margin:2px 0 10px;}
+  .schedscroll{overflow:auto;border:1px solid var(--line);border-radius:8px;}
+  table.schedtbl{border-collapse:collapse;width:100%;font-size:12px;background:#fff;}
+  table.schedtbl th,table.schedtbl td{border:1px solid var(--line);padding:5px 8px;vertical-align:top;text-align:center;line-height:1.35;}
+  table.schedtbl thead th{position:sticky;top:0;z-index:2;background:var(--ink);color:#fff;font-weight:700;white-space:pre-line;}
+  table.schedtbl .timecol{background:#f3f5f8;font-weight:700;white-space:nowrap;color:var(--text);position:sticky;left:0;z-index:1;}
+  table.schedtbl thead .timecol{z-index:3;}
+  table.schedtbl tbody tr:nth-child(even) td{background:#fafbfc;}
+  table.schedtbl tr.band td,table.schedtbl tr.band th{background:#eef5ee;font-weight:700;color:#39673d;}
+  table.schedtbl .key{color:#c0392b;font-weight:700;}
+  .sched-note{font-size:11px;color:var(--text-faint);margin-top:8px;line-height:1.5;}
   .room.over{border-color:var(--warn);background:#fff5f5;}
   .room.locked{background:#fff7df;border-color:#e6cf8a;}
   .room.locked.over{background:#fbeed0;border-color:var(--warn);}   /* over-capacity warning border still wins when a locked room is overfull */
@@ -655,7 +669,7 @@
     /* keep content clear of the fixed bar */
     body{padding-bottom:calc(54px + env(safe-area-inset-bottom));}
     /* the timeline uses a fixed height, so subtract the bar explicitly */
-    #timeline{height:calc(100dvh - var(--topoff,92px) - 54px - env(safe-area-inset-bottom) - var(--warnh,0px));}
+    #timeline,#schedule{height:calc(100dvh - var(--topoff,92px) - 54px - env(safe-area-inset-bottom) - var(--warnh,0px));}
 
     /* 더보기 bottom sheet */
     #sheet{display:block;}
@@ -782,6 +796,7 @@
   <span class="viewtabs">
     <button id="tabRooms" class="vtab active" title="방 단위 보기 — 방마다 인원을 끌어다 놓아 배정/수정합니다.">배정 보기</button>
     <button id="tabTimeline" class="vtab" title="참가자 단위 보기 — 숙박 기간과 배정 현황을 한눈에 보고 막대로 조정합니다.">타임라인 보기</button>
+    <button id="tabSchedule" class="vtab" title="업로드한 엑셀 '일정' 탭의 2026 ICMDA 프로그램 일정표를 봅니다.">일정 보기</button>
   </span>
   <span id="srcname" style="font-size:11px;opacity:.8;"></span>
 </header>
@@ -865,6 +880,9 @@
   <div id="tlcards"></div>
 </div>
 
+<!-- 일정 보기: read-only timetable rendered from the uploaded master's '일정' tab -->
+<div id="schedule" style="display:none;"></div>
+
 <div id="warnpanel"></div>
 <div id="printarea"></div>
 <!-- print preview: shown when 인쇄/PDF is clicked; 인쇄 진행 → window.print() -->
@@ -915,7 +933,7 @@
 "use strict";
 // ⚑ index.html build version — shown bottom-right on the start screen. BUMP ON EACH DEPLOY.
 //   Format: vYYYY.MM.DD-N  (N = same-day build counter; reset to 1 on a new date).
-const APP_VERSION = "v2026.06.04-22";
+const APP_VERSION = "v2026.06.04-25";
 /* ============================================================
    ICMDA 2026 Room Assignment Dashboard (single file)
    - reads the live master .xlsx (columns mapped by HEADER NAME)
@@ -950,7 +968,8 @@ const state = {
   roomLocked: {},  // roomKey -> true (freeze whole room: occupants stay, auto-assign won't add to it)
   nightCols: [],   // ordered night labels
   dates: [],       // extended timeline axis (nights + buffer)
-  view: "rooms",   // "rooms" | "timeline"
+  view: "rooms",   // "rooms" | "timeline" | "schedule"
+  schedule: null,  // aoa from the '일정' tab (null if absent) → 일정 보기
   tlFilter: {q:"", venue:"", cat:""},
   orderList: [],   // custom vertical order of party ids (timeline)
   collapsed: {},   // venue -> true (timeline fold)
@@ -1227,6 +1246,8 @@ function loadMaster(arrbuf){
   if(!pSheet||!rSheet){ toast("'참가자' 또는 '객실' 탭을 찾을 수 없습니다.","err",6000); return; }
   const pA = XLSX.utils.sheet_to_json(pSheet,{header:1,raw:true,defval:null});
   const rA = XLSX.utils.sheet_to_json(rSheet,{header:1,raw:true,defval:null});
+  const sSheet = wb.Sheets["일정"];             // optional 일정 tab → read-only 일정 보기 timetable
+  state.schedule = sSheet ? XLSX.utils.sheet_to_json(sSheet,{header:1,raw:false,defval:""}) : null;
   state.masterBuf=arrbuf;                       // keep original bytes for versioned re-export
   state.edited=false;
 
@@ -1475,28 +1496,62 @@ function render(){
   try{
     const issues = state.rooms.length ? computeIssues() : [];   // compute once; shared by the stats badge + warning panel
     renderStats(issues);
-    const tl = state.view==="timeline";
-    $("#main").style.display = tl?"none":"flex";
-    $("#warnpanel").style.display = "block";            // 점검 결과 panel stays visible in both views
+    const v = state.view, tl = v==="timeline", sc = v==="schedule";
+    $("#main").style.display = v==="rooms"?"flex":"none";
     $("#timeline").style.display = tl?"flex":"none";   // flex column (gantt/cards fill remaining height)
+    $("#schedule").style.display = sc?"block":"none";  // read-only 일정표
+    $("#warnpanel").style.display = sc?"none":"block"; // 점검 결과 panel: assignment views only
     updateViewTabs();                                  // active tab + ARIA (shared with the empty state)
-    if(tl){ renderTimeline(); }
+    if(tl) renderTimeline();
+    else if(sc) renderSchedule();
     else { renderPool(); renderVenues(); }
-    renderWarnings(issues);                            // panel shows in both rooms + timeline views
-    $("#venues").classList.toggle("picking", !tl && !!state.picks.size);
+    renderWarnings(issues);                            // populates #warnpanel (hidden in 일정 view)
+    $("#venues").classList.toggle("picking", v==="rooms" && !!state.picks.size);
     syncTop();
   } finally { _occ=null; }         // snapshot is valid only for this synchronous pass
 }
 function updateViewTabs(){                            // reflect state.view on the tabs — used by render() AND the empty state
-  const tl=state.view==="timeline";
-  $("#tabRooms").classList.toggle("active",!tl);
-  $("#tabTimeline").classList.toggle("active",tl);
   const vt=document.querySelector(".viewtabs"); if(vt) vt.setAttribute("role","tablist");
-  $("#tabRooms").setAttribute("role","tab");     $("#tabRooms").setAttribute("aria-selected",String(!tl));
-  $("#tabTimeline").setAttribute("role","tab");  $("#tabTimeline").setAttribute("aria-selected",String(tl));
+  const tabs={rooms:"#tabRooms",timeline:"#tabTimeline",schedule:"#tabSchedule"};
+  Object.entries(tabs).forEach(([k,sel])=>{ const n=$(sel); if(!n) return;
+    const on=state.view===k; n.classList.toggle("active",on);
+    n.setAttribute("role","tab"); n.setAttribute("aria-selected",String(on));
+  });
 }
 // view switch works before a file loads too — at the empty state it just pre-selects the landing view (start screen stays)
 function setView(v){ state.view=v; state.picks.clear(); saveUI(); if(state.masterBuf) render(); else updateViewTabs(); }
+// 일정 보기: faithful read-only timetable from the uploaded master's '일정' tab (rows=time slots, cols=days; cell newlines = parallel sessions)
+function renderSchedule(){
+  const wrap=$("#schedule"); const aoa=state.schedule;
+  if(!aoa||!aoa.length){ wrap.replaceChildren(el("div","empty-hint","업로드한 엑셀에 '일정' 탭이 없습니다.")); return; }
+  const nz=s=>(s==null?"":String(s)).trim();
+  const ncol=aoa.reduce((m,r)=>Math.max(m,r?r.length:0),0);
+  // legend says 빨강·굵게 = NOC/ICMDA 주요 세션 → re-derive that emphasis from the (NOC)/(ICMDA) tags in each line
+  const cellHTML=txt=>nz(txt).split("\n").map(line=>{
+    const l=esc(line); return /\((?:NOC|ICMDA)\)/.test(line)?`<span class="key">${l}</span>`:l;
+  }).join("<br>");
+  const frag=document.createDocumentFragment();
+  let hi=aoa.findIndex(r=>r&&r.some(c=>nz(c)==="시간"));   // header row = the one starting the time column
+  if(hi<0) hi=0;
+  for(let i=0;i<hi;i++){ const t=nz((aoa[i]||[])[0]); if(t) frag.append(el("div","sched-title",t)); }
+  const wrapT=el("div","schedscroll"); const table=el("table","schedtbl");
+  const thead=el("thead"), htr=el("tr"), hrow=aoa[hi]||[];
+  for(let c=0;c<ncol;c++){ const th=el("th",c===0?"timecol":null); th.innerHTML=cellHTML(hrow[c]); htr.append(th); }
+  thead.append(htr); table.append(thead);
+  const tbody=el("tbody"); const notes=[];
+  for(let i=hi+1;i<aoa.length;i++){
+    const row=aoa[i]||[]; const first=nz(row[0]);
+    if(first.startsWith("■")){ notes.push(row.map(nz).filter(Boolean).join(" ")); continue; }
+    if(!row.some(c=>nz(c))) continue;                       // skip fully blank rows
+    const band = !first && row.slice(1).some(c=>nz(c));      // labels with no time = program-phase band
+    const tr=el("tr",band?"band":null);
+    for(let c=0;c<ncol;c++){ const td=el(c===0?"th":"td",c===0?"timecol":null); td.innerHTML=cellHTML(row[c]); tr.append(td); }
+    tbody.append(tr);
+  }
+  table.append(tbody); wrapT.append(table); frag.append(wrapT);
+  notes.forEach(n=>frag.append(el("div","sched-note",n)));
+  wrap.replaceChildren(frag);
+}
 function populateFilters(){
   const vsel=$("#tlvenue"), csel=$("#tlcat");
   vsel.length=1; csel.length=1;
@@ -2026,7 +2081,7 @@ function loadUI(){ try{
   if(state.colW[0]<70) state.colW[0]=74;   // ensure the ID column fits the relocated drag handle (⠿) + 'P0001'
   if(s.collapsed && typeof s.collapsed==="object") state.collapsed=s.collapsed;
   if(s.collapsedRooms && typeof s.collapsedRooms==="object") state.collapsedRooms=s.collapsedRooms;
-  if(s.view==="rooms"||s.view==="timeline") state.view=s.view;
+  if(s.view==="rooms"||s.view==="timeline"||s.view==="schedule") state.view=s.view;
 }catch(e){} }
 function makeColGrip(ci){
   const g=el("div","colgrip");
@@ -2695,12 +2750,30 @@ function sheetWriter(doc,path){
   const setDim=(lastC,lastR)=>{ const d=doc.getElementsByTagName("dimension")[0]; if(d) d.setAttribute("ref",XLSX.utils.encode_range({s:{r:0,c:0},e:{r:lastR,c:lastC}})); };
   return {doc,path,set,setDim};
 }
-function downloadBytes(bytes,name,mime){
-  const url=URL.createObjectURL(new Blob([bytes],{type:mime||"application/octet-stream"}));
+// Save bytes to disk. Chromium browsers get a real "다른 이름으로 저장" dialog (pick folder + filename);
+// everything else falls back to the classic download into the browser's default folder.
+// Returns false ONLY when the user cancels the save dialog (so callers can skip the success toast).
+async function downloadBytes(bytes,name,mime){
+  mime=mime||"application/octet-stream";
+  const blob=new Blob([bytes],{type:mime});
+  if(window.showSaveFilePicker){
+    try{
+      const ext=(/\.[^.]+$/.exec(name)||[""])[0];
+      const handle=await window.showSaveFilePicker({suggestedName:name,
+        types: ext?[{description:"파일", accept:{[mime]:[ext]}}]:undefined});
+      const w=await handle.createWritable(); await w.write(blob); await w.close();
+      return true;
+    }catch(err){
+      if(err && err.name==="AbortError") return false;            // user closed the dialog → don't also download / toast success
+      // any other failure (unsupported options, lost activation, permission) → fall through to the classic download
+    }
+  }
+  const url=URL.createObjectURL(blob);
   const a=document.createElement("a"); a.href=url; a.download=name; document.body.appendChild(a); a.click(); a.remove();
   setTimeout(()=>URL.revokeObjectURL(url),1500);
+  return true;
 }
-function exportMaster(){
+async function exportMaster(){
   if(!state.masterBuf){ toast("먼저 ① 마스터 파일을 여세요.","warn"); return; }
   const wb=XLSX.read(state.masterBuf,{type:"array",cellFormula:true});  // read VALUES only (for comparisons/range) — writes go through the surgical editor below
   const ws=wb.Sheets["참가자"]; const H=state.pH; const HR=1;     // header row = 2nd row
@@ -2778,14 +2851,32 @@ function exportMaster(){
     });
     changed+=capChanged;
   }
+  // keep the 요약(Overview) sheet's "데이터 v{N} 기준 …" version note in sync with the new file version
+  const outName=bumpMasterName(state.masterName);
+  const newVer=(()=>{ const m=/v(\d+)\.xlsx$/i.exec(outName); return m?+m[1]:null; })();   // same number the filename bumps to → cell + filename always agree
+  let verNoteChanged=0;
+  if(newVer!=null) wb.SheetNames.forEach(sn=>{
+    if(sn==="참가자"||sn==="객실") return;            // skip the big data sheets
+    const sh=wb.Sheets[sn]; if(!sh) return;
+    Object.keys(sh).forEach(ref=>{
+      if(ref[0]==="!") return;
+      const v=sh[ref]&&sh[ref].v;
+      if(typeof v!=="string" || !/v\s*\d+\s*기준/i.test(v)) return;   // the version note, e.g. "데이터 v19 기준 · 모든 값은 …"
+      const nv=v.replace(/v\s*\d+(\s*기준)/i,`v${newVer}$1`);
+      if(nv===v) return;
+      const cc=XLSX.utils.decode_cell(ref); writerFor(sn).set(cc.r,cc.c,nv); verNoteChanged++;   // surgical write → keeps the cell's italic/grey style
+    });
+  });
   // serialize edited sheets back into the zip (untouched entries pass through byte-for-byte) and download
   const decl='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\r\n', te=new TextEncoder(), xs=new XMLSerializer();
   Object.values(writers).forEach(w=>{ files[w.path]=te.encode(decl+xs.serializeToString(w.doc.documentElement)); });
-  const outName=bumpMasterName(state.masterName);
-  downloadBytes(fflate.zipSync(files,{level:6}),outName,"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+  $("#loading").style.display="none";                  // drop the spinner so the "저장 위치" dialog shows on its own
+  const saved=await downloadBytes(fflate.zipSync(files,{level:6}),outName,"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+  if(saved===false){ toast("저장을 취소했습니다.","info"); return; }   // user closed the 저장 위치 dialog → no file written
   let msg=`'${outName}' 저장 완료 — 변경 ${changed}건.\n· 배정동/배정층/배정호실/배정객실ID 열을 추가했습니다.\n· 총인원·도착일·출발일·숙박일수는 수식이라 그대로 두었습니다.`;
   if(capChanged) msg+=`\n· 객실 수용(추가인원·총가능인원) ${capChanged}건을 '객실' 탭에 반영했습니다.`;
   if(delCount) msg+=`\n· 삭제한 기록 ${delCount}건의 행을 '참가자' 탭에서 비웠습니다.`;
+  if(verNoteChanged) msg+=`\n· 요약 시트의 버전 표기를 v${newVer}로 갱신했습니다.`;
   if(addNightCols.length) msg+=`\n· 추가한 날짜 ${addNightCols.length}개(${state.nightCols.slice(addedStart).join(", ")})를 '참가자' 탭에 새 날짜 열로 저장했습니다.`;
   if(beyond.length) msg+=`\n\n마스터 박 범위를 벗어난 연장 숙박은 기록할 칸이 없어 누락: ${beyond.join(", ")}`;
   msg+=`\n\n※ 원본 .xlsx의 셀 서식·색상·테두리·수식은 그대로 보존됩니다(변경한 칸만 다시 씁니다). 버전 규칙: 이전 파일은 history/ 폴더로 옮기고 기록하세요(브라우저에서 자동 이동 불가).`;
@@ -2854,8 +2945,8 @@ function buildPrint(){
 function withLoading(label, fn){
   const o=$("#loading"), t=$("#loadtxt"); if(t) t.textContent=label||"처리 중…";
   o.style.display="flex";
-  setTimeout(()=>{
-    try{ fn(); }
+  setTimeout(async ()=>{
+    try{ await fn(); }                                 // await so async actions (e.g. the 마스터 저장 dialog) finish before the spinner clears
     catch(err){ console.error(err); toast("오류: "+((err&&err.message)||err),"err",6000); }
     finally{ o.style.display="none"; if(t) t.textContent="자동 배정 중…"; }
   },30);
@@ -3058,6 +3149,7 @@ $("#jumpsel").addEventListener("change",e=>{
 // view tabs + timeline filters + modal
 $("#tabRooms").onclick=()=>setView("rooms");        // works at the empty state too (pre-selects the landing view)
 $("#tabTimeline").onclick=()=>setView("timeline");
+$("#tabSchedule").onclick=()=>setView("schedule");
 $("#tlvenue").addEventListener("change",e=>{ state.tlFilter.venue=e.target.value; renderTimeline(); });
 $("#tlcat").addEventListener("change",e=>{ state.tlFilter.cat=e.target.value; renderTimeline(); });
 $("#tlDateAdd").addEventListener("click",addTlDate);
