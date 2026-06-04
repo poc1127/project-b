@@ -80,8 +80,13 @@
   /* 일정 보기: read-only program timetable from the '일정' tab */
   #schedule{overflow:auto;padding:12px 16px;background:var(--bg);min-height:0;
             height:calc(100vh - var(--topoff,92px) - var(--warnh,0px));height:calc(100dvh - var(--topoff,92px) - var(--warnh,0px));}
+  .sched-hint{font-size:12px;color:var(--text-faint);margin:0 0 10px;}
   .sched-title{font-size:16px;font-weight:800;color:var(--ink);margin:2px 0 10px;}
   .schedscroll{overflow:auto;border:1px solid var(--line);border-radius:8px;}
+  /* 일정 보기 cells are click-to-edit (contenteditable); saved to the '일정' tab on 마스터 업데이트 */
+  [data-r][contenteditable]{cursor:text;}
+  [data-r][contenteditable]:hover{outline:1px dashed var(--line);outline-offset:-1px;}
+  [data-r][contenteditable]:focus{outline:2px solid var(--primary);outline-offset:-2px;background:#fffef5;border-radius:2px;}
   table.schedtbl{border-collapse:collapse;width:100%;font-size:12px;background:#fff;}
   table.schedtbl th,table.schedtbl td{border:1px solid var(--line);padding:5px 8px;vertical-align:top;text-align:center;line-height:1.35;}
   table.schedtbl thead th{position:sticky;top:0;z-index:2;background:var(--ink);color:#fff;font-weight:700;white-space:pre-line;}
@@ -89,6 +94,7 @@
   table.schedtbl thead .timecol{z-index:3;}
   table.schedtbl tbody tr:nth-child(even) td{background:#fafbfc;}
   table.schedtbl tr.band td,table.schedtbl tr.band th{background:#eef5ee;font-weight:700;color:#39673d;}
+  table.schedtbl td[rowspan],table.schedtbl th[rowspan]{vertical-align:middle;background:#fffdf3;font-weight:600;}  /* multi-slot sessions (Student Conference, Departure…) */
   table.schedtbl .key{color:#c0392b;font-weight:700;}
   .sched-note{font-size:11px;color:var(--text-faint);margin-top:8px;line-height:1.5;}
   .room.over{border-color:var(--warn);background:#fff5f5;}
@@ -933,7 +939,7 @@
 "use strict";
 // ⚑ index.html build version — shown bottom-right on the start screen. BUMP ON EACH DEPLOY.
 //   Format: vYYYY.MM.DD-N  (N = same-day build counter; reset to 1 on a new date).
-const APP_VERSION = "v2026.06.04-25";
+const APP_VERSION = "v2026.06.04-28";
 /* ============================================================
    ICMDA 2026 Room Assignment Dashboard (single file)
    - reads the live master .xlsx (columns mapped by HEADER NAME)
@@ -970,6 +976,8 @@ const state = {
   dates: [],       // extended timeline axis (nights + buffer)
   view: "rooms",   // "rooms" | "timeline" | "schedule"
   schedule: null,  // aoa from the '일정' tab (null if absent) → 일정 보기
+  scheduleMerges: null,  // '일정' tab merged ranges (SheetJS !merges) → rowspan/colspan in 일정 보기
+  scheduleDirty: null,  // Set of "r,c" cells edited in 일정 보기 → written back to the '일정' tab on 마스터 업데이트
   tlFilter: {q:"", venue:"", cat:""},
   orderList: [],   // custom vertical order of party ids (timeline)
   collapsed: {},   // venue -> true (timeline fold)
@@ -1246,8 +1254,10 @@ function loadMaster(arrbuf){
   if(!pSheet||!rSheet){ toast("'참가자' 또는 '객실' 탭을 찾을 수 없습니다.","err",6000); return; }
   const pA = XLSX.utils.sheet_to_json(pSheet,{header:1,raw:true,defval:null});
   const rA = XLSX.utils.sheet_to_json(rSheet,{header:1,raw:true,defval:null});
-  const sSheet = wb.Sheets["일정"];             // optional 일정 tab → read-only 일정 보기 timetable
+  const sSheet = wb.Sheets["일정"];             // optional 일정 tab → editable 일정 보기 timetable
   state.schedule = sSheet ? XLSX.utils.sheet_to_json(sSheet,{header:1,raw:false,defval:""}) : null;
+  state.scheduleMerges = sSheet ? (sSheet["!merges"]||[]) : null;   // merged ranges → rowspan/colspan in 일정 보기 (Student Conference, Departure, meals…)
+  state.scheduleDirty = new Set();              // fresh master → no pending 일정 edits
   state.masterBuf=arrbuf;                       // keep original bytes for versioned re-export
   state.edited=false;
 
@@ -1500,6 +1510,7 @@ function render(){
     $("#main").style.display = v==="rooms"?"flex":"none";
     $("#timeline").style.display = tl?"flex":"none";   // flex column (gantt/cards fill remaining height)
     $("#schedule").style.display = sc?"block":"none";  // read-only 일정표
+    if(sc) $("#statsbarwrap").style.display = "none";  // 일정 보기: hide the assignment stat bar (총인원/미배정/…) — not relevant here
     $("#warnpanel").style.display = sc?"none":"block"; // 점검 결과 panel: assignment views only
     updateViewTabs();                                  // active tab + ARIA (shared with the empty state)
     if(tl) renderTimeline();
@@ -1526,30 +1537,43 @@ function renderSchedule(){
   if(!aoa||!aoa.length){ wrap.replaceChildren(el("div","empty-hint","업로드한 엑셀에 '일정' 탭이 없습니다.")); return; }
   const nz=s=>(s==null?"":String(s)).trim();
   const ncol=aoa.reduce((m,r)=>Math.max(m,r?r.length:0),0);
+  // merged ranges from the '일정' sheet → rowspan/colspan, so sessions that span multiple time
+  // slots (e.g. Student Conference) or all days (meals, Departure) render as ONE cell, not duplicates.
+  const span={}, covered=new Set();          // span["r,c"]={rs,cs} for anchors; covered = cells hidden under a span
+  (state.scheduleMerges||[]).forEach(m=>{
+    const rs=m.e.r-m.s.r+1, cs=m.e.c-m.s.c+1;
+    if(rs<=1&&cs<=1) return;
+    span[m.s.r+","+m.s.c]={rs,cs};
+    for(let r=m.s.r;r<=m.e.r;r++) for(let c=m.s.c;c<=m.e.c;c++) if(r!==m.s.r||c!==m.s.c) covered.add(r+","+c);
+  });
   // legend says 빨강·굵게 = NOC/ICMDA 주요 세션 → re-derive that emphasis from the (NOC)/(ICMDA) tags in each line
   const cellHTML=txt=>nz(txt).split("\n").map(line=>{
     const l=esc(line); return /\((?:NOC|ICMDA)\)/.test(line)?`<span class="key">${l}</span>`:l;
   }).join("<br>");
+  const edit=(node,r,c)=>{ node.setAttribute("contenteditable","plaintext-only"); node.dataset.r=r; node.dataset.c=c; return node; };  // click-to-edit; persisted to the '일정' tab on 마스터 업데이트
   const frag=document.createDocumentFragment();
+  frag.append(el("div","sched-hint","셀을 클릭해 직접 수정할 수 있습니다. 변경 내용은 ‘마스터 업데이트 (v+1)’를 누르면 ‘일정’ 탭에 저장됩니다."));
   let hi=aoa.findIndex(r=>r&&r.some(c=>nz(c)==="시간"));   // header row = the one starting the time column
   if(hi<0) hi=0;
-  for(let i=0;i<hi;i++){ const t=nz((aoa[i]||[])[0]); if(t) frag.append(el("div","sched-title",t)); }
+  for(let i=0;i<hi;i++){ const t=nz((aoa[i]||[])[0]); if(t){ const d=el("div","sched-title"); d.innerHTML=cellHTML(t); frag.append(edit(d,i,0)); } }
   const wrapT=el("div","schedscroll"); const table=el("table","schedtbl");
   const thead=el("thead"), htr=el("tr"), hrow=aoa[hi]||[];
-  for(let c=0;c<ncol;c++){ const th=el("th",c===0?"timecol":null); th.innerHTML=cellHTML(hrow[c]); htr.append(th); }
+  const spanAttr=(node,r,c)=>{ const sp=span[r+","+c]; if(sp){ if(sp.rs>1)node.rowSpan=sp.rs; if(sp.cs>1)node.colSpan=sp.cs; } return node; };
+  for(let c=0;c<ncol;c++){ if(covered.has(hi+","+c)) continue; const th=el("th",c===0?"timecol":null); th.innerHTML=cellHTML(hrow[c]); htr.append(spanAttr(edit(th,hi,c),hi,c)); }
   thead.append(htr); table.append(thead);
   const tbody=el("tbody"); const notes=[];
   for(let i=hi+1;i<aoa.length;i++){
     const row=aoa[i]||[]; const first=nz(row[0]);
-    if(first.startsWith("■")){ notes.push(row.map(nz).filter(Boolean).join(" ")); continue; }
-    if(!row.some(c=>nz(c))) continue;                       // skip fully blank rows
+    if(first.startsWith("■")){ const ci=row.findIndex(c=>nz(c)); notes.push({r:i,c:ci<0?0:ci,txt:nz(row[ci<0?0:ci])}); continue; }
+    let through=false; for(let c=0;c<ncol;c++){ if(covered.has(i+","+c)){ through=true; break; } }   // a vertical span passing through keeps the row alive
+    if(!row.some(c=>nz(c)) && !through) continue;            // skip rows with no content and no span through them
     const band = !first && row.slice(1).some(c=>nz(c));      // labels with no time = program-phase band
     const tr=el("tr",band?"band":null);
-    for(let c=0;c<ncol;c++){ const td=el(c===0?"th":"td",c===0?"timecol":null); td.innerHTML=cellHTML(row[c]); tr.append(td); }
+    for(let c=0;c<ncol;c++){ if(covered.has(i+","+c)) continue; const td=el(c===0?"th":"td",c===0?"timecol":null); td.innerHTML=cellHTML(row[c]); tr.append(spanAttr(edit(td,i,c),i,c)); }
     tbody.append(tr);
   }
   table.append(tbody); wrapT.append(table); frag.append(wrapT);
-  notes.forEach(n=>frag.append(el("div","sched-note",n)));
+  notes.forEach(n=>{ const d=el("div","sched-note"); d.innerHTML=cellHTML(n.txt); frag.append(edit(d,n.r,n.c)); });
   wrap.replaceChildren(frag);
 }
 function populateFilters(){
@@ -2851,6 +2875,17 @@ async function exportMaster(){
     });
     changed+=capChanged;
   }
+  // write 일정 보기 edits back to the '일정' tab. Surgical: only changed cells (styles/merges preserved).
+  let schedChanged=0;
+  if(state.schedule && state.scheduleDirty && state.scheduleDirty.size){
+    const S=writerFor("일정");
+    state.scheduleDirty.forEach(k=>{
+      const [r,cc]=k.split(",").map(Number);
+      S.set(r,cc,nrm((state.schedule[r]||[])[cc]));   // inlineStr; existing cell keeps its style
+      schedChanged++;
+    });
+    changed+=schedChanged;
+  }
   // keep the 요약(Overview) sheet's "데이터 v{N} 기준 …" version note in sync with the new file version
   const outName=bumpMasterName(state.masterName);
   const newVer=(()=>{ const m=/v(\d+)\.xlsx$/i.exec(outName); return m?+m[1]:null; })();   // same number the filename bumps to → cell + filename always agree
@@ -2876,6 +2911,7 @@ async function exportMaster(){
   let msg=`'${outName}' 저장 완료 — 변경 ${changed}건.\n· 배정동/배정층/배정호실/배정객실ID 열을 추가했습니다.\n· 총인원·도착일·출발일·숙박일수는 수식이라 그대로 두었습니다.`;
   if(capChanged) msg+=`\n· 객실 수용(추가인원·총가능인원) ${capChanged}건을 '객실' 탭에 반영했습니다.`;
   if(delCount) msg+=`\n· 삭제한 기록 ${delCount}건의 행을 '참가자' 탭에서 비웠습니다.`;
+  if(schedChanged) msg+=`\n· 일정 ${schedChanged}건을 '일정' 탭에 반영했습니다.`;
   if(verNoteChanged) msg+=`\n· 요약 시트의 버전 표기를 v${newVer}로 갱신했습니다.`;
   if(addNightCols.length) msg+=`\n· 추가한 날짜 ${addNightCols.length}개(${state.nightCols.slice(addedStart).join(", ")})를 '참가자' 탭에 새 날짜 열로 저장했습니다.`;
   if(beyond.length) msg+=`\n\n마스터 박 범위를 벗어난 연장 숙박은 기록할 칸이 없어 누락: ${beyond.join(", ")}`;
@@ -3150,6 +3186,14 @@ $("#jumpsel").addEventListener("change",e=>{
 $("#tabRooms").onclick=()=>setView("rooms");        // works at the empty state too (pre-selects the landing view)
 $("#tabTimeline").onclick=()=>setView("timeline");
 $("#tabSchedule").onclick=()=>setView("schedule");
+// 일정 보기 inline edits → update the source aoa + track dirty cells (saved to the '일정' tab on 마스터 업데이트)
+$("#schedule").addEventListener("input",e=>{
+  const cell=e.target.closest("[data-r]"); if(!cell||!state.schedule) return;
+  const r=+cell.dataset.r, c=+cell.dataset.c;
+  if(!state.schedule[r]) state.schedule[r]=[];
+  state.schedule[r][c]=cell.innerText.replace(/\r\n?/g,"\n").replace(/\n$/,"");   // contenteditable trailing newline → trim
+  (state.scheduleDirty||(state.scheduleDirty=new Set())).add(r+","+c);
+});
 $("#tlvenue").addEventListener("change",e=>{ state.tlFilter.venue=e.target.value; renderTimeline(); });
 $("#tlcat").addEventListener("change",e=>{ state.tlFilter.cat=e.target.value; renderTimeline(); });
 $("#tlDateAdd").addEventListener("click",addTlDate);
