@@ -62,6 +62,12 @@
   .venue.youus>h2{background:var(--youus);border-bottom:2px solid var(--youus-b);}
   .venue.booyoung>h2{background:var(--booyoung);border-bottom:2px solid var(--booyoung-b);}
   .venue>h2 .cap{font-size:12px;font-weight:500;}
+  .venue>h2 .vlk{margin-left:auto;cursor:pointer;display:inline-flex;align-items:center;color:inherit;
+    background:rgba(0,0,0,.10);border:1px solid rgba(0,0,0,.2);border-radius:6px;padding:3px 7px;flex:none;}
+  .venue>h2 .vlk:hover{background:rgba(0,0,0,.18);}
+  .venue>h2 .vlk .ico{width:14px;height:14px;}
+  .venue>h2 .vlk.locked{background:#b8860b;color:#fff;border-color:#9c7209;}
+  .venue.vlocked>h2{box-shadow:inset 4px 0 0 #b8860b;}   /* whole-hotel lock cue on the header */
   .floorgrp{padding:6px 10px;}
   .floorgrp h3{font-size:12px;color:#555;margin:8px 2px 4px;border-bottom:1px dashed #ddd;}
   .rooms{display:grid;grid-template-columns:repeat(auto-fill,minmax(185px,1fr));gap:8px;}
@@ -888,7 +894,7 @@
 "use strict";
 // ⚑ index.html build version — shown bottom-right on the start screen. BUMP ON EACH DEPLOY.
 //   Format: vYYYY.MM.DD-N  (N = same-day build counter; reset to 1 on a new date).
-const APP_VERSION = "v2026.06.04-6";
+const APP_VERSION = "v2026.06.04-7";
 /* ============================================================
    ICMDA 2026 Room Assignment Dashboard (single file)
    - reads the live master .xlsx (columns mapped by HEADER NAME)
@@ -1712,7 +1718,7 @@ function renderVenues(){
   const order=[VEN.BYYTC,VEN.YOUUS,VEN.BOOY];
   const jumps=[];                                  // {label,id} for the mobile jump-to-floor control
   // collapsible venue header (accordion). Collapse state is keyed by element id.
-  const venueHeader=(div,vKey,inner)=>{
+  const venueHeader=(div,vKey,inner,lockHotel)=>{
     const collapsed=!!state.collapsedRooms[vKey];
     div.classList.toggle("collapsed",collapsed);
     const h=el("h2"); h.setAttribute("role","button"); h.tabIndex=0;
@@ -1721,6 +1727,24 @@ function renderVenues(){
     const tog=()=>{ state.collapsedRooms[vKey]=!collapsed; saveUI(); renderVenues(); };
     h.addEventListener("click",tog);
     h.addEventListener("keydown",e=>{ if(e.key==="Enter"||e.key===" "){e.preventDefault();tog();} });
+    // hotel-wide lock: freeze every room in this venue at once (occupants stay, 자동 배정 skips them). Reuses per-room state.roomLocked.
+    if(lockHotel){
+      const rms=state.rooms.filter(r=>r.hotel===lockHotel);
+      if(rms.length){
+        const allLocked=rms.every(r=>state.roomLocked[r.key]);
+        div.classList.toggle("vlocked", allLocked);
+        const vlk=el("button","vlk"+(allLocked?" locked":"")); vlk.type="button";
+        vlk.innerHTML=ico(allLocked?'lock':'unlock');
+        vlk.setAttribute("aria-pressed", allLocked?"true":"false");
+        vlk.title=allLocked?"호텔 전체 잠금 해제":"호텔 전체 잠금(자동배정에서 이 호텔 제외)";
+        vlk.setAttribute("aria-label",(allLocked?"호텔 전체 잠금 해제":"호텔 전체 잠금")+" — "+lockHotel);
+        vlk.addEventListener("click",e=>{ e.stopPropagation();          // don't toggle the accordion
+          if(allLocked) rms.forEach(r=>delete state.roomLocked[r.key]); else rms.forEach(r=>state.roomLocked[r.key]=true);
+          announce(`${lockHotel} ${allLocked?"전체 잠금 해제":"전체 잠금"}`); render(); });
+        vlk.addEventListener("keydown",e=>{ if(e.key==="Enter"||e.key===" ") e.stopPropagation(); });  // let the native button click fire, but keep it from collapsing the venue
+        h.append(vlk);
+      }
+    }
     div.append(h);
   };
   order.forEach((hotel,vi)=>{
@@ -1741,7 +1765,7 @@ function renderVenues(){
     const rooms=state.rooms.filter(r=>r.hotel===hotel);
     const used=rooms.reduce((s,r)=>s+roomLoad(r.key),0);
     const cap=rooms.reduce((s,r)=>s+r.total,0);
-    venueHeader(div,vId,`${hotel} <span class="cap">· ${rooms.length}실 · ${used}/${cap}명</span>`);
+    venueHeader(div,vId,`${hotel} <span class="cap">· ${rooms.length}실 · ${used}/${cap}명</span>`,hotel);
     jumps.push({label:`▸ ${venShort(hotel)}`, id:vId});
     // group by floor (부영) / by type (유어스, since floor blank)
     const groups={};
