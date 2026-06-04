@@ -887,7 +887,7 @@
 "use strict";
 // ⚑ index.html build version — shown bottom-right on the start screen. BUMP ON EACH DEPLOY.
 //   Format: vYYYY.MM.DD-N  (N = same-day build counter; reset to 1 on a new date).
-const APP_VERSION = "v2026.06.04-2";
+const APP_VERSION = "v2026.06.04-4";
 /* ============================================================
    ICMDA 2026 Room Assignment Dashboard (single file)
    - reads the live master .xlsx (columns mapped by HEADER NAME)
@@ -928,7 +928,7 @@ const state = {
   collapsed: {},   // venue -> true (timeline fold)
   collapsedRooms: {}, // rooms-view accordion fold, keyed by venue/floor element id
   colW: [74,58,150,78,84,52],  // resizable widths: ID(+손잡이)·분류·이름/팀·호텔·객실번호·수용 (track = 1fr)
-  pick: null,      // tap-to-assign: id of the party currently 'picked up'
+  picks: new Set(),// tap-to-assign: pool party ids currently selected (multi). Tap a room / drag to assign all.
   tlSel: new Set(),// timeline multi-select: party ids selected for group drag
   tlSort: {key:null, dir:"asc"},  // timeline sort: key "id"|"name"|"room"|"cap" (null = manual drag order), dir asc|desc
   roomOrder: {},   // roomKey -> [pid,...] manual occupant order inside a room (drag-to-reorder); absent = sort by name
@@ -1091,8 +1091,17 @@ function updateAutoScroll(x,y){
 }
 function applyDrop(pid,key){
   const p=state.byId[pid]; if(!p) return;
-  if(key==="__pool__"){ delete state.assign[pid]; state.pick=null; render(); announceAssign(`${p.name} 미배정으로 이동`); }
-  else { state.assign[pid]=key; state.pick=null; render(); announceAssign(`${p.name} ${dropLabel(key)} 배정`); }
+  if(key==="__pool__"){ delete state.assign[pid]; state.picks.clear(); render(); announceAssign(`${p.name} 미배정으로 이동`); }
+  else { state.assign[pid]=key; state.picks.clear(); render(); announceAssign(`${p.name} ${dropLabel(key)} 배정`); }
+}
+// batch assign every selected party to one room (or back to the pool). Used by tap-a-room and group-drag.
+function applyDropMany(ids,key){
+  ids=ids.filter(id=>state.byId[id]); if(!ids.length) return;
+  if(key==="__pool__"){ ids.forEach(id=>delete state.assign[id]); }
+  else { ids.forEach(id=>state.assign[id]=key); }
+  state.picks.clear(); render();
+  const lbl = key==="__pool__" ? "미배정으로 이동" : `${dropLabel(key)} 배정`;
+  announceAssign(ids.length>1 ? `${ids.length}명 ${lbl}` : `${state.byId[ids[0]].name} ${lbl}`);
 }
 // Drag-to-reorder inside a room: drop `pid` just before/after `refPid`. Assigns pid to the room first
 // so dragging in from another room (or the pool) lands it at the chosen slot. The order is stored in
@@ -1107,7 +1116,7 @@ function reorderInRoom(pid, roomKey, refPid, after){
   let at=order.indexOf(refPid); if(at<0) at=order.length; if(after) at++;
   order.splice(at,0,pid);
   state.roomOrder[roomKey]=order;
-  state.pick=null; render();
+  state.picks.clear(); render();
   announceAssign(moving? `${p.name} ${dropLabel(roomKey)} 배정` : `${p.name} 순서 변경`);
 }
 // Begin a drag from `downEvt` for party `p`, visualised by cloning `chipNode`.
@@ -1115,9 +1124,12 @@ function beginDrag(downEvt, p, chipNode, opts){
   opts=opts||{};
   const pid=downEvt.pointerId, capEl=downEvt.currentTarget;
   const sx=downEvt.clientX, sy=downEvt.clientY; let started=false;
+  // dragging a selected pool chip while >1 are selected ⇒ move the whole selection as a group
+  const grp = (state.picks.has(p.id) && state.picks.size>1) ? [...state.picks] : null;
   let mark=null, markAfter=false, markKey=null;          // chip-level insertion slot (reorder within a room)
   const clearMark=()=>{ if(mark){ mark.classList.remove("dropmark","dm-before","dm-after"); mark=null; markKey=null; } };
   const evalMark=(x,y)=>{                                 // mark the occupant under the pointer as the drop slot (line above/below it)
+    if(grp){ clearMark(); return; }                      // group drag drops onto the room as a whole, no per-occupant reorder
     const node=document.elementFromPoint(x,y);
     const ch=node&&node.closest?node.closest(".room .chip"):null;
     clearMark();
@@ -1136,11 +1148,12 @@ function beginDrag(downEvt, p, chipNode, opts){
       started=true; DRAG.pid=p.id;
       DRAG.onScroll=(x,y)=>{ setDragTarget(dragTargetUnder(x,y)); evalMark(x,y); };  // keep slot in sync during auto-scroll
       chipNode.classList.add("dragging"); setDragging(true);
-      const g=chipNode.cloneNode(true); g.id="dragghost"; g.classList.remove("dragging");
-      g.removeAttribute("role"); g.removeAttribute("tabindex");
+      let g;
+      if(grp){ g=el("div","tlghost"); g.innerHTML=`${ico('grip')} ${grp.length}명 이동`; g.id="dragghost"; }
+      else { g=chipNode.cloneNode(true); g.id="dragghost"; g.classList.remove("dragging"); g.removeAttribute("role"); g.removeAttribute("tabindex"); }
       document.body.appendChild(g); DRAG.ghost=g;
       DRAG.raf=requestAnimationFrame(autoScrollTick);
-      announce(`${p.name} 이동 중 — 방 위에 놓으세요`);
+      announce(grp?`${grp.length}명 이동 중 — 방 위에 놓으세요`:`${p.name} 이동 중 — 방 위에 놓으세요`);
     }
     e.preventDefault();
     DRAG.lastXY=[e.clientX,e.clientY];
@@ -1163,7 +1176,8 @@ function beginDrag(downEvt, p, chipNode, opts){
     DRAG.pid=null; DRAG.lastXY=null;
     dragFired=true; setTimeout(()=>dragFired=false,400);    // swallow the click that follows pointerup
     if(e.type==="pointercancel") return;
-    if(mk && mkk) reorderInRoom(p.id, mkk, mk.dataset.pid, mka);   // dropped over an occupant → reorder (and assign, if from elsewhere)
+    if(grp){ if(tgt) applyDropMany(grp, tgt.dataset.dropkey); }    // group drag → assign the whole selection to the drop target
+    else if(mk && mkk) reorderInRoom(p.id, mkk, mk.dataset.pid, mka);   // dropped over an occupant → reorder (and assign, if from elsewhere)
     else if(tgt) applyDrop(p.id, tgt.dataset.dropkey);            // dropped on empty room area / pool → plain assign
   };
   capEl.addEventListener("pointermove",onMove);
@@ -1194,10 +1208,14 @@ function loadMaster(arrbuf){
     const list=state.roomDupIds.map(d=>`${d.id} (${d.hotels.join(" / ")})`).join(", ");
     toast(`객실ID가 한 숙소에 고유하지 않습니다 — 방-숙소 연결이 모호합니다: ${list}`,"err",9000);
   }
-  // default assignment: respect 배정숙소 pre-locks
+  // default assignment: respect 배정숙소 pre-locks, then restore any prior 배정 result (배정객실ID, written by 마스터 업데이트)
   state.assign={}; state.locked={}; state.roomLocked={}; state.tlSel.clear(); state.deletedRows=[]; state.roomOrder={};
   state.parties.forEach(p=>{
-    if(p.pre.indexOf("부영호텔")>=0){ state.assign[p.id]="BOOY"; state.locked[p.id]=true; }
+    if(p.pre.indexOf("부영호텔")>=0){ state.assign[p.id]="BOOY"; state.locked[p.id]=true; return; }   // off-inventory NOC pre-booking → locked
+    const rid=p.asgRoom;                                       // restore a previously exported assignment so it shows on initial load
+    if(!rid) return;
+    if(rid.indexOf("부영호텔")>=0) { state.assign[p.id]="BOOY"; state.locked[p.id]=true; }   // "개별예약(부영호텔)" marker
+    else if(state.roomById[rid]) state.assign[p.id]=rid;       // real room — restore unlocked (re-running 자동 배정 may reshuffle, same as live)
   });
   setActionsEnabled(true);
   populateFilters();
@@ -1251,7 +1269,7 @@ function parseParticipants(aoa){
       hc, party, partySum,
       need:norm(g(row,"배정필요"))||"Yes",
       cat:norm(g(row,"카테고리")), team:norm(g(row,"팀")), group:norm(g(row,"그룹ID")),
-      pre:norm(g(row,"배정숙소")),
+      pre:norm(g(row,"배정숙소")), asgRoom:norm(g(row,"배정객실ID")),   // 배정객실ID is written only by 마스터 업데이트 → lets us restore prior 배정 on reload
       stay:(s===null?null:{s,e}),
       arr:(s===null?"":NC[s]), dep:(e===null?"":nextDay(NC[e])),
       note:norm(g(row,"비고")), companions:norm(g(row,"동반자요약")), gubun:norm(g(row,"구분")),
@@ -1438,7 +1456,7 @@ function render(){
     if(tl){ renderTimeline(); }
     else { renderPool(); renderVenues(); }
     renderWarnings(issues);                            // panel shows in both rooms + timeline views
-    $("#venues").classList.toggle("picking", !tl && !!state.pick);
+    $("#venues").classList.toggle("picking", !tl && !!state.picks.size);
     syncTop();
   } finally { _occ=null; }         // snapshot is valid only for this synchronous pass
 }
@@ -1451,7 +1469,7 @@ function updateViewTabs(){                            // reflect state.view on t
   $("#tabTimeline").setAttribute("role","tab");  $("#tabTimeline").setAttribute("aria-selected",String(tl));
 }
 // view switch works before a file loads too — at the empty state it just pre-selects the landing view (start screen stays)
-function setView(v){ state.view=v; state.pick=null; saveUI(); if(state.masterBuf) render(); else updateViewTabs(); }
+function setView(v){ state.view=v; state.picks.clear(); saveUI(); if(state.masterBuf) render(); else updateViewTabs(); }
 function populateFilters(){
   const vsel=$("#tlvenue"), csel=$("#tlcat");
   vsel.length=1; csel.length=1;
@@ -1512,14 +1530,14 @@ function ariaForChip(p){
   const sex=p.partySex==="MIX"?"가족":p.partySex==="M"?"남성":p.partySex==="F"?"여성":"성별미상";
   const a=state.assign[p.id];
   const where=a?(a==="BOOY"?VEN.BOOY:(state.roomById[a]?dropLabel(a):"배정됨")):"미배정";
-  return `${p.name}, ${sex}, ${p.hc}명, ${where}${state.pick===p.id?", 선택됨":""}. `
+  return `${p.name}, ${sex}, ${p.hc}명, ${where}${state.picks.has(p.id)?", 선택됨":""}. `
        + (a?"두 번 누르면 미배정으로 이동":"누르면 선택, 방을 눌러 배정");
 }
 function chip(p){
   const c=el("div","chip "+(p.partySex==="MIX"?"mix":p.partySex==="M"?"sex-M":p.partySex==="F"?"sex-F":"sex-q"));
   c.dataset.pid=p.id;
   c.setAttribute("role","button"); c.tabIndex=0;                 // keyboard-focusable, button semantics
-  c.setAttribute("aria-pressed", state.pick===p.id?"true":"false");
+  c.setAttribute("aria-pressed", state.picks.has(p.id)?"true":"false");
   c.setAttribute("aria-label", ariaForChip(p));
   if(state.locked[p.id]) c.classList.add("locked");
   const room = state.assign[p.id] && state.assign[p.id]!=="BOOY" ? state.roomById[state.assign[p.id]] : null;
@@ -1573,8 +1591,7 @@ function chip(p){
   // destroy the chip on the 1st click and the dblclick could never fire).
   const single=()=>{
     if(state.assign[p.id]) return;                                          // assigned chip: single click is non-destructive — 미배정은 상세 카드에서 (오작동 방지)
-    const want=(state.pick===p.id?null:p.id);                               // pool → pick up / cancel
-    setPick(want, want? `${p.name} 선택됨 — 방을 누르면 배정됩니다` : "선택 해제");
+    toggleSel(p.id);                                                        // pool → toggle this person in/out of the multi-selection
   };
   let ctimer=null;
   c.addEventListener("click",e=>{
@@ -1594,35 +1611,43 @@ function chip(p){
   if(state.assign[p.id]){
     c.title=`${nm.title}\n더블클릭/길게 누르기: 상세 (미배정은 상세 카드의 '미배정으로 빼기')`;
   }else{
-    if(state.pick===p.id) c.classList.add("picked");
-    c.title=`${nm.title}\n클릭: 선택 후 방을 탭하여 배정 · 더블클릭/길게 누르기: 상세`;
+    if(state.picks.has(p.id)) c.classList.add("picked");
+    c.title=`${nm.title}\n클릭: 선택(여러 명 가능) 후 방을 탭하거나 끌어서 배정 · 더블클릭/길게 누르기: 상세`;
   }
   return c;
 }
 
-// Pick/deselect without a full render(): only pool chips are pickable, so the picked chip always
-// lives in #poollist. We update just that chip, the venue drop-highlight, and the pool hint banner.
+// pool multi-select banner: how many are picked + how to place them, with a clear-all button.
 function makePickHint(){
+  const n=state.picks.size;
   const ph=el("div","pickhint");
-  const ps=el("span"); ps.innerHTML=`${ico('checkCircle')} ${esc(state.byId[state.pick].name)} 선택됨 — 방을 누르면 배정됩니다.`; ph.append(ps);
-  const cx=el("button","pickcancel"); cx.innerHTML=`${ico('x')} 취소`; cx.type="button"; cx.setAttribute("aria-label","선택 취소(Esc)");
-  cx.onclick=ev=>{ ev.stopPropagation(); setPick(null,"선택 해제"); };
+  const ps=el("span"); ps.innerHTML=`${ico('checkCircle')} ${n}명 선택됨 — 방을 누르면 모두 배정 · 칩을 끌어 함께 이동`; ph.append(ps);
+  const cx=el("button","pickcancel"); cx.innerHTML=`${ico('x')} 선택 해제`; cx.type="button"; cx.setAttribute("aria-label","선택 해제(Esc)");
+  cx.onclick=ev=>{ ev.stopPropagation(); clearSel(); };
   ph.append(cx);
   return ph;
 }
-function setPick(next, msg){
-  const prev=state.pick;
-  state.pick=next;
-  if(state.view!=="timeline"){                         // timeline has no pool/venue picking UI
-    const list=$("#poollist");
-    [prev,next].forEach(id=>{ if(!id||!list) return; const c=list.querySelector(`.chip[data-pid="${id}"]`);
-      if(c){ const on=state.pick===id; c.classList.toggle("picked",on); c.setAttribute("aria-pressed",on?"true":"false");
-        if(state.byId[id]) c.setAttribute("aria-label",ariaForChip(state.byId[id])); } });
-    $("#venues").classList.toggle("picking", !!state.pick);
-    if(list){ const ex=list.querySelector(".pickhint"); if(ex) ex.remove();
-      if(state.pick && state.byId[state.pick]) list.insertBefore(makePickHint(), list.firstChild); }
-  }
-  if(msg) announce(msg);
+// toggle one pool party in/out of the selection, refreshing just that chip + the banner + room drop-cue (no full render)
+function toggleSel(id){
+  const on = !state.picks.has(id);
+  if(on) state.picks.add(id); else state.picks.delete(id);
+  syncSelUI(id);
+  announce(`${state.byId[id].name} ${on?"선택":"선택 해제"} (${state.picks.size}명)`);
+}
+function clearSel(){
+  const ids=[...state.picks]; state.picks.clear();
+  ids.forEach(id=>syncSelUI(id));
+  announce("선택 해제");
+}
+function syncSelUI(changedId){
+  if(state.view==="timeline") return;                  // timeline has no pool/venue picking UI
+  const list=$("#poollist");
+  if(list && changedId){ const c=list.querySelector(`.chip[data-pid="${changedId}"]`);
+    if(c){ const on=state.picks.has(changedId); c.classList.toggle("picked",on); c.setAttribute("aria-pressed",on?"true":"false");
+      if(state.byId[changedId]) c.setAttribute("aria-label",ariaForChip(state.byId[changedId])); } }
+  $("#venues").classList.toggle("picking", !!state.picks.size);
+  if(list){ const ex=list.querySelector(".pickhint"); if(ex) ex.remove();
+    if(state.picks.size) list.insertBefore(makePickHint(), list.firstChild); }
 }
 function renderPool(){
   const list=$("#poollist"); list.innerHTML="";
@@ -1631,7 +1656,7 @@ function renderPool(){
         .filter(p=> !q || p.name.toLowerCase().includes(q)||p.id.toLowerCase().includes(q)||(p.kname||"").toLowerCase().includes(q))
         .sort((a,b)=> (b.partySex==="MIX")-(a.partySex==="MIX") || a.name.localeCompare(b.name));
   $("#poolcount").textContent = `(${un.reduce((s,p)=>s+p.hc,0)}명 / ${un.length}건)`;
-  if(state.pick && state.byId[state.pick]) list.append(makePickHint());
+  if(state.picks.size) list.append(makePickHint());
   // distinguish "pool is genuinely empty" from "search filtered everything out"
   if(!un.length){ const eh=el("div","empty-hint"); eh.innerHTML = q?`'${esc($("#poolsearch").value)}' 검색 결과가 없습니다`:`${ico('checkCircle')} 미배정 없음`; list.append(eh); }
   un.forEach(p=>list.append(chip(p)));
@@ -1644,14 +1669,14 @@ function renderPool(){
 function makeDrop(node, roomKey){
   node.dataset.dropkey = roomKey===null ? "__pool__" : roomKey;
   const doDrop=()=>{
-    if(!state.pick) return false;
-    if(roomKey===null){ setPick(null,"선택 해제"); }   // tap the pool = cancel
-    else { applyDrop(state.pick, roomKey); }                                 // applyDrop clears pick + announces
+    if(!state.picks.size) return false;
+    if(roomKey===null){ clearSel(); }                  // tap the pool = cancel the selection
+    else { applyDropMany([...state.picks], roomKey); } // assign every selected person to this room
     return true;
   };
   node.addEventListener("click",e=>{ if(doDrop()) e.stopPropagation(); });
   if(roomKey!==null){                                  // rooms double as keyboard drop targets while picking
-    node.addEventListener("keydown",e=>{ if((e.key==="Enter"||e.key===" ")&&state.pick){ e.preventDefault(); doDrop(); } });
+    node.addEventListener("keydown",e=>{ if((e.key==="Enter"||e.key===" ")&&state.picks.size){ e.preventDefault(); doDrop(); } });
   }
 }
 
@@ -2272,7 +2297,7 @@ function openCard(p){
      </div><div class="cbody">${body}</div>`;
   $("#cardEditBtn").onclick=()=>editCard(p);
   const unb=$("#cardUnassignBtn");
-  if(unb) unb.onclick=()=>{ delete state.assign[p.id]; state.pick=null; closeCard(); render();
+  if(unb) unb.onclick=()=>{ delete state.assign[p.id]; state.picks.clear(); closeCard(); render();
     announceAssign(`${p.name||p.id} 미배정으로 이동`); toast(`${p.name||p.id} 미배정으로 이동`,"ok"); };
   $("#modal").style.display="flex";
 }
@@ -2872,15 +2897,15 @@ $("#modal").addEventListener("click",e=>{ if(e.target.id==="modal") closeCard();
 document.addEventListener("keydown",e=>{
   if(e.key!=="Escape") return;
   if(!$("#sheet").hidden){ closeSheet(); return; }
-  if(state.pick){ setPick(null,"선택 해제"); return; }
+  if(state.picks.size){ clearSel(); return; }
   if(state.tlSel.size){ clearTlSel(); return; }   // clear timeline multi-select
   closeCard();
 });
-// tapping empty space deselects a picked person (chips/rooms have their own handlers)
+// tapping empty space clears the pool selection (chips/rooms have their own handlers)
 document.addEventListener("click",e=>{
-  if(!state.pick) return;
+  if(!state.picks.size) return;
   if(e.target.closest(".chip,.room,#poollist,.pickhint,.vtab,#mobilebar,#jumpbar,#sheet,.venue>h2,.floorgrp>h3")) return;
-  setPick(null,"선택 해제");
+  clearSel();
 });
 
 // edge-fade affordances for horizontal scrollers (gantt + mobile statsbar)
