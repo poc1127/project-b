@@ -67,6 +67,11 @@
   .rooms{display:grid;grid-template-columns:repeat(auto-fill,minmax(185px,1fr));gap:8px;}
   .room{border:1px solid var(--line);border-radius:8px;padding:5px 6px;background:#fafafa;min-height:62px;}
   .room.over{border-color:var(--warn);background:#fff5f5;}
+  .room.locked{background:#fff7df;border-color:#e6cf8a;}
+  .room.locked.over{background:#fbeed0;border-color:var(--warn);}   /* over-capacity warning border still wins when a locked room is overfull */
+  .rlk{cursor:pointer;display:inline-flex;align-items:center;color:var(--text-faint);}
+  .rlk .ico{width:13px;height:13px;}
+  .room.locked .rlk{color:#b8860b;}
   .room .rhdr{display:flex;align-items:center;font-size:11px;color:var(--text2);margin-bottom:3px;gap:4px;}   /* room# + tags left-pack together; cap badge pushed right (margin-left:auto below) so tags sit next to the number, not floating mid-row */
   .room .rno{font-weight:700;color:#111;}
   .room .tags{display:flex;gap:3px;flex-wrap:wrap;}
@@ -880,7 +885,7 @@
 "use strict";
 // ⚑ index.html build version — shown bottom-right on the start screen. BUMP ON EACH DEPLOY.
 //   Format: vYYYY.MM.DD-N  (N = same-day build counter; reset to 1 on a new date).
-const APP_VERSION = "v2026.06.03-5";
+const APP_VERSION = "v2026.06.04-1";
 /* ============================================================
    ICMDA 2026 Room Assignment Dashboard (single file)
    - reads the live master .xlsx (columns mapped by HEADER NAME)
@@ -912,6 +917,7 @@ const state = {
   roomById: {},
   assign: {},      // partyId -> roomKey | "BOOY" (off-inventory venue) | null
   locked: {},      // partyId -> true
+  roomLocked: {},  // roomKey -> true (freeze whole room: occupants stay, auto-assign won't add to it)
   nightCols: [],   // ordered night labels
   dates: [],       // extended timeline axis (nights + buffer)
   view: "rooms",   // "rooms" | "timeline"
@@ -1187,7 +1193,7 @@ function loadMaster(arrbuf){
     toast(`객실ID가 한 숙소에 고유하지 않습니다 — 방-숙소 연결이 모호합니다: ${list}`,"err",9000);
   }
   // default assignment: respect 배정숙소 pre-locks
-  state.assign={}; state.locked={}; state.tlSel.clear(); state.deletedRows=[]; state.roomOrder={};
+  state.assign={}; state.locked={}; state.roomLocked={}; state.tlSel.clear(); state.deletedRows=[]; state.roomOrder={};
   state.parties.forEach(p=>{
     if(p.pre.indexOf("부영호텔")>=0){ state.assign[p.id]="BOOY"; state.locked[p.id]=true; }
   });
@@ -1365,7 +1371,7 @@ function matchIssue(room,party){                 // SOFT: message for warnings /
    then single individuals (size-1 fillers) last so they pack leftover seats. */
 const FAMTYPE=["Family","Triple","Suite"];
 function autoAssign(){
-  for(const pid in state.assign){ if(!state.locked[pid] && state.assign[pid]!=="BOOY") delete state.assign[pid]; }
+  for(const pid in state.assign){ if(!state.locked[pid] && !state.roomLocked[state.assign[pid]] && state.assign[pid]!=="BOOY") delete state.assign[pid]; }
   state.roomOrder={};                              // a fresh auto-assign reshuffles occupants → drop stale manual order
   // Loop-local occupancy index, seeded from the assignments that survive the prune above (locked
   // parties on real rooms; BOOY is off-inventory so it is skipped). Updated incrementally as each
@@ -1384,8 +1390,8 @@ function autoAssign(){
   });
   units.forEach(p=>{
     const pv=prefVenue(p);
-    let cands=state.rooms.filter(rm=>(!pv||rm.hotel===pv) && compatible(rm,p,occL));
-    if(!cands.length) cands=state.rooms.filter(rm=>compatible(rm,p,occL));   // relax venue lock
+    let cands=state.rooms.filter(rm=>!state.roomLocked[rm.key] && (!pv||rm.hotel===pv) && compatible(rm,p,occL));
+    if(!cands.length) cands=state.rooms.filter(rm=>!state.roomLocked[rm.key] && compatible(rm,p,occL));   // relax venue lock (still skip locked rooms)
     if(!cands.length) return;                                               // -> stays in pool
     const score = rm=>{
       const occ=occL[rm.key]||[]; let s=0;
@@ -1727,7 +1733,8 @@ function buildJump(jumps){
 
 function roomCard(r){
   const load=roomLoad(r.key);
-  const card=el("div","room"+(load>r.total?" over":""));
+  const rlock=!!state.roomLocked[r.key];
+  const card=el("div","room"+(load>r.total?" over":"")+(rlock?" locked":""));
   card.tabIndex=0; card.setAttribute("role","group");
   card.setAttribute("aria-label",`${r.rno||r.id}호, ${r.gender||"성별 미지정"}${r.ondol?", 온돌":""}, ${load}/${r.total}명${load>r.total?", 정원 초과":""}. 선택한 인원을 여기에 배정하려면 누르세요`);
   const hdr=el("div","rhdr");
@@ -1744,7 +1751,18 @@ function roomCard(r){
   cap.style.cursor="pointer";
   cap.addEventListener("click",e=>e.stopPropagation());                       // don't trigger room drop on tap
   cap.addEventListener("dblclick",e=>{ e.stopPropagation(); editCap(r,cap,load); });
-  hdr.append(left,tags,cap);
+  // room lock: freeze the whole room — occupants stay, 자동 배정 won't add to it
+  const rlk=el("span","rlk"); rlk.innerHTML=ico(rlock?'lock':'unlock');
+  rlk.setAttribute("role","button"); rlk.tabIndex=0;
+  rlk.setAttribute("aria-pressed", rlock?"true":"false");
+  rlk.setAttribute("aria-label", (rlock?"방 잠금 해제":"방 잠금")+` — ${r.rno||r.id}호 (자동배정 제외)`);
+  rlk.title="방 잠금 토글(자동배정에서 이 방 제외)";
+  const toggleRoomLock=ev=>{ ev.stopPropagation();
+    if(state.roomLocked[r.key]) delete state.roomLocked[r.key]; else state.roomLocked[r.key]=true;
+    announce(`${r.rno||r.id}호 ${state.roomLocked[r.key]?"잠금":"잠금 해제"}`); render(); };
+  rlk.addEventListener("click",toggleRoomLock);
+  rlk.addEventListener("keydown",e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); toggleRoomLock(e); } });
+  hdr.append(left,tags,cap,rlk);
   card.append(hdr);
   card.title=`${r.type||""} ${r.gender||"미지정"} 기준${r.base}+추가${r.ext}=${r.total}`+(r.note?` · ${r.note}`:"");
   roomOccupants(r.key).forEach(p=>card.append(chip(p)));
