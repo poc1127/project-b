@@ -82,7 +82,8 @@
   .capbadge{font-weight:700;margin-left:auto;}   /* keep occupancy badge pinned to the right edge of .rhdr */
   .capbadge.over{color:var(--warn);} .capbadge.full{color:var(--warning-fill);} .capbadge.ok{color:var(--ok);}
   .capedit{width:46px;font-size:11px;font-weight:600;padding:0 3px;border:1px solid #88a;border-radius:3px;}
-  .chip{display:flex;align-items:center;gap:4px;font-size:11px;padding:2px 5px;margin:2px 0;border-radius:4px;background:#eef2f6;border:1px solid #d6dee6;cursor:grab;}
+  .chip{display:flex;align-items:center;gap:4px;font-size:11px;padding:2px 5px;margin:2px 0;border-radius:4px;background:#eef2f6;border:1px solid #d6dee6;cursor:grab;
+        user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;}   /* chips are buttons — clicking/long-press must not select their text */
   .chip.sex-M{border-left:3px solid var(--primary);} .chip.sex-F{border-left:3px solid #c2557a;} .chip.sex-q{border-left:3px solid #999;}
   .chip.mix{border-left:3px solid #8a6; }
   .chip.locked{background:#fff7df;}
@@ -887,7 +888,7 @@
 "use strict";
 // ⚑ index.html build version — shown bottom-right on the start screen. BUMP ON EACH DEPLOY.
 //   Format: vYYYY.MM.DD-N  (N = same-day build counter; reset to 1 on a new date).
-const APP_VERSION = "v2026.06.04-4";
+const APP_VERSION = "v2026.06.04-6";
 /* ============================================================
    ICMDA 2026 Room Assignment Dashboard (single file)
    - reads the live master .xlsx (columns mapped by HEADER NAME)
@@ -929,6 +930,7 @@ const state = {
   collapsedRooms: {}, // rooms-view accordion fold, keyed by venue/floor element id
   colW: [74,58,150,78,84,52],  // resizable widths: ID(+손잡이)·분류·이름/팀·호텔·객실번호·수용 (track = 1fr)
   picks: new Set(),// tap-to-assign: pool party ids currently selected (multi). Tap a room / drag to assign all.
+  selAnchor: null, // Shift+click range anchor: the last individually-clicked pool id
   tlSel: new Set(),// timeline multi-select: party ids selected for group drag
   tlSort: {key:null, dir:"asc"},  // timeline sort: key "id"|"name"|"room"|"cap" (null = manual drag order), dir asc|desc
   roomOrder: {},   // roomKey -> [pid,...] manual occupant order inside a room (drag-to-reorder); absent = sort by name
@@ -1589,15 +1591,17 @@ function chip(p){
   // single-click = pick-up / unassign · double-click = detail modal.
   // The single action is deferred briefly so a 2nd click can cancel it (otherwise render() would
   // destroy the chip on the 1st click and the dblclick could never fire).
-  const single=()=>{
+  const single=(shift)=>{
     if(state.assign[p.id]) return;                                          // assigned chip: single click is non-destructive — 미배정은 상세 카드에서 (오작동 방지)
-    toggleSel(p.id);                                                        // pool → toggle this person in/out of the multi-selection
+    if(shift && state.selAnchor && state.selAnchor!==p.id) selectRangeTo(p.id); // Shift+click → select the contiguous run from the anchor
+    else { toggleSel(p.id); state.selAnchor=p.id; }                         // plain click → toggle one + set the range anchor
   };
   let ctimer=null;
   c.addEventListener("click",e=>{
     e.stopPropagation(); if(lpFired||dragFired) return;
+    const shift=e.shiftKey;                            // capture now — the action is deferred for dblclick detection
     if(ctimer) return;                                 // this is the 2nd click → let dblclick handle it
-    ctimer=setTimeout(()=>{ ctimer=null; if(!document.body.contains(c)) return; single(); }, 230);   // chip gone (a render replaced it) → drop the stale deferred action
+    ctimer=setTimeout(()=>{ ctimer=null; if(!document.body.contains(c)) return; single(shift); }, 230);   // chip gone (a render replaced it) → drop the stale deferred action
   });
   c.addEventListener("dblclick",e=>{                   // ⑤ detail modal
     e.stopPropagation();
@@ -1605,14 +1609,14 @@ function chip(p){
     openCard(p);
   });
   c.addEventListener("keydown",e=>{                    // keyboard: Enter/Space select, F2/i detail
-    if(e.key==="Enter"||e.key===" "){ e.preventDefault(); single(); }
+    if(e.key==="Enter"||e.key===" "){ e.preventDefault(); single(e.shiftKey); }
     else if(e.key==="F2"){ e.preventDefault(); openCard(p); }
   });
   if(state.assign[p.id]){
     c.title=`${nm.title}\n더블클릭/길게 누르기: 상세 (미배정은 상세 카드의 '미배정으로 빼기')`;
   }else{
     if(state.picks.has(p.id)) c.classList.add("picked");
-    c.title=`${nm.title}\n클릭: 선택(여러 명 가능) 후 방을 탭하거나 끌어서 배정 · 더블클릭/길게 누르기: 상세`;
+    c.title=`${nm.title}\n클릭: 선택(여러 명 가능) · Shift+클릭: 범위 선택 · 방을 탭하거나 끌어서 배정 · 더블클릭/길게 누르기: 상세`;
   }
   return c;
 }
@@ -1635,9 +1639,23 @@ function toggleSel(id){
   announce(`${state.byId[id].name} ${on?"선택":"선택 해제"} (${state.picks.size}명)`);
 }
 function clearSel(){
-  const ids=[...state.picks]; state.picks.clear();
+  const ids=[...state.picks]; state.picks.clear(); state.selAnchor=null;
   ids.forEach(id=>syncSelUI(id));
   announce("선택 해제");
+}
+// Shift+click: add the contiguous run between the anchor and `toId` (in the pool's current visible order) to the selection
+function selectRangeTo(toId){
+  const list=$("#poollist"); if(!list){ toggleSel(toId); state.selAnchor=toId; return; }
+  const chips=[...list.querySelectorAll(".chip[data-pid]")];
+  const pids=chips.map(c=>c.dataset.pid);
+  const a=pids.indexOf(state.selAnchor), b=pids.indexOf(toId);
+  if(a<0||b<0){ toggleSel(toId); state.selAnchor=toId; return; }   // anchor scrolled out of the filtered pool → treat as a plain toggle
+  const lo=Math.min(a,b), hi=Math.max(a,b);
+  for(let i=lo;i<=hi;i++){ const id=pids[i]; state.picks.add(id);
+    const c=chips[i]; c.classList.add("picked"); c.setAttribute("aria-pressed","true");
+    if(state.byId[id]) c.setAttribute("aria-label",ariaForChip(state.byId[id])); }
+  syncSelUI(toId);                                  // refresh the banner + room drop-cue once (anchor stays put for further range tweaks)
+  announce(`${hi-lo+1}명 범위 선택 (총 ${state.picks.size}명)`);
 }
 function syncSelUI(changedId){
   if(state.view==="timeline") return;                  // timeline has no pool/venue picking UI
