@@ -78,7 +78,7 @@
   .room.booylist .rhdr{grid-column:1/-1;}
   .room.booylist .chip{margin:0;}
   /* 일정 보기: minimal-accent timetable (program color = rounded-square marker; left-aligned text; vertical date dividers) */
-  #schedule{--prog-st:#E2A636;--prog-gr:#5BA15C;--prog-co:#3D7CB3;
+  #schedule{--prog-st:#E2A636;--prog-gr:#5BA15C;--prog-co:#3D7CB3;--prog-sig:#7E57C2;--prog-ch:#C13B82;
             overflow:auto;padding:12px 16px;background:var(--bg);min-height:0;
             height:calc(100vh - var(--topoff,92px) - var(--warnh,0px));height:calc(100dvh - var(--topoff,92px) - var(--warnh,0px));}
   .sched-top{display:flex;align-items:stretch;justify-content:space-between;gap:14px;flex-wrap:wrap;margin:0 0 14px;}   /* 수정 toolbar (left) + legend (right) on one row, each its own rounded box */
@@ -91,12 +91,14 @@
   .lg-item{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:600;color:var(--text2);}
   .lg-sw{width:11px;height:11px;border-radius:3px;flex:none;background:#c2c8cf;}
   .lg-sw.p-student{background:var(--prog-st);} .lg-sw.p-grad{background:var(--prog-gr);} .lg-sw.p-congress{background:var(--prog-co);}
+  .lg-sw.p-sig{background:var(--prog-sig);} .lg-sw.p-children{background:var(--prog-ch);}
   .schedscroll{overflow:auto;border:1px solid #e1e5ea;border-radius:10px;box-shadow:0 1px 3px rgba(20,30,45,.06);}
   /* in edit mode, hovering a cell hints it is click-to-edit; only the clicked cell becomes contenteditable */
   #schedule.editing [data-r]{cursor:text;}
   #schedule.editing .k-session:hover,#schedule.editing .k-meal:hover{background:#f4f7fa;}
   [data-r][contenteditable]:focus{outline:2px solid var(--primary);outline-offset:-2px;background:#fffef5;border-radius:3px;}
   table.schedtbl{border-collapse:collapse;width:100%;font-size:12px;background:#fff;color:#2e3640;table-layout:fixed;}  /* fixed layout → size is identical whether cells are editable or not */
+  #schedule:not(.editing) table.schedtbl{-webkit-user-select:none;user-select:none;}   /* view mode: no stray text-highlighting (selection allowed only while editing) */
   table.schedtbl th,table.schedtbl td{border-bottom:1px solid #eef1f4;border-right:1px solid #e6e9ee;padding:8px 14px;vertical-align:middle;text-align:left;line-height:1.35;overflow-wrap:break-word;}
   table.schedtbl th:last-child,table.schedtbl td:last-child{border-right:none;}   /* vertical dividers BETWEEN date columns */
   table.schedtbl tbody tr:last-child th,table.schedtbl tbody tr:last-child td{border-bottom:none;}
@@ -116,7 +118,17 @@
   table.schedtbl .p-student .sess{border-left-color:var(--prog-st);}
   table.schedtbl .p-grad .sess{border-left-color:var(--prog-gr);}
   table.schedtbl .p-congress .sess{border-left-color:var(--prog-co);}
+  table.schedtbl .p-sig .sess{border-left-color:var(--prog-sig);}
+  table.schedtbl .p-children .sess{border-left-color:var(--prog-ch);}
+  /* per-line two-tone: a single .sess can override its slot's base track (parallel Student+Stream, or the
+     Student→Congress transition slot) — two classes beat the parent-scoped rules above */
+  table.schedtbl .sess.p-student{border-left-color:var(--prog-st);}
+  table.schedtbl .sess.p-grad{border-left-color:var(--prog-gr);}
+  table.schedtbl .sess.p-congress{border-left-color:var(--prog-co);}
+  table.schedtbl .sess.p-sig{border-left-color:var(--prog-sig);}
+  table.schedtbl .sess.p-children{border-left-color:var(--prog-ch);}
   table.schedtbl .sess:hover{transform:translateY(-2px);box-shadow:0 6px 15px rgba(20,30,45,.16);position:relative;z-index:6;}
+  table.schedtbl .sess.sess-info{cursor:pointer;}   /* view mode: clicking a session card opens its detail modal */
   table.schedtbl .k-meal .ci,table.schedtbl .k-gap .ci{color:#9aa6b2;font-size:11px;text-align:center;letter-spacing:.3px;}   /* full-width meal/break rows = centered dividers (text shown, centered + muted) */
   table.schedtbl .k-gap{background:#fdf2f3;}   /* faint pink so break rows still read as 'break' while showing their label */
   table.schedtbl .key{color:#c0392b;font-weight:700;}
@@ -146,6 +158,7 @@
   .sess-card.prog-student{border-left-color:#E2A636;}
   .sess-card.prog-grad{border-left-color:#5BA15C;}
   .sess-card.prog-congress{border-left-color:#3D7CB3;}
+  .sess-card.prog-sig{border-left-color:#7E57C2;}
   .sess-cardhead{display:flex;align-items:center;justify-content:space-between;gap:8px;cursor:pointer;border-radius:6px;padding:4px;margin:-4px;}
   .sess-cardhead:hover{background:#f0f5fb;}
   .sess-cardname{font-size:12.5px;font-weight:700;color:var(--ink);}
@@ -165,6 +178,33 @@
   .sess-prow.dragging,.sess-mem.dragging{opacity:.4;}
   .sess-card.droptarget{outline:2px solid var(--success);outline-offset:1px;background:#f1f8f1;}
   .sess-poollist.droptarget{outline:2px dashed #c2557a;outline-offset:-2px;border-radius:6px;}
+  /* 세션 배정 보기 — tablet portrait & phones: stack the pool above the day-grouped cards (the row layout's
+     300px pool leaves the cards unusably narrow on a stacked screen). Tap-to-select + tap-a-card is the primary
+     touch flow (drag still works via long-press); both need bigger targets. */
+  @media (max-width:860px){
+    #session{flex-direction:column;gap:10px;padding:10px;}
+    .sess-pool{flex:0 0 auto;max-height:36vh;}
+    .sess-daygrid{grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:8px;}
+  }
+  @media (max-width:640px){
+    #session{height:calc(100vh - var(--topoff,92px) - 54px - env(safe-area-inset-bottom));
+             height:calc(100dvh - var(--topoff,92px) - 54px - env(safe-area-inset-bottom));padding:8px;gap:8px;}
+    .sess-pool{max-height:34vh;padding:10px;}
+    .sess-hint{font-size:11.5px;}
+    .sess-poollist{gap:4px;}
+    .sess-prow{padding:8px 9px;min-height:44px;}                 /* comfortable tap rows */
+    .sess-cat{width:20px;height:20px;font-size:11px;}
+    .sess-nm{font-size:13px;}
+    .sess-sub{font-size:11px;}
+    .sess-daygrid{grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin-bottom:14px;}  /* ~2 cards/row on 360px+ phones, auto-drops to 1 on very narrow screens */
+    .sess-card{padding:9px;}
+    .sess-cardhead{min-height:40px;padding:6px;margin:-6px;}     /* the card head is a tap-to-add button */
+    .sess-cardname{font-size:13px;}
+    .sess-count{font-size:12.5px;padding:2px 10px;}
+    .sess-mem{font-size:12.5px;padding:4px 6px 4px 9px;}
+    .sess-memx{min-width:26px;min-height:26px;display:inline-flex;align-items:center;justify-content:center;font-size:13px;}
+    .sess-capinp{min-height:38px;width:76px;}
+  }
   .room.over{border-color:var(--warn);background:#fff5f5;}
   .room.locked{background:#fff7df;border-color:#e6cf8a;}
   .room.locked.over{background:#fbeed0;border-color:var(--warn);}   /* over-capacity warning border still wins when a locked room is overfull */
@@ -1011,7 +1051,7 @@
 "use strict";
 // ⚑ index.html build version — shown bottom-right on the start screen. BUMP ON EACH DEPLOY.
 //   Format: vYYYY.MM.DD-N  (N = same-day build counter; reset to 1 on a new date).
-const APP_VERSION = "v2026.06.04-45";
+const APP_VERSION = "v2026.06.05-4";
 /* ============================================================
    ICMDA 2026 Room Assignment Dashboard (single file)
    - reads the live master .xlsx (columns mapped by HEADER NAME)
@@ -1052,6 +1092,7 @@ const state = {
   scheduleFills: null,   // '일정' tab per-cell fill colors {"r,c":"#hex"} read from the xlsx → program color-coding in 일정 보기
   scheduleDirty: null,  // Set of "r,c" cells edited in 일정 보기 → written back to the '일정' tab on 마스터 업데이트
   scheduleEdit: false,  // 일정 보기 edit-lock: cells are read-only until the 수정 button unlocks them
+  sessionDB: [],        // 'All Sessions (DB)' tab rows → session detail modal in 일정 보기
   sessionList: [],      // 세션 배정 보기: derived breakout/stream session cards {key,day,name,prog}
   sessionAssign: {},    // sessionKey -> Set of participant ids
   sessionCap: {},       // sessionKey -> capacity number | null (unlimited)
@@ -1339,6 +1380,8 @@ function loadMaster(arrbuf){
   state.schedule = sSheet ? XLSX.utils.sheet_to_json(sSheet,{header:1,raw:false,defval:""}) : null;
   state.scheduleMerges = sSheet ? (sSheet["!merges"]||[]) : null;   // merged ranges → rowspan/colspan in 일정 보기 (Student Conference, Departure, meals…)
   state.scheduleFills = sSheet ? extractScheduleFills(arrbuf,"일정") : null;   // per-cell xlsx fills → program color-coding (yellow=Student, green=Pre-Conf, blue=Congress)
+  const dbSheet = wb.Sheets["All Sessions (DB)"];   // reference tab → session detail modal in 일정 보기
+  state.sessionDB = dbSheet ? parseSessionDB(XLSX.utils.sheet_to_json(dbSheet,{header:1,raw:false,defval:""})) : [];
   state.scheduleDirty = new Set();              // fresh master → no pending 일정 edits
   state.masterBuf=arrbuf;                       // keep original bytes for versioned re-export
   state.edited=false;
@@ -1641,7 +1684,7 @@ function renderSchedule(){
   // slots (e.g. Student Conference) or all days (meals, Departure) render as ONE cell, not duplicates.
   const fills=state.scheduleFills||{};        // {"r,c":"#hex"} program fills from the xlsx → program identity per cell
   // map a cell's xlsx fill → program; drives the accent marker (session) / divider styling (meal·gap). Same source for legend + cells.
-  const PROG={"#FFE14D":"student","#A9D08E":"grad","#BDD7EE":"congress","#F4B7B7":"gap","#FFFFFF":"meal"};
+  const PROG={"#FFE14D":"student","#A9D08E":"grad","#BDD7EE":"congress","#D5C7EC":"sig","#F4A6D5":"children","#BFBFBF":"neutral","#F4B7B7":"gap","#FFFFFF":"meal"};
   const progOf=h=>h?(PROG[h.toUpperCase()]||null):null;
   const span={}, covered=new Set();          // span["r,c"]={rs,cs} for anchors; covered = cells hidden under a span
   (state.scheduleMerges||[]).forEach(m=>{
@@ -1702,12 +1745,14 @@ function renderSchedule(){
       td.className = c===0 ? "timecol" : (prog==="meal" ? "k-meal" : prog==="gap" ? "k-gap" : isSession ? "k-session p-"+prog : "k-empty");
       const inner=el("span","ci");
       if(isSession){
+        // view mode only: a real session card opens a detail modal on click (Arrival/Departure = neutral, not clickable)
+        const clickable = !state.scheduleEdit && prog!=="neutral";
         // each newline in a slot = a distinct PARALLEL session → its own accent-bar card.
         // exception: a vertical-merge label (e.g. "Student Conference & Pre-Conference…") is ONE session wrapped → keep as one card.
         const lines=nz(row[c]).split("\n").map(nz).filter(Boolean), sp=span[i+","+c];
         const emph=t=>/\((?:NOC|ICMDA)\)/.test(t)?`<span class="key">${esc(t)}</span>`:esc(t);
-        if(sp&&sp.rs>1){ const s=el("span","sess"); s.innerHTML=lines.map(emph).join("<br>"); inner.append(s); }
-        else lines.forEach(t=>{ const s=el("span","sess"); s.innerHTML=emph(t); inner.append(s); });
+        if(sp&&sp.rs>1){ const s=el("span","sess"); s.innerHTML=lines.map(emph).join("<br>"); if(clickable) wireSessInfo(s,lines.join("\n")); inner.append(s); }
+        else lines.forEach(t=>{ const s=el("span","sess p-"+progForLine(t,prog)); s.innerHTML=emph(t); if(clickable) wireSessInfo(s,t); inner.append(s); });   // each parallel line keeps its own track color (Student yellow + Stream green, etc.)
       } else {
         inner.innerHTML=cellHTML(row[c]);
       }
@@ -1722,21 +1767,105 @@ function renderSchedule(){
   wrap.replaceChildren(frag);
 }
 
+/* ---------- 일정 보기: click a session card → detail modal (from the 'All Sessions (DB)' tab) ---------- */
+// 'All Sessions (DB)' columns: Program · Day · Time · Session · Code · Speaker(s) · Session Title · Location · Description.
+// The Code column (SB_2, MBO_4, PS_1, MSI_01 …) is the join key — it matches the (CODE) suffix on each timetable cell.
+function parseSessionDB(aoa){
+  if(!aoa||!aoa.length) return [];
+  const H=(aoa[0]||[]).map(h=>String(h==null?"":h).trim().toLowerCase());
+  const idx=key=>H.findIndex(h=>h.includes(key));
+  const ci={program:idx("program"),day:idx("day"),time:idx("time"),session:idx("session"),code:idx("code"),speakers:idx("speaker"),title:idx("title"),location:idx("location"),desc:idx("description")};
+  const out=[];
+  for(let i=1;i<aoa.length;i++){ const row=aoa[i]||[]; const g=k=>ci[k]>=0?String(row[ci[k]]==null?"":row[ci[k]]).trim():"";
+    const o={program:g("program"),day:g("day"),time:g("time"),session:g("session"),code:g("code"),speakers:g("speakers"),title:g("title"),location:g("location"),desc:g("desc")};
+    if(o.session||o.code||o.title) out.push(o);
+  }
+  return out;
+}
+const SESS_PROGCOLOR={student:"#E2A636",grad:"#5BA15C",congress:"#3D7CB3",sig:"#7E57C2",children:"#C13B82"};
+function progForRow(r){
+  const p=(r.program||"").toLowerCase();
+  if(p.includes("student")) return "student";
+  if(p.includes("pre-conference")||p.includes("stream")) return "grad";
+  if(p.includes("special interest")) return "sig";
+  if(p.includes("children")) return "children";
+  if(p.includes("congress")) return "congress";
+  return null;
+}
+const stripCode=s=>String(s||"").replace(/\s*\([^)]*\)\s*$/,"").replace(/^[A-Za-z0-9_]+\s*[-–]\s*/,"").trim();   // "Bible Teaching 1(SB_1)" / "PS_1 - Bioethics" → bare name
+function wireSessInfo(span,text){ span.classList.add("sess-info"); span.addEventListener("click",e=>{ e.stopPropagation(); openSessionDetail(text); }); }
+// resolve a timetable line to its detail row(s): code match → one session; Stream/SIG slot → the parallel catalog; else exact name match.
+function resolveSessionDetail(text){
+  const db=state.sessionDB||[]; const nz=s=>String(s==null?"":s).trim();
+  const first=nz((text||"").split("\n")[0]);
+  const m=/\(([A-Za-z0-9_]+)\)/.exec(text||"");
+  if(m){ const code=m[1].toUpperCase(); const row=db.find(r=>nz(r.code).toUpperCase()===code); if(row) return {kind:"one",row,heading:first}; }
+  if(/stream session/i.test(text)){ const rows=db.filter(r=>/^PS_/i.test(nz(r.code))); if(rows.length) return {kind:"list",rows,heading:first,prog:"grad",note:"여러 스트림이 동시에 진행됩니다 — 참가자는 사전 등록한 하나의 스트림에만 참석합니다."}; }
+  if(/special interest group/i.test(text)){ const rows=db.filter(r=>/^MSI_/i.test(nz(r.code))); if(rows.length) return {kind:"list",rows,heading:first,prog:"sig",note:"여러 SIG가 병행 진행됩니다."}; }
+  const norm=s=>nz(s).replace(/\s*\([^)]*\)\s*/g," ").replace(/\s+/g," ").trim().toLowerCase();
+  const nm=norm(first);
+  if(nm){ const row=db.find(r=>norm(r.session)===nm); if(row && (nz(row.title)||nz(row.desc)||nz(row.speakers))) return {kind:"one",row,heading:first}; }
+  return {kind:"none",heading:first};
+}
+function openSessionDetail(text){
+  const nz=s=>String(s==null?"":s).trim(), br=s=>esc(s).replace(/\n/g,"<br>");
+  const d=resolveSessionDetail(text);
+  const prog = d.kind==="one" ? progForRow(d.row) : (d.prog||null);
+  const color = SESS_PROGCOLOR[prog]||"#5a6675";
+  let head, body;
+  if(d.kind==="one"){
+    const r=d.row, title=nz(r.title)||stripCode(r.session)||d.heading;
+    const sub=[nz(r.program),nz(r.day),nz(r.time)].filter(Boolean).join(" · ");
+    head=`<h2>${esc(title)}</h2><div class="sub">${esc(sub)}${nz(r.code)?` · <b>${esc(r.code)}</b>`:""}</div>`;
+    const f=[];
+    if(nz(r.speakers)) f.push(["강사/코디네이터",r.speakers]);
+    if(nz(r.location) && nz(r.location).toUpperCase()!=="TBA") f.push(["장소",r.location]);
+    if(nz(r.desc)) f.push(["설명",r.desc]);
+    body = f.length ? f.map(([k,v])=>`<div class="field"><div class="k">${k}</div><div class="v">${br(v)}</div></div>`).join("")
+                    : `<div class="v" style="grid-column:1/-1;color:var(--text-muted)">아직 등록된 세부 정보가 없습니다.</div>`;
+  } else if(d.kind==="list"){
+    head=`<h2>${esc(d.heading)}</h2>${d.note?`<div class="sub">${esc(d.note)}</div>`:""}`;
+    body = d.rows.map(r=>{ const t=nz(r.title)||stripCode(r.session); const meta=[nz(r.code),nz(r.speakers)].filter(Boolean).join(" · ");
+      return `<div style="grid-column:1/-1;border:1px solid #eef0f3;border-radius:9px;padding:10px 12px;">
+        <div style="font-weight:700;color:#26323f;font-size:13px;">${esc(t)}</div>
+        ${meta?`<div style="font-size:11.5px;color:var(--text-muted);margin-top:2px;">${esc(meta)}</div>`:""}
+        ${nz(r.desc)?`<div style="font-size:12px;color:#3a4754;margin-top:6px;line-height:1.5;">${br(r.desc)}</div>`:""}
+      </div>`; }).join("");
+  } else {
+    head=`<h2>${esc(d.heading||"세션")}</h2>`;
+    body=`<div class="v" style="grid-column:1/-1;color:var(--text-muted)">이 항목에 대한 추가 세부 정보가 없습니다.</div>`;
+  }
+  $("#card").innerHTML=`<div class="chead" style="background:${color}"><div class="htitle">${head}</div><button class="cx" onclick="closeCard()">×</button></div><div class="cbody">${body}</div>`;
+  $("#modal").style.display="flex";
+}
+
 /* ---------- 세션 배정 보기 (assign participants to breakout/stream sessions) ---------- */
 // derive the assignable parallel-session cards from the '일정' tab, keyed by date+name so the same
 // name on different programs (e.g. 7/1 vs 7/3 "Breakout Session 1") stays distinct.
-const SESS_RX=/^(Breakout Session|Stream Session|Special Interest Group|Group Discussion)/i;
+// "Group Dis" (not "Group Discussion") so the source's "Group Disscussion 2" typo still matches.
+const SESS_RX=/^(Breakout Session|Stream Session|Special Interest Group|Group Dis)/i;
+// In a parallel/transition slot one line can belong to a different track than the cell's base fill
+// (a green pre-conference Stream beside a yellow Student session; a Congress line in the Day-3 hand-off).
+// Classify those by content so both the timetable accent and the session-card color stay correct.
+function progForLine(line, base){
+  if(/stream session|world assembly/i.test(line)) return "grad";
+  if(/special interest group/i.test(line)) return "sig";
+  if(/registration/i.test(line)) return "congress";
+  return base;
+}
 function deriveSessions(){
   state.sessionList=[];
   const aoa=state.schedule; if(!aoa||!aoa.length) return;
   const nz=s=>(s==null?"":String(s)).trim();
   const ncol=aoa.reduce((m,r)=>Math.max(m,r?r.length:0),0);
   const fills=state.scheduleFills||{};
-  const PROG={"#FFE14D":"student","#A9D08E":"grad","#BDD7EE":"congress"};
+  const PROG={"#FFE14D":"student","#A9D08E":"grad","#BDD7EE":"congress","#D5C7EC":"sig","#F4A6D5":"children"};
   const progOf=h=>h?(PROG[(h+"").toUpperCase()]||null):null;
   let hi=aoa.findIndex(r=>r&&r.some(c=>nz(c)==="시간")); if(hi<0) hi=0;
-  const dayDate={}, hrow=aoa[hi]||[];
-  for(let c=1;c<ncol;c++){ const m=/(\d{1,2}\/\d{1,2})/.exec(nz(hrow[c])); dayDate[c]=m?m[1]:("열"+c); }
+  const dayDate={}, hrow=aoa[hi]||[]; let lastD="";
+  // a day with parallel tracks spans 2 sub-columns under one merged header → the 2nd sub-column's
+  // header cell is blank, so inherit the most recent date seen scanning left→right.
+  for(let c=1;c<ncol;c++){ const m=/(\d{1,2}\/\d{1,2})/.exec(nz(hrow[c])); if(m) lastD=m[1]; dayDate[c]=lastD||("열"+c); }
   const seen=new Set();
   for(let c=1;c<ncol;c++)
     for(let i=hi+1;i<aoa.length;i++){
@@ -1744,7 +1873,7 @@ function deriveSessions(){
       cell.split("\n").map(nz).filter(Boolean).forEach(line=>{
         if(!SESS_RX.test(line)) return;
         const key=dayDate[c]+" "+line; if(seen.has(key)) return; seen.add(key);
-        state.sessionList.push({key, day:dayDate[c], name:line, prog:progOf(fills[i+","+c])});
+        state.sessionList.push({key, day:dayDate[c], name:line, prog:progForLine(line, progOf(fills[i+","+c]))});
       });
     }
 }
