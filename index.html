@@ -43,6 +43,7 @@
   /* inline-SVG icons (replace emoji): inherit text colour, scale with font-size, render identically across OSes */
   .ico{width:1em;height:1em;display:inline-block;vertical-align:-.14em;flex:none;}
   .mbtn .ico,.sbtn .ico,.rsbtn .ico,.legitem .ico{vertical-align:middle;}
+  #statsbarwrap{position:sticky;top:var(--headerh,52px);z-index:40;background:#fff;}   /* keep the stat bar fixed below the header (desktop+tablet; reset to static on phones) */
   #statsbar{display:flex;gap:14px;flex-wrap:wrap;padding:8px 16px;background:#fff;border-bottom:1px solid var(--line);font-size:12px;align-items:center;}
   #statsbar .stat b{font-size:15px;}
   #statsbar .stat{padding:2px 8px;border-right:1px solid #eee;}
@@ -50,7 +51,7 @@
   .pill.warn{background:#fde0e0;color:var(--warn);}
   .pill.ok{background:#e3f3e4;color:var(--ok);}
   #main{display:flex;gap:12px;padding:12px;align-items:flex-start;}
-  #pool{width:260px;flex:none;background:var(--pool);border:1px solid var(--line);border-radius:8px;padding:8px;position:sticky;top:calc(var(--headerh,52px) + 6px);max-height:calc(100vh - var(--headerh,52px) - 16px);overflow:auto;}
+  #pool{width:260px;flex:none;background:var(--pool);border:1px solid var(--line);border-radius:8px;padding:8px;position:sticky;top:calc(var(--topoff,92px) + 6px);max-height:calc(100vh - var(--topoff,92px) - 16px);overflow:auto;}
   #pool h2{font-size:13px;margin:2px 0 6px;display:flex;align-items:center;gap:6px;}
   .poolToggle{display:none;margin-left:auto;background:none;border:1px solid var(--line);color:#555;border-radius:6px;font-size:12px;line-height:1;padding:3px 8px;cursor:pointer;}
   .poolToggle:hover{background:#eef2f6;}
@@ -133,16 +134,51 @@
   table.schedtbl .k-gap{background:#fdf2f3;}   /* faint pink so break rows still read as 'break' while showing their label */
   table.schedtbl .key{color:#c0392b;font-weight:700;}
   .sched-note{font-size:11px;color:var(--text-faint);margin-top:10px;line-height:1.55;}
-  /* 세션 배정 보기 — mirrors 숙소 배정 보기 in every way (layout · responsive · drag + tap-to-assign).
-     Reuses the room classes (.venue/.floorgrp/.rooms/.room/.chip/.capbadge/.pickhint/.searchwrap …);
-     these twin rules alias the session container ids onto the #main/#pool/#venues/#jumpbar styling so
-     every responsive @media rule that targets the room view applies identically to the session view. */
-  #session{display:flex;gap:12px;padding:12px;align-items:flex-start;}
+  /* 세션 배정 보기 — "슬롯 보드": a time-slot picker up top; within the chosen slot it's a 1:1 board —
+     a pool of who's still unassigned THIS slot + one .room column per parallel session. A person holds at
+     most one session per slot, so the slot scope makes the pool a true "이 시간대 미배정" list. Reuses
+     .room/.chip/.capbadge/.glk/.rlk for cards, locks and capacity. */
+  #session{display:flex;flex-direction:column;gap:12px;padding:12px;}
+  #sessboard{display:flex;gap:12px;align-items:flex-start;}
+  #sessright{flex:1;min-width:0;}
+  /* slot picker (chips grouped by day) */
+  /* days stack vertically; each day = label on the left + its time-slot chips wrapping to the right (no horizontal scroll) */
+  #sesspicker{display:flex;flex-direction:column;gap:7px;padding:2px 2px 9px;margin-bottom:10px;border-bottom:1px solid var(--line);}
+  .sbday{display:flex;gap:10px;align-items:flex-start;}
+  .sbdaylab{flex:none;min-width:74px;text-align:center;font-size:11px;font-weight:700;color:var(--text2);background:#fff;border:1px solid var(--border);border-radius:7px;padding:4px 10px;cursor:pointer;user-select:none;white-space:nowrap;}
+  .sbdaylab:hover{color:var(--primary);border-color:var(--primary);background:#fdecea;}
+  .sbdaylab.on{background:var(--ink);color:#fff;border-color:var(--ink);}   /* whole day shown */
+  .sbdaylab.dim{border-color:var(--ink);color:var(--ink);}                 /* this day is active but a single slot is focused */
+  .sbslots{display:flex;flex-wrap:wrap;gap:5px;flex:1;min-width:0;}
+  .sbslot{background:#fff;border:1px solid var(--border);border-radius:999px;padding:4px 11px;font-size:12px;font-weight:600;color:var(--text2);cursor:pointer;white-space:nowrap;}
+  .sbslot:hover{background:#fdecea;border-color:var(--primary);color:var(--primary);}   /* override the global blue button:hover */
+  .sbslot.on{background:var(--primary);color:#fff;border-color:var(--primary);}
+  .sbslot.on:hover{background:var(--primary-hover);color:#fff;}
+  .sbslot.inday{border-color:var(--ink);}   /* part of the day currently shown in full */
+  .sbslot .n{font-size:10px;opacity:.8;margin-left:5px;}
+  .sbslot.alllocked{border-style:dashed;}
+  /* current-slot bar (label + slot-wide lock/empty) */
+  #sessslotbar{display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap;}
+  #sessslotbar h3{font-size:15px;margin:0;color:var(--ink);}
+  #sessslotbar .meta{font-size:12px;color:var(--text-faint);}
+  /* whole-day view: one section per time-slot (dashed sub-header + its own columns grid) */
+  .slotsec{margin-bottom:16px;}
+  .slotsechd{display:flex;align-items:center;gap:8px;margin:0 0 7px;padding-bottom:4px;border-bottom:1px dashed var(--line);}
+  .slotsec-t{font-size:13px;font-weight:700;color:var(--text2);}
+  .slotsec-meta{font-size:11px;color:var(--text-faint);}
+  #sessslotbar .glk,.slotsechd .glk{cursor:pointer;display:inline-flex;align-items:center;color:#9aa3ad;background:none;border:1px solid var(--line);border-radius:5px;padding:2px 6px;flex:none;}
+  #sessslotbar .glk:hover,.slotsechd .glk:hover{background:#eef2f6;color:#555;}
+  #sessslotbar .glk .ico,.slotsechd .glk .ico{width:14px;height:14px;}
+  #sessslotbar .glk.locked,.slotsechd .glk.locked{background:#fff7df;border-color:#e6cf8a;color:#b8860b;}
+  #sessslotbar .glk.hempty:hover,.slotsechd .glk.hempty:hover{color:var(--warn);background:rgba(207,70,49,.12);}
+  .sess-drophint{font-size:11px;color:var(--text-faint);text-align:center;padding:16px 4px;}
   #sesspool{width:260px;flex:none;background:var(--pool);border:1px solid var(--line);border-radius:8px;padding:8px;position:sticky;top:calc(var(--headerh,52px) + 6px);max-height:calc(100vh - var(--headerh,52px) - 16px);overflow:auto;}
   #sesspool h2{font-size:13px;margin:2px 0 6px;display:flex;align-items:center;gap:6px;}
   #sesspool input.search{width:100%;padding:5px;margin-bottom:6px;border:1px solid var(--line);border-radius:4px;}
   #sesspool .searchwrap{margin-bottom:6px;}
   .sess-poolhint{font-size:11px;color:var(--text-faint);margin:0 0 6px;line-height:1.4;}
+  .chip .sessasgn{flex:none;font-size:9px;font-weight:700;color:var(--primary);background:#fff;border:1px solid var(--primary);border-radius:999px;padding:0 5px;}  /* load badge: # of OTHER time-slots this person is already booked in */
+  .sesspoollist .chip{user-select:none;}   /* avoid stray text selection on Shift+click range select */
   /* pool grouped by 카테고리(분류); each group header carries a "세션 불필요" exempt checkbox */
   .sesscatgrp{margin-bottom:7px;}
   .sesscathdr{display:flex;align-items:center;gap:6px;font-size:11px;font-weight:700;color:var(--text2);padding:3px 2px;margin-bottom:3px;cursor:pointer;user-select:none;border-bottom:1px solid var(--line);}
@@ -152,24 +188,38 @@
   .sesscatcount{color:var(--text-faint);font-weight:600;flex:none;}
   .sesscatgrp.exempt .sesscathdr{color:var(--text-faint);border-bottom-style:dashed;}
   .sesscatgrp.exempt .sesscatname{text-decoration:line-through;opacity:.75;}
-  #sessvenues{flex:1;display:flex;flex-direction:column;gap:18px;min-width:0;}
-  #sessvenues.picking .room{outline:1px dashed #79b27c;cursor:pointer;}
-  #sessvenues.picking .room:hover{outline:2px solid var(--ok);background:#f1f8f1;}
-  #sessvenues .rhdr{align-items:flex-start;}
-  #sessvenues .room .rno{font-weight:700;color:#111;white-space:normal;line-height:1.3;}
-  #sessvenues .room{border-left:3px solid #c2c8cf;}          /* program-color accent (mirrors the 일정 보기 legend) */
-  #sessvenues .room.prog-student{border-left-color:#E2A636;}
-  #sessvenues .room.prog-grad{border-left-color:#5BA15C;}
-  #sessvenues .room.prog-congress{border-left-color:#3D7CB3;}
-  #sessvenues .room.prog-sig{border-left-color:#7E57C2;}
-  #sessvenues .room.prog-children{border-left-color:#C13B82;}
-  #sessjump{display:none;}
+  /* columns = parallel sessions of a slot, as .room cards. auto-fit (not auto-fill) so cards stretch to fill the
+     row instead of leaving phantom empty tracks; chips wrap inside each card so wide cards use their width. */
+  .sesscols{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px;align-items:stretch;min-width:0;}   /* stretch → cards in a row share one height */
+  .sesscols .room{min-height:96px;border-left:3px solid #c2c8cf;}   /* program-color accent (mirrors the 일정 보기 legend) */
+  .sesscols .room .roomchips{display:flex;flex-wrap:wrap;gap:5px;align-content:flex-start;}
+  .sesscols .room .roomchips .chip{flex:1 1 200px;max-width:280px;}   /* chips fill the row, wrapping in wide cards */
+  .sesscols .room .sess-drophint{flex:1 0 100%;}
+  #sessright.picking .room{outline:1px dashed #79b27c;cursor:pointer;}
+  #sessright.picking .room:hover{outline:2px solid var(--ok);background:#f1f8f1;}
+  .sesscols .room .rhdr{align-items:flex-start;}   /* beat base .room .rhdr{align-items:center} so the count+lock pin to the TOP-right */
+  .sesscols .room .rno{display:block;font-weight:700;color:#111;white-space:normal;line-height:1.3;}
+  .sesscols .room .rkick{display:block;font-size:9.5px;font-weight:800;letter-spacing:.03em;text-transform:uppercase;color:#94a0ad;margin-bottom:1px;}   /* parent slot label (breakout/stream) when a slot mixes parents */
+  .sesscols .room .rsub{display:block;font-weight:500;font-size:11px;color:#5a6675;white-space:normal;line-height:1.25;margin-top:1px;}   /* sub-session speaker */
+  .sesscols .room.prog-student{border-left-color:#E2A636;}
+  .sesscols .room.prog-grad{border-left-color:#5BA15C;}
+  .sesscols .room.prog-congress{border-left-color:#3D7CB3;}
+  .sesscols .room.prog-sig{border-left-color:#7E57C2;}
+  .sesscols .room.prog-children{border-left-color:#C13B82;}
+  /* parent-grouped slot: each subsession group is headed by its parent session; parallel parents sit side by side */
+  .sessgroups{display:flex;flex-wrap:wrap;gap:14px 16px;align-items:flex-start;min-width:0;}
+  .sessgroups .sessgrp{flex:1 1 100%;min-width:0;}
+  .sessgroups.multi .sessgrp{flex:1 1 320px;}   /* >1 parent in the slot → two columns */
+  .sessgrphd{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin:0 0 8px;padding-bottom:5px;border-bottom:1px solid var(--border);}
+  .sessgrphd .sgname{font-size:11px;font-weight:800;letter-spacing:.03em;text-transform:uppercase;color:#5a6675;}
+  .sessgrphd .sgcode{display:inline-block;font-size:10px;font-weight:700;letter-spacing:.02em;padding:1px 7px;border-radius:999px;background:#41505f;color:#fff;}
+  .sesscols .room .rcode{display:inline-block;margin:0 0 3px;font-size:10px;font-weight:700;letter-spacing:.02em;padding:1px 6px;border-radius:999px;background:#eef1f4;color:#41505f;border:1px solid var(--border);}   /* code pill sits top-left, above the title */
   @media (max-width:1024px){
     #session{gap:10px;padding:10px;}
     #sesspool{width:228px;}
   }
   @media (max-width:860px){
-    #session{flex-direction:column;align-items:stretch;}
+    #sessboard{flex-direction:column;align-items:stretch;}
     #sesspool{width:auto;position:static;max-height:42vh;top:auto;}
     #sesspool.collapsed{max-height:none;}
     #sesspool.collapsed .sesspoollist{display:none;}
@@ -177,9 +227,7 @@
   @media (max-width:640px){
     #session{padding:8px;gap:8px;}
     #sesspool{max-height:38vh;}
-    #sessvenues{gap:10px;}
-    #sessjump{display:flex;gap:6px;position:sticky;top:var(--headerh,52px);z-index:40;background:#fff;border-bottom:1px solid var(--line);padding:6px 8px;}
-    #sessjump select{flex:1;min-height:34px;font-size:14px;border:1px solid var(--line);border-radius:8px;padding:4px 8px;background:#fff;}
+    .sesscols{grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px;}
   }
   .room.over{border-color:var(--warn);background:#fff5f5;}
   .room.locked{background:#fff7df;border-color:#e6cf8a;}
@@ -402,19 +450,24 @@
   .card .cedit:hover{background:rgba(255,255,255,.34);}
   .card .cunassign{background:rgba(0,0,0,.16);border-color:rgba(255,255,255,.45);}
   .card .cunassign:hover{background:rgba(0,0,0,.28);}
+  .card .chead-act{display:flex;align-items:center;gap:8px;flex:none;}
   .card .cx{cursor:pointer;font-size:20px;line-height:1;background:none;border:none;color:#fff;opacity:.85;padding:2px 4px;flex:none;}
   .card .cx:hover{opacity:1;}
   .card .cbody{padding:16px 22px 20px;display:grid;grid-template-columns:max-content 1fr;gap:10px 20px;font-size:13px;align-items:baseline;flex:1 1 auto;overflow:auto;min-height:0;}
   .card .cbody .k{color:var(--text-muted);white-space:nowrap;font-size:12px;} .card .cbody .v{color:#26323f;font-weight:500;word-break:break-word;}
   .card .cbody .field{display:contents;}        /* transparent on desktop: k/v fall straight into the cbody grid (unchanged); a real box only on mobile (2-col) */
-  .card .cbody.edit{align-items:center;gap:6px 16px;}
+  .card .cbody.edit{align-items:center;gap:11px 16px;}
   .card .cbody.edit .k{font-size:12px;color:var(--text-muted);}
+  .card .cbody.edit .fld-full{grid-column:1/-1;display:flex;flex-direction:column;gap:5px;}   /* 설명/Intro/Key points/개요/약력 — full-width, label stacked above, so tall textareas don't crowd the narrow column */
+  .card .cbody.edit .fld-full .k{font-weight:600;}
+  .card .cbody.edit textarea{min-height:60px;line-height:1.5;}
   .card .cbody.edit input,.card .cbody.edit select,.card .cbody.edit textarea{width:100%;box-sizing:border-box;font:inherit;font-size:13px;padding:5px 8px;border:1px solid var(--line);border-radius:7px;background:#fff;}
   /* 인원 counts: 본인 [..] 배우자 [..] — fixed middle (sub-label) column so both rows share identical tracks → all four inputs are the SAME width and line up; the two 1fr boxes fill the rest evenly */
   .card .cbody.edit .ppair{display:grid;grid-template-columns:1fr 46px 1fr;align-items:center;gap:10px;}
   .card .cbody.edit .ppair .psub{color:var(--text-muted);font-size:12px;white-space:nowrap;text-align:right;}
   .card .cbody.edit input:focus,.card .cbody.edit select:focus,.card .cbody.edit textarea:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px rgba(207,70,49,.15);}
   .card .cbody.edit textarea{resize:vertical;}
+  .card .cbody.edit input.idf,.card .cbody.edit textarea.idf{border-color:#e0a59c;background:#fffaf9;}   /* 세션 배정 식별자 — 바꾸면 배정이 재연결됨 */
   .card .cbody.edit .sec{margin-top:12px;}                    /* tighter section spacing in edit mode */
   .card .cfoot{display:flex;gap:8px;justify-content:flex-end;padding:12px 20px;border-top:1px solid #eef0f3;flex:none;background:#fff;border-radius:0 0 14px 14px;}
   .card .cfoot button{padding:8px 18px;border-radius:8px;}
@@ -588,6 +641,7 @@
     .ss-version{display:none;}   /* version stamp is desktop-only */
     .ss-title{font-size:21px;}
     /* single horizontal scroll lane — fixed order, never reflows; .hscroll-wrap edge-fade hints "more →" (updateStatsFades runs after render + on resize) */
+    #statsbarwrap{position:static;}   /* phones: stat bar scrolls with the page (bottom action bar handles fixed chrome) */
     #statsbar{gap:8px;padding:4px 10px;flex-wrap:nowrap;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x proximity;align-items:center;scrollbar-width:none;}
     #statsbar::-webkit-scrollbar{display:none;}                              /* hide the bar — the edge-fade is the scroll affordance */
     #statsbar .stat{flex:none;scroll-snap-align:start;border-right:none;padding:2px 9px;border-radius:8px;white-space:nowrap;}
@@ -1048,7 +1102,7 @@
 "use strict";
 // ⚑ index.html build version — shown bottom-right on the start screen. BUMP ON EACH DEPLOY.
 //   Format: vYYYY.MM.DD-N  (N = same-day build counter; reset to 1 on a new date).
-const APP_VERSION = "v2026.06.05-12";
+const APP_VERSION = "v2026.06.05-28";
 /* ============================================================
    ICMDA 2026 Room Assignment Dashboard (single file)
    - reads the live master .xlsx (columns mapped by HEADER NAME)
@@ -1088,16 +1142,22 @@ const state = {
   scheduleMerges: null,  // '일정' tab merged ranges (SheetJS !merges) → rowspan/colspan in 일정 보기
   scheduleFills: null,   // '일정' tab per-cell fill colors {"r,c":"#hex"} read from the xlsx → program color-coding in 일정 보기
   scheduleDirty: null,  // Set of "r,c" cells edited in 일정 보기 → written back to the '일정' tab on 마스터 업데이트
+  dbDirty: null,        // Map<"r,c",string> cells edited via the session modal → written back to 'All Sessions (DB)'
+  spkDirty: null,       // Map<"r,c",string> cells edited via the session modal → written back to 'All Speakers'
   scheduleEdit: false,  // 일정 보기 edit-lock: cells are read-only until the 수정 button unlocks them
   sessionDB: [],        // 'All Sessions (DB)' tab rows → session detail modal in 일정 보기
+  allSpeakers: [],      // 'All Speakers' tab rows → enriches the modal (per-talk speaker/bio + full breakout sub-talk lists)
+  spByCode: {}, spByBreakout: {},   // All Speakers indexed by anchor Code / breakout slot code
   sessionList: [],      // 세션 배정 보기: derived breakout/stream session cards {key,day,time,name,prog}
   sessionAssign: {},    // sessionKey -> Set of participant ids
   sessionCap: {},       // sessionKey -> capacity number | null (unlimited)
   sessionLocked: {},    // sessionKey -> true (freeze session: roster protected from 비우기, mirrors roomLocked)
   sessPicks: new Set(), // 세션 보기 pool: participant ids selected for the next "add to session" action
+  sessAnchor: null,     // 세션 보기 pool: last plainly-clicked pid → pivot for Shift+click range selection
   sessFilter: {q:""},
   sessExempt: new Set(), // 세션 보기: 카테고리(분류) names marked "세션 불필요" → hidden from the pool
-  collapsedSess: {},    // 세션 보기 accordion fold, keyed by day/time-slot element id (mirrors collapsedRooms)
+  sessDay: null,        // 세션 보기 슬롯 보드: focused day; when sessSlot is null the whole day's slots are shown
+  sessSlot: null,       // 세션 보기 슬롯 보드: focused time-slot key ("day||time"); null → show all slots of sessDay
   sessPoolCollapsed: false, // 세션 보기 pool collapse on tablet/phone (mirrors #pool.collapsed)
   tlFilter: {q:"", venue:"", cat:""},
   orderList: [],   // custom vertical order of party ids (timeline)
@@ -1383,7 +1443,11 @@ function loadMaster(arrbuf){
   state.scheduleFills = sSheet ? extractScheduleFills(arrbuf,"일정") : null;   // per-cell xlsx fills → program color-coding (yellow=Student, green=Pre-Conf, blue=Congress)
   const dbSheet = wb.Sheets["All Sessions (DB)"];   // reference tab → session detail modal in 일정 보기
   state.sessionDB = dbSheet ? parseSessionDB(XLSX.utils.sheet_to_json(dbSheet,{header:1,raw:false,defval:""})) : [];
+  const spkSheet = wb.Sheets["All Speakers"];       // appended speaker table → enriches the modal (joined on Code / breakout slot)
+  state.allSpeakers = spkSheet ? parseAllSpeakers(XLSX.utils.sheet_to_json(spkSheet,{header:1,raw:false,defval:""})) : [];
+  buildSpeakerIndex();
   state.scheduleDirty = new Set();              // fresh master → no pending 일정 edits
+  state.dbDirty = new Map(); state.spkDirty = new Map();   // fresh master → no pending session-modal edits
   state.masterBuf=arrbuf;                       // keep original bytes for versioned re-export
   state.edited=false;
 
@@ -1472,18 +1536,20 @@ function parseParticipants(aoa, wb){
   // 세션 배정 보기: derive session cards from '일정', then load saved assignments/capacities from the '세션배정' tab
   deriveSessions();
   state.sessionAssign={}; state.sessionCap={}; state.sessionLocked={}; state.sessPicks=new Set(); state.sessExempt=new Set();
+  // '세션배정' tab — compact format: A=참가자ID · B=이름 · C=세션선택 ("; "-joined subsession keys).
+  //   tag rows keyed on col A: (정원) B=key C=정원 · (잠금) B=key · (면제분류) B=분류.
   const xSheet=wb.Sheets["세션배정"];
   if(xSheet){
     const xA=XLSX.utils.sheet_to_json(xSheet,{header:1,raw:false,defval:""});
-    const hdr=xA[0]||[], cols=[];
-    for(let c=2;c<hdr.length;c++){ const key=norm(hdr[c]); if(key){ cols.push({c,key}); state.sessionAssign[key]=new Set(); } }
+    const hdr=(xA[0]||[]).map(h=>norm(h));
+    let pickCol=hdr.indexOf("세션선택"); if(pickCol<0) pickCol=2;
     for(let r=1;r<xA.length;r++){
-      const row=xA[r]||[], pid=norm(row[0]);
-      if(pid==="(정원)"){ cols.forEach(s=>{ const v=norm(row[s.c]); if(v!=="") state.sessionCap[s.key]=parseInt(v,10)||0; }); continue; }
-      if(pid==="(잠금)"){ cols.forEach(s=>{ if(norm(row[s.c])!=="") state.sessionLocked[s.key]=true; }); continue; }   // restore session locks
-      if(pid==="(면제분류)"){ const c=norm(row[1]); if(c) state.sessExempt.add(c); continue; }   // category exempted from session assignment
-      if(!pid) continue;
-      cols.forEach(s=>{ if(norm(row[s.c])!=="") state.sessionAssign[s.key].add(pid); });
+      const row=xA[r]||[], tag=norm(row[0]);
+      if(tag==="(정원)"){ const k=norm(row[1]); if(k) state.sessionCap[k]=parseInt(norm(row[2]),10)||0; continue; }
+      if(tag==="(잠금)"){ const k=norm(row[1]); if(k) state.sessionLocked[k]=true; continue; }   // restore session locks
+      if(tag==="(면제분류)"){ const c=norm(row[1]); if(c) state.sessExempt.add(c); continue; }   // category exempted from session assignment
+      if(!tag || tag.charAt(0)==="(") continue;
+      norm(row[pickCol]).split(";").map(s=>s.trim()).filter(Boolean).forEach(k=>{ (state.sessionAssign[k]=state.sessionAssign[k]||new Set()).add(tag); });
     }
   }
 }
@@ -1754,8 +1820,8 @@ function renderSchedule(){
         // exception: a vertical-merge label (e.g. "Student Conference & Pre-Conference…") is ONE session wrapped → keep as one card.
         const lines=nz(row[c]).split("\n").map(nz).filter(Boolean), sp=span[i+","+c];
         const emph=t=>/\((?:NOC|ICMDA)\)/.test(t)?`<span class="key">${esc(t)}</span>`:esc(t);
-        if(sp&&sp.rs>1){ const s=el("span","sess"); s.innerHTML=lines.map(emph).join("<br>"); if(clickable) wireSessInfo(s,lines.join("\n")); inner.append(s); }
-        else lines.forEach(t=>{ const s=el("span","sess p-"+progForLine(t,prog)); s.innerHTML=emph(t); if(clickable) wireSessInfo(s,t); inner.append(s); });   // each parallel line keeps its own track color (Student yellow + Stream green, etc.)
+        if(sp&&sp.rs>1){ const s=el("span","sess"); s.innerHTML=lines.map(emph).join("<br>"); if(clickable) wireSessInfo(s,lines.join("\n"),{r:i,c}); inner.append(s); }
+        else lines.forEach(t=>{ const s=el("span","sess p-"+progForLine(t,prog)); s.innerHTML=emph(t); if(clickable) wireSessInfo(s,t,{r:i,c}); inner.append(s); });   // each parallel line keeps its own track color (Student yellow + Stream green, etc.)
       } else {
         inner.innerHTML=cellHTML(row[c]);
       }
@@ -1783,10 +1849,38 @@ function parseSessionDB(aoa){
   const out=[];
   for(let i=1;i<aoa.length;i++){ const row=aoa[i]||[]; const g=k=>ci[k]>=0?String(row[ci[k]]==null?"":row[ci[k]]).trim():"";
     const o={program:g("program"),day:g("day"),time:g("time"),session:g("session"),code:g("code"),speakers:g("speakers"),title:g("title"),location:g("location"),desc:g("desc"),
-             introEn:g("introEn"),ptsEn:g("ptsEn"),introKo:g("introKo"),ptsKo:g("ptsKo")};
+             introEn:g("introEn"),ptsEn:g("ptsEn"),introKo:g("introKo"),ptsKo:g("ptsKo"),
+             _row:i,_ci:ci,_tab:"db"};   // _row/_ci/_tab → modal edits write back to the 'All Sessions (DB)' tab
     if(o.session||o.code||o.title) out.push(o);
   }
   return out;
+}
+// 'All Speakers' tab → per-talk detail the DB lacks (full breakout sub-talk lists + speaker bios/emails).
+// Columns: Date·Time·Category·Track/Code·No.·Slot·Session/Group·Speaker(s)·Email(s)·Summary·Bio·Source.
+function parseAllSpeakers(aoa){
+  if(!aoa||!aoa.length) return [];
+  const H=(aoa[0]||[]).map(h=>String(h==null?"":h).trim().toLowerCase());
+  const idx=k=>H.findIndex(h=>h.includes(k));
+  const ci={cat:idx("category"),code:idx("track"),no:idx("no"),slot:idx("slot"),session:idx("session"),speaker:idx("speaker"),email:idx("email"),summary:idx("summary"),bio:idx("bio")};
+  const out=[];
+  for(let i=1;i<aoa.length;i++){ const row=aoa[i]||[]; const g=k=>ci[k]>=0?String(row[ci[k]]==null?"":row[ci[k]]).trim():"";
+    const o={cat:g("cat"),code:g("code"),no:g("no"),slot:g("slot"),session:g("session"),speaker:g("speaker"),email:g("email"),summary:g("summary"),bio:g("bio"),
+             _row:i,_ci:ci,_tab:"spk"};   // _row/_ci/_tab → modal edits write back to the 'All Speakers' tab
+    if(o.session||o.speaker) out.push(o);
+  }
+  return out;
+}
+// index All Speakers: anchors by Code (SP_1, MSI_01…); breakout sub-talks grouped by slot code (SBO_1, MBO_4…).
+function buildSpeakerIndex(){
+  const byCode={}, byBreak={};
+  (state.allSpeakers||[]).forEach(r=>{
+    const cat=(r.cat||"").toLowerCase();
+    if(cat.indexOf("breakout")>=0){
+      const k=(cat.indexOf("student")>=0?"SBO_":"MBO_")+String(r.slot).trim();
+      (byBreak[k]=byBreak[k]||[]).push(r);
+    } else if(r.code){ byCode[r.code.toUpperCase()]=r; }
+  });
+  state.spByCode=byCode; state.spByBreakout=byBreak;
 }
 const SESS_PROGCOLOR={student:"#E2A636",grad:"#5BA15C",congress:"#3D7CB3",sig:"#7E57C2",children:"#C13B82"};
 function progForRow(r){
@@ -1799,13 +1893,16 @@ function progForRow(r){
   return null;
 }
 const stripCode=s=>String(s||"").replace(/\s*\([^)]*\)\s*$/,"").replace(/^[A-Za-z0-9_]+\s*[-–]\s*/,"").trim();   // "Bible Teaching 1(SB_1)" / "PS_1 - Bioethics" → bare name
-function wireSessInfo(span,text){ span.classList.add("sess-info"); span.addEventListener("click",e=>{ e.stopPropagation(); openSessionDetail(text); }); }
+function wireSessInfo(span,text,origin){ span.classList.add("sess-info"); span.addEventListener("click",e=>{ e.stopPropagation(); openSessionDetail(text,origin); }); }
 // resolve a timetable line to its detail row(s): code match → one session; Stream/SIG slot → the parallel catalog; else exact name match.
 function resolveSessionDetail(text){
   const db=state.sessionDB||[]; const nz=s=>String(s==null?"":s).trim();
   const first=nz((text||"").split("\n")[0]);
   const m=/\(([A-Za-z0-9_]+)\)/.exec(text||"");
-  if(m){ const code=m[1].toUpperCase(); const row=db.find(r=>nz(r.code).toUpperCase()===code); if(row) return {kind:"one",row,heading:first}; }
+  if(m){ const code=m[1].toUpperCase(); const row=db.find(r=>nz(r.code).toUpperCase()===code);
+    if(row){ const talks=(state.spByBreakout||{})[code];            // breakout slot → list every parallel sub-talk from All Speakers
+      if(talks&&talks.length) return {kind:"breakout",row,talks,heading:first};
+      return {kind:"one",row,heading:first}; } }
   if(/stream session/i.test(text)){ const rows=db.filter(r=>/^PS_/i.test(nz(r.code))); if(rows.length) return {kind:"list",rows,heading:first,prog:"grad",note:"여러 스트림이 동시에 진행됩니다 — 참가자는 사전 등록한 하나의 스트림에만 참석합니다."}; }
   if(/special interest group/i.test(text)){ const rows=db.filter(r=>/^MSI_/i.test(nz(r.code))); if(rows.length) return {kind:"list",rows,heading:first,prog:"sig",note:"여러 SIG가 병행 진행됩니다."}; }
   const norm=s=>nz(s).replace(/\s*\([^)]*\)\s*/g," ").replace(/\s+/g," ").trim().toLowerCase();
@@ -1815,6 +1912,7 @@ function resolveSessionDetail(text){
 }
 const _nz=s=>String(s==null?"":s).trim();
 const _pts=s=>_nz(s).split("\n").map(x=>x.trim()).filter(Boolean);   // newline-joined bullets → array
+const _blist=s=>_nz(s).split("\n").map(x=>x.replace(/^\s*[•·\-]\s*/,"").trim()).filter(Boolean);  // "• a\n• b" → [a,b] (All Speakers Summary/Bio)
 // bilingual (KR + EN stacked) intro + key-point block from a DB row's summary columns; null if none authored yet
 function sumBlock(r){
   const koP=_pts(r.ptsKo), enP=_pts(r.ptsEn), koI=_nz(r.introKo), enI=_nz(r.introEn);
@@ -1823,30 +1921,47 @@ function sumBlock(r){
     `<div class="sum-lang">${label}</div>${intro?`<p class="sum-intro">${esc(intro)}</p>`:""}${pts.length?`<ul class="sum-pts">${pts.map(p=>`<li>${esc(p)}</li>`).join("")}</ul>`:""}`;
   return `<div class="sess-sum">${lang("한국어",koI,koP)}${lang("English",enI,enP)}</div>`;
 }
-function openSessionDetail(text){
+function openSessionDetail(text,origin){
   const nz=_nz, br=s=>esc(s).replace(/\n/g,"<br>"), trim=(s,n)=>s.length>n?s.slice(0,n).replace(/\s+\S*$/,"")+"…":s;
   const d=resolveSessionDetail(text);
-  const prog = d.kind==="one" ? progForRow(d.row) : (d.prog||null);
+  const prog = (d.kind==="one"||d.kind==="breakout") ? progForRow(d.row) : (d.prog||null);
   const color = SESS_PROGCOLOR[prog]||"#5a6675";
   let head, strip="", body;
   if(d.kind==="one"){
     const r=d.row, title=nz(r.title)||stripCode(r.session)||d.heading;
+    const sp=(state.spByCode||{})[nz(r.code).toUpperCase()]||null;        // 'All Speakers' row joined by Code → bio / email / summary
     const sub=[nz(r.day),nz(r.time)].filter(Boolean).join(" · ");          // program → kicker, code → chip; sub keeps day·time only
     head=`${nz(r.program)?`<div class="kicker">${esc(r.program)}</div>`:""}<h2>${esc(title)}</h2>${sub?`<div class="sub">${esc(sub)}</div>`:""}`;
-    const oneline=s=>esc(s).replace(/\s*\n\s*/g," · ");                    // facts → chip strip (코드 · 강사 · 장소), above the description
+    const oneline=s=>esc(s).replace(/\s*\n\s*/g," · ");                    // facts → chip strip (코드 · 강사 · 장소 · 이메일), above the description
     const chips=[];
     if(nz(r.code)) chips.push(["코드",oneline(r.code)]);
-    if(nz(r.speakers)) chips.push(["강사",oneline(r.speakers)]);
+    const spk = nz(r.speakers) || (sp?nz(sp.speaker):"");                  // prefer DB; All Speakers as fallback
+    if(spk) chips.push(["강사",oneline(spk)]);
+    if(sp && nz(sp.email)) chips.push(["이메일",oneline(sp.email)]);       // email only lives in All Speakers
     if(nz(r.location) && nz(r.location).toUpperCase()!=="TBA") chips.push(["장소",oneline(r.location)]);
     if(chips.length) strip=`<div class="cstrip">${chips.map(([k,v])=>`<span class="chip"><span class="ci">${k}</span> ${v}</span>`).join("")}</div>`;
     const sb=sumBlock(r);
-    if(sb){                                                                // authored summary → bilingual KR/EN block
-      body = sb;
-    } else if(nz(r.desc)){                                                 // fallback: raw description
-      body = `<div class="field"><div class="k">설명</div><div class="v">${br(r.desc)}</div></div>`;
+    let main;
+    if(sb){                                                                // authored bilingual KR/EN summary (DB)
+      main = sb;
+    } else if(sp && nz(sp.summary)){                                       // else All Speakers English summary bullets
+      main = `<div class="sess-sum"><div class="sum-lang">개요</div><ul class="sum-pts">${_blist(sp.summary).map(p=>`<li>${esc(p)}</li>`).join("")}</ul></div>`;
+    } else if(nz(r.desc)){                                                 // else raw description
+      main = `<div class="field"><div class="k">설명</div><div class="v">${br(r.desc)}</div></div>`;
     } else {
-      body = `<div class="v" style="grid-column:1/-1;color:var(--text-muted)">아직 등록된 세부 정보가 없습니다.</div>`;
+      main = `<div class="v" style="grid-column:1/-1;color:var(--text-muted)">아직 등록된 세부 정보가 없습니다.</div>`;
     }
+    const bioBlk = (sp && nz(sp.bio))                                      // speaker bio (All Speakers) → its own section
+      ? `<div class="sess-sum"><div class="sum-lang">강사 소개</div><ul class="sum-pts">${_blist(sp.bio).map(p=>`<li>${esc(p)}</li>`).join("")}</ul></div>` : "";
+    body = main + bioBlk;
+  } else if(d.kind==="breakout"){                                          // breakout slot → bilingual theme + every parallel sub-talk (All Speakers)
+    const r=d.row, title=stripCode(r.session)||nz(r.title)||d.heading;
+    const sub=[nz(r.day),nz(r.time),`${d.talks.length}개 병행 세션`].filter(Boolean).join(" · ");
+    head=`${nz(r.program)?`<div class="kicker">${esc(r.program)}</div>`:""}<h2>${esc(title)}</h2><div class="sub">${esc(sub)}</div>`;
+    const theme=sumBlock(r)||"";
+    const items=d.talks.map(t=>{ const spk=nz(t.speaker);
+      return `<div class="sess-listitem"><div class="li-title">${esc(nz(t.session))}</div>${spk?`<div class="li-meta">${esc(spk)}</div>`:""}</div>`; }).join("");
+    body = theme + items;
   } else if(d.kind==="list"){
     head=`<h2>${esc(d.heading)}</h2>${d.note?`<div class="sub">${esc(d.note)}</div>`:""}`;
     body = d.rows.map(r=>{ const t=nz(r.title)||stripCode(r.session); const meta=[nz(r.code),nz(r.speakers)].filter(Boolean).join(" · ");
@@ -1862,8 +1977,120 @@ function openSessionDetail(text){
     body=`<div class="v" style="grid-column:1/-1;color:var(--text-muted)">이 항목에 대한 추가 세부 정보가 없습니다.</div>`;
   }
   const card=$("#card"); card.className="card sess-modal"; card.style.setProperty("--accent",color);
-  card.innerHTML=`<div class="chead" style="background:${color}"><div class="htitle">${head}</div><button class="cx" onclick="closeCard()">×</button></div>${strip}<div class="cbody">${body}</div>`;
+  const canEdit = d.kind!=="none" || (origin!=null);   // "none" is editable only if it maps to a timetable cell (rename the line)
+  const editBtn = canEdit ? `<button class="cedit cedit-sess" title="이 세션을 수정합니다">✎ 수정</button>` : "";
+  card.innerHTML=`<div class="chead" style="background:${color}"><div class="htitle">${head}</div><div class="chead-act">${editBtn}<button class="cx" onclick="closeCard()">×</button></div></div>${strip}<div class="cbody">${body}</div>`;
+  const eb=card.querySelector(".cedit-sess"); if(eb) eb.onclick=()=>openSessionEditor(text,origin,d,color);
   $("#modal").style.display="flex";
+}
+
+/* ---------- 일정 보기: session detail modal — EDIT MODE ----------
+   Turns the read-only detail modal into a form. Each editable field maps to a source tab:
+   the timetable session line → '일정' cell (state.scheduleDirty); DB fields → 'All Sessions (DB)'
+   (state.dbDirty); speaker fields → 'All Speakers' (state.spkDirty). On 마스터 업데이트 these are
+   written surgically (styles preserved). Edits that change a 세션 배정 key auto-migrate the roster. */
+const SE_DB_FIELDS=[["세션명","session"],["제목","title"],["코드","code"],["강사","speakers"],["장소","location"],["Day","day"],["Time","time"],["설명","desc",1],["Intro (KO)","introKo",1],["Intro (EN)","introEn",1],["Key points (KO)","ptsKo",1],["Key points (EN)","ptsEn",1]];
+const SE_DB_LITE=[["제목","title"],["강사","speakers"],["코드","code"],["설명","desc",1]];
+const SE_SPK_FULL=[["강사","speaker"],["이메일","email"],["개요(Summary)","summary",1],["약력(Bio)","bio",1]];
+const SE_SPK_TALK=[["세션/그룹","session"],["강사","speaker"]];
+function sessTitleFor(d,text){ return (d&&d.heading)||String(text||"세션").split("\n")[0]; }
+function seValOf(f){ return f.line ? String(f.val==null?"":f.val) : String((f.obj&&f.obj[f.field])==null?"":f.obj[f.field]); }
+// build the form descriptors for a resolved detail `d` + origin cell.
+function sessionEditFields(text,origin,d){
+  const F=[];
+  if(origin) F.push({line:true,origin,val:text,label:"일정 표기(세션 줄)",identity:true});
+  const sp = (d.row && (state.spByCode||{})[String(d.row.code||"").toUpperCase()]) || null;
+  // a field is a 세션 배정 identity only on the 'All Speakers' tab (deriveSessions reads 일정 + All Speakers, never the DB tab)
+  const addRow=(obj,defs,secLabel)=>{ if(!obj) return; if(secLabel) F.push({sec:secLabel});
+    defs.forEach(([label,field,ml])=>F.push({obj,field,label,multiline:!!ml,identity: obj._tab==="spk" && /^(session|code|no)$/.test(field)})); };
+  if(d.kind==="one"){ addRow(d.row,SE_DB_FIELDS,"세션 정보 (DB)"); addRow(sp,SE_SPK_FULL,"강사 정보 (All Speakers)"); }
+  else if(d.kind==="breakout"){ addRow(d.row,SE_DB_FIELDS,"세션 정보 (DB)"); (d.talks||[]).forEach((t,i)=>addRow(t,SE_SPK_TALK,`병행 세션 ${i+1}`)); }
+  else if(d.kind==="list"){ (d.rows||[]).forEach((r,i)=>{
+      // stream/SIG list rows come from the DB, but 세션 배정 보기 derives its cards from 'All Speakers' (joined by code).
+      // So MIRROR the identity edits (name/강사/코드) into the matching All Speakers row → both views stay in sync.
+      const sp=(state.spByCode||{})[String(r.code||"").toUpperCase()]||null;
+      F.push({sec:`${i+1}. ${stripCode(r.session)||r.code||""}`});
+      F.push({obj:r,field:"title",label:"제목",   mirror: sp?{obj:sp,field:"session"}:null});
+      F.push({obj:r,field:"speakers",label:"강사", mirror: sp?{obj:sp,field:"speaker"}:null});
+      F.push({obj:r,field:"code",label:"코드",     mirror: sp?{obj:sp,field:"code"}:null, identity: !!sp});   // code drives the 세션 배정 key → identity (roster migrates)
+      F.push({obj:r,field:"desc",label:"설명",multiline:true});
+    }); }
+  return F;   // kind "none" → only the timetable line
+}
+function openSessionEditor(text,origin,d,color){
+  const fields=sessionEditFields(text,origin,d);
+  const card=$("#card"); card.className="card sess-modal";
+  const head=`<div class="kicker">세션 수정</div><h2>${esc(sessTitleFor(d,text))}</h2>`;
+  card.innerHTML=`<div class="chead" style="background:${color}"><div class="htitle">${head}</div><div class="chead-act"><button class="cx" onclick="closeCard()">×</button></div></div>`
+    +`<div class="cbody edit"></div><div class="cfoot"><button class="alt" id="seCancel">취소</button><button class="go" id="seSave">저장</button></div>`;
+  const body=card.querySelector(".cbody"), ctrls=[];
+  fields.forEach(f=>{
+    if(f.sec){ body.append(el("div","sec",f.sec)); return; }
+    const v=seValOf(f);
+    const input = f.multiline ? el("textarea") : el("input");
+    if(f.multiline) input.rows=Math.min(8,Math.max(3,v.split("\n").length));
+    input.value=v; if(f.identity) input.classList.add("idf");
+    if(f.multiline){ const w=el("div","fld-full"); w.append(el("div","k",f.label), input); body.append(w); }   // long text → label stacked above, full width
+    else body.append(el("div","k",f.label), input);
+    ctrls.push({f,input,orig:v});
+  });
+  card.querySelector("#seCancel").onclick=()=>openSessionDetail(text,origin);
+  card.querySelector("#seSave").onclick=()=>saveSessionEditor(text,origin,d,ctrls);
+  $("#modal").style.display="flex";
+}
+// write an edited DB / All Speakers field into its dirty map (skip fields with no source column)
+function markDetailCell(obj,field,val){
+  if(!obj||obj._row==null||!obj._ci||obj._ci[field]==null||obj._ci[field]<0) return;
+  (obj._tab==="spk"?state.spkDirty:state.dbDirty).set(obj._row+","+obj._ci[field], String(val));
+}
+// replace one session line inside a '일정' cell (or the whole cell if it was a single/merged line)
+function applyTimetableLine(origin,oldLine,newLine){
+  if(!origin||!state.schedule||!state.schedule[origin.r]) return newLine;
+  const cell=String(state.schedule[origin.r][origin.c]==null?"":state.schedule[origin.r][origin.c]);
+  const next=(cell.indexOf("\n")<0 || cell.trim()===String(oldLine).trim())
+    ? newLine
+    : cell.split("\n").map(l=>l.trim()===String(oldLine).trim()?newLine:l).join("\n");
+  state.schedule[origin.r][origin.c]=next; state.scheduleDirty.add(origin.r+","+origin.c);
+  return newLine;
+}
+// after an identity edit, re-derive sessions and move assignments/caps/locks from old keys → new keys
+function migrateSessionRosters(beforeKeys){
+  deriveSessions();
+  const after=state.sessionList.map(s=>s.key);
+  if(beforeKeys.length!==after.length) return -1;   // session count changed → can't 1:1 remap (caller warns; assignments left intact under old keys)
+  const map={}; let moved=0;
+  for(let i=0;i<after.length;i++){ map[beforeKeys[i]]=after[i]; if(beforeKeys[i]!==after[i]) moved++; }
+  if(!moved) return 0;
+  const remap=src=>{ const out={}; Object.keys(src).forEach(k=>{ out[map[k]!=null?map[k]:k]=src[k]; }); return out; };
+  state.sessionAssign=remap(state.sessionAssign); state.sessionCap=remap(state.sessionCap); state.sessionLocked=remap(state.sessionLocked);
+  return moved;
+}
+function saveSessionEditor(text,origin,d,ctrls){
+  const changes=ctrls.filter(c=>String(c.input.value)!==String(c.orig));
+  if(!changes.length){ openSessionDetail(text,origin); return; }
+  const identityChanged=changes.some(c=>c.f.identity);
+  const apply=()=>{
+    const before=state.sessionList.map(s=>s.key);   // snapshot derived keys BEFORE the edit → roster migration
+    let spkTouched=false, newLine=text;
+    changes.forEach(c=>{ const v=c.input.value;
+      if(c.f.line){ newLine=applyTimetableLine(origin,c.orig,v); }
+      else { c.f.obj[c.f.field]=v; markDetailCell(c.f.obj,c.f.field,v); if(c.f.obj._tab==="spk") spkTouched=true;
+        if(c.f.mirror){ c.f.mirror.obj[c.f.mirror.field]=v; markDetailCell(c.f.mirror.obj,c.f.mirror.field,v); if(c.f.mirror.obj._tab==="spk") spkTouched=true; }   // also write the mirrored 'All Speakers' field → 세션 배정 보기 reflects it
+      }
+    });
+    if(spkTouched) buildSpeakerIndex();
+    const moved=migrateSessionRosters(before);
+    if(state.view==="schedule") renderSchedule();
+    if(state.view==="session") renderSession();
+    const note = moved>0?` · 배정 ${moved}건 이동` : moved<0?" · 세션 구성이 바뀌어 일부 배정을 확인하세요" : "";
+    toast("세션 정보를 수정했습니다"+note+". ‘마스터 업데이트’ 시 엑셀에 저장됩니다.", moved<0?"warn":"ok", moved<0?6000:3600);
+    openSessionDetail(newLine,origin);
+  };
+  if(identityChanged){
+    dialog({title:"세션 식별자 변경", danger:true, okText:"변경",
+      body:"세션 줄·코드 등 식별 정보를 바꾸면 세션 배정 보기의 배정과 다시 연결됩니다. 영향을 받는 배정은 자동으로 새 세션으로 이동합니다. 계속할까요?",
+      onOk:apply});
+  } else apply();
 }
 
 /* ---------- 세션 배정 보기 (assign participants to breakout/stream sessions) ---------- */
@@ -1880,6 +2107,10 @@ function progForLine(line, base){
   if(/registration/i.test(line)) return "congress";
   return base;
 }
+// Each '일정' slot block (Breakout Session N / Stream Session N / Special Interest Group / Group Discussion)
+// is a PARENT; its assignable units are the SUBSESSIONS pulled from the 'All Speakers' join:
+//   Breakout (SBO_n/MBO_n) → its parallel topics (key MBO_1#<No>) · SIG → the 20 MSI groups (key MSI_NN)
+//   Stream Session N → the 10 streams, PER-SLOT (key "<slot>::PS_n") · slots with no catalog stay slot-level.
 function deriveSessions(){
   state.sessionList=[];
   const aoa=state.schedule; if(!aoa||!aoa.length) return;
@@ -1893,14 +2124,29 @@ function deriveSessions(){
   // a day with parallel tracks spans 2 sub-columns under one merged header → the 2nd sub-column's
   // header cell is blank, so inherit the most recent date seen scanning left→right.
   for(let c=1;c<ncol;c++){ const m=/(\d{1,2}\/\d{1,2})/.exec(nz(hrow[c])); if(m) lastD=m[1]; dayDate[c]=lastD||("열"+c); }
+  const sig=(state.allSpeakers||[]).filter(r=>(r.cat||"").toLowerCase().indexOf("special interest")>=0);     // MSI_01…20
+  const streams=(state.allSpeakers||[]).filter(r=>{ const x=(r.cat||"").toLowerCase(); return x.indexOf("pre-conference")>=0||x.indexOf("stream")>=0; });   // PS_1…10
   const seen=new Set();
   for(let c=1;c<ncol;c++)
     for(let i=hi+1;i<aoa.length;i++){
       const cell=nz((aoa[i]||[])[c]); if(!cell) continue;
+      const rowTime=nz((aoa[i]||[])[0]); if(!/\d{1,2}:\d{2}/.test(rowTime)) continue;   // real session rows carry a time in col 0; skip the bottom legend/footnote rows (else the legend's "Special Interest Group" swatch leaks in)
       cell.split("\n").map(nz).filter(Boolean).forEach(line=>{
         if(!SESS_RX.test(line)) return;
-        const key=dayDate[c]+" "+line; if(seen.has(key)) return; seen.add(key);
-        state.sessionList.push({key, day:dayDate[c], time:nz((aoa[i]||[])[0]), name:line, prog:progForLine(line, progOf(fills[i+","+c]))});
+        const slotKey=dayDate[c]+" "+line; if(seen.has(slotKey)) return; seen.add(slotKey);
+        const day=dayDate[c], time=rowTime, prog=progForLine(line, progOf(fills[i+","+c]));
+        const base={day,time,prog,parentKey:slotKey};
+        const cm=/\(([A-Za-z0-9_]+)\)/.exec(line), code=cm?cm[1].toUpperCase():"";
+        let kids=null;
+        // pcode = parent session code (breakout SBO_/MBO_), scode = the subsession's own code (#No for breakout topics, MSI_NN for SIG, PS_n for streams)
+        if(/^breakout session/i.test(line) && (state.spByBreakout||{})[code])              // breakout → parallel topics
+          kids=state.spByBreakout[code].map(t=>({key:code+"#"+(nz(t.no)||nz(t.session).slice(0,8)),name:nz(t.session),speaker:nz(t.speaker),pcode:code,scode:nz(t.no)?"#"+nz(t.no):""}));
+        else if(/special interest group/i.test(line) && sig.length)                         // SIG → MSI groups
+          kids=sig.map(g=>({key:nz(g.code||g.session).toUpperCase(),name:nz(g.session),speaker:nz(g.speaker),pcode:"",scode:nz(g.code).toUpperCase()}));
+        else if(/^stream session/i.test(line) && streams.length)                            // stream slot → 10 streams (per-slot)
+          kids=streams.map(s=>({key:slotKey+"::"+nz(s.code||s.session),name:nz(s.session),speaker:nz(s.speaker),pcode:"",scode:nz(s.code).toUpperCase()}));
+        if(kids&&kids.length) kids.forEach(k=>state.sessionList.push({...base,parentName:line,key:k.key,name:k.name,speaker:k.speaker,pcode:k.pcode||"",scode:k.scode||"",sub:true}));
+        else state.sessionList.push({...base,parentName:null,key:slotKey,name:line,speaker:"",pcode:code||"",scode:"",sub:false});   // no catalog → slot-level card (Group Discussion 등)
       });
     }
 }
@@ -1913,10 +2159,29 @@ function eligibleForProg(p,prog){
 }
 function sessAddPicks(key){
   if(!state.sessPicks.size){ toast("먼저 왼쪽에서 참가자를 선택하세요.","warn"); return; }
+  const ids=[...state.sessPicks];
+  const moved=sessClearSlotConflicts(ids,key,null);    // a person can hold only one session per time-slot
   const set=state.sessionAssign[key]||(state.sessionAssign[key]=new Set());
-  state.sessPicks.forEach(pid=>set.add(pid));
-  const n=state.sessPicks.size; state.sessPicks.clear(); renderSession();
-  toast(`${n}명을 '${key}'에 배정했습니다.`,"ok");
+  ids.forEach(pid=>set.add(pid));
+  state.sessPicks.clear(); renderSession();
+  const label=(state.sessionList.find(x=>x.key===key)||{}).name||key;   // friendly session name, not the raw subsession key
+  toast(`${ids.length}명을 '${label}'에 배정했습니다.`+(moved.length?` (같은 시간대 ${moved.join(", ")}에서 이동)`:""),"ok");
+}
+// non-overlap rule: a participant may sit in at most ONE session per time-slot (day+time). Before assigning
+// `ids` to `targetKey`, pull them out of any OTHER session sharing targetKey's slot (skip fromKey — the caller
+// removes that itself). Returns the names of sessions people were moved out of (for the toast).
+function sessSlotOf(key){ const s=state.sessionList.find(x=>x.key===key); return s?s.day+"||"+s.time:null; }
+function sessClearSlotConflicts(ids, targetKey, fromKey){
+  const slot=sessSlotOf(targetKey); if(!slot) return [];
+  const moved=[];
+  state.sessionList.forEach(s=>{
+    if(s.key===targetKey || s.key===fromKey) return;
+    if(s.day+"||"+s.time!==slot) return;
+    const set=state.sessionAssign[s.key]; if(!set) return;
+    let hit=false; ids.forEach(id=>{ if(set.delete(id)) hit=true; });
+    if(hit) moved.push(s.name);
+  });
+  return moved;
 }
 function sessSetCap(key,val){ const n=parseInt(val,10); state.sessionCap[key]=(val===""||isNaN(n))?null:Math.max(0,n); renderSession(); }
 // "비우기" for sessions — clear every assigned person from the given session(s), skipping locked ones.
@@ -1935,17 +2200,20 @@ function sessConfirmEmpty(keys,label){
 }
 // drag drop result: add ids to the target session (and, if dragged from another session, remove them there → "move").
 // targetKey "__sesspool__" = dropped back on the pool → remove from the source session. A participant may sit in many
-// sessions (one per time-slot across days), so dropping never clears their other assignments.
+// sessions across different time-slots, but only ONE per slot — so a drop pulls them out of any same-slot session
+// (sessClearSlotConflicts); assignments in other time-slots are untouched.
 function sessApplyDrop(ids, targetKey, fromKey){
   if(!targetKey || targetKey===fromKey) return;
   if(targetKey==="__sesspool__"){
     if(fromKey){ const src=state.sessionAssign[fromKey]; if(src) ids.forEach(id=>src.delete(id)); }
     state.sessPicks.clear(); renderSession(); return;
   }
+  const moved=sessClearSlotConflicts(ids,targetKey,fromKey);   // enforce one-session-per-time-slot
   const set=state.sessionAssign[targetKey]||(state.sessionAssign[targetKey]=new Set());
   ids.forEach(id=>set.add(id));
   if(fromKey){ const src=state.sessionAssign[fromKey]; if(src) ids.forEach(id=>src.delete(id)); }
   state.sessPicks.clear(); renderSession();
+  if(moved.length) toast(`같은 시간대 ${moved.join(", ")}에서 이동했습니다.`,"info");
 }
 // wire a pool row / member chip for pointer-drag onto session cards (reuses beginDrag's ghost + autoscroll).
 // fromKey = the session a member chip currently sits in (null for a pool row). Mouse/pen grab from the body;
@@ -1985,7 +2253,19 @@ function sessUpdatePoolMeta(){
   const list=document.querySelector(".sesspoollist"); if(!list) return;
   const ex=list.querySelector(".pickhint"); if(ex) ex.remove();
   if(state.sessPicks.size) list.insertBefore(sessPickHint(), list.firstChild);
-  const v=$("#sessvenues"); if(v) v.classList.toggle("picking", !!state.sessPicks.size);
+  const v=$("#sessright"); if(v) v.classList.toggle("picking", !!state.sessPicks.size);
+}
+// Shift+click in the pool: add every visible chip between the anchor (last plain click) and the clicked one.
+function sessRangeSelect(toPid){
+  const list=document.querySelector(".sesspoollist"); if(!list) return;
+  const pids=[...list.querySelectorAll(".chip")].map(c=>c.dataset.pid).filter(Boolean);
+  const anchor=(state.sessAnchor && pids.includes(state.sessAnchor))?state.sessAnchor:toPid;
+  let i=pids.indexOf(anchor), j=pids.indexOf(toPid);
+  if(i<0||j<0) return;
+  if(i>j){ const t=i; i=j; j=t; }
+  for(let k=i;k<=j;k++) state.sessPicks.add(pids[k]);
+  if(!state.sessAnchor) state.sessAnchor=toPid;
+  sessFillPool();
 }
 // age-decade label ("20대"/"30대"…) from an ISO 생년월일; null if blank/garbage. Used for the pool age pill.
 function ageBand(dob){
@@ -2024,16 +2304,18 @@ function sessChip(p, fromKey, prog){
   wireSessDrag(c,p,fromKey);
   // pool row: single-click toggles selection (deferred so a dblclick can cancel it → detail modal)
   const toggle=()=>{ if(state.sessPicks.has(p.id)) state.sessPicks.delete(p.id); else state.sessPicks.add(p.id);
+    state.sessAnchor=p.id;                               // remember the pivot for Shift+click range select
     const on=state.sessPicks.has(p.id); c.classList.toggle("picked",on); c.setAttribute("aria-pressed",on?"true":"false"); sessUpdatePoolMeta(); };
   let ctimer=null;
   c.addEventListener("click",e=>{ e.stopPropagation(); if(lpFired||dragFired) return;
+    if(inPool && e.shiftKey){ e.preventDefault(); if(ctimer){clearTimeout(ctimer);ctimer=null;} sessRangeSelect(p.id); return; }   // Shift+click → select anchor…here
     if(ctimer) return;                                   // 2nd click → let dblclick handle it
     ctimer=setTimeout(()=>{ ctimer=null; if(!document.body.contains(c)) return; if(inPool) toggle(); }, 230); });
   c.addEventListener("dblclick",e=>{ e.stopPropagation(); if(ctimer){clearTimeout(ctimer);ctimer=null;} openCard(p); });
   c.addEventListener("keydown",e=>{
     if(e.key==="Enter"||e.key===" "){ e.preventDefault(); if(inPool) toggle(); }
     else if(e.key==="F2"){ e.preventDefault(); openCard(p); } });
-  c.title=(inPool?"클릭: 선택(여러 명 가능) · 세션 카드를 누르거나 끌어서 배정 · 더블클릭: 상세"
+  c.title=(inPool?"클릭: 선택(여러 명 가능) · Shift+클릭: 범위 선택 · 세션 카드를 누르거나 끌어서 배정 · 더블클릭: 상세"
                 :"끌어서 다른 세션으로 이동 · 풀로 끌면 제외 · 더블클릭: 상세")
         + (elg?"":"\n⚠ 참가예정행사가 이 세션과 맞지 않을 수 있습니다");
   return c;
@@ -2061,7 +2343,26 @@ function renderSession(){
   if(!state.parties.length){ root.append(el("div","empty-hint","마스터 .xlsx 파일을 먼저 여세요.")); return; }
   if(!state.sessionList.length){ root.append(el("div","empty-hint","'일정' 탭에서 배정할 세션(Breakout/Stream 등)을 찾지 못했습니다.")); return; }
 
-  // ----- left: participant pool (mirrors #pool: search + multi-select; drag/tap a card to assign) -----
+  // ----- time-slot model: a "slot" = every session sharing (day, time). A person holds ≤1 session per slot,
+  //       so each slot is a self-contained 1:1 board. -----
+  const dmin=d=>{ const m=/(\d{1,2})\/(\d{1,2})/.exec(d||""); return m?(+m[1])*100+(+m[2]):9999; };
+  const tmin=t=>{ const m=/(\d{1,2}):(\d{2})/.exec(t||""); return m?(+m[1])*60+(+m[2]):9999; };
+  const cnt=key=>(state.sessionAssign[key]||{size:0}).size||0;
+  const dayWD=d=>{ if(!d) return ""; if(d.indexOf("(")>=0) return d; const m=/(\d{1,2})\/(\d{1,2})/.exec(d); return m?`${d} (${WDAY[new Date(2026,+m[1]-1,+m[2]).getDay()]})`:d; };   // "7/1" → "7/1 (수)"
+  const slotsMap=new Map();
+  state.sessionList.forEach(s=>{ const sk=s.day+"||"+s.time; if(!slotsMap.has(sk)) slotsMap.set(sk,{key:sk,day:s.day,time:s.time,sessions:[]}); slotsMap.get(sk).sessions.push(s); });
+  const slots=[...slotsMap.values()].sort((a,b)=>dmin(a.day)-dmin(b.day)||tmin(a.time)-tmin(b.time));
+  // selection: a focused day (state.sessDay) + optionally one slot within it (state.sessSlot). sessSlot=null → show
+  // the WHOLE day (all its slots); a slot set → focus just that slot. A valid sessSlot implies its day.
+  const dayList=[...new Set(slots.map(s=>s.day))];
+  if(state.sessSlot && slotsMap.has(state.sessSlot)){ state.sessDay = slotsMap.get(state.sessSlot).day; }
+  else { state.sessSlot=null; if(!dayList.includes(state.sessDay)) state.sessDay = dayList[0]||null; }
+  const dayMode = !state.sessSlot;
+  const curSlot = state.sessSlot ? slotsMap.get(state.sessSlot) : null;
+  const showSlots = dayMode ? slots.filter(s=>s.day===state.sessDay) : [curSlot];   // slots whose columns are rendered
+  const scopeKeys = showSlots.flatMap(sl=>sl.sessions.map(x=>x.key));               // pool excludes anyone assigned within scope
+
+  // ----- left: participant pool — scoped to the current slot (who's still unassigned THIS slot) -----
   const pool=el("div"); pool.id="sesspool"; if(state.sessPoolCollapsed) pool.classList.add("collapsed");
   const h2=el("h2"); h2.innerHTML=`참가자 <span id="sesspoolcount"></span>`;
   const ptog=el("button","poolToggle"); ptog.id="sessPoolToggle"; ptog.type="button";
@@ -2076,19 +2377,23 @@ function renderSession(){
   const clr=el("button","clr"); clr.type="button"; clr.textContent="×"; clr.title="지우기"; clr.setAttribute("aria-label","검색어 지우기");
   sw.append(search,clr); pool.append(sw);
 
-  pool.append(el("div","sess-poolhint","참가자를 세션 카드로 끌어 배정합니다. 여러 명: 클릭해 선택한 뒤 카드를 누르거나 함께 드래그 · 세션 간 드래그로 이동 · 풀로 끌면 제외"));
+  pool.append(el("div","sess-poolhint","위에서 시간대를 고르면 그 시간대의 병렬 세션이 칼럼으로 나타납니다. 이 시간대에 아직 배정되지 않은 사람만 풀에 보입니다. 클릭해 선택(Shift+클릭: 범위 선택) → 세션 칼럼을 누르거나 끌어서 배정 · 칼럼 간 드래그로 이동 · 풀로 끌면 제외"));
 
   const plist=el("div","sesspoollist"); plist.dataset.dropkey="__sesspool__"; plist.setAttribute("role","group"); plist.setAttribute("aria-label","참가자 목록"); pool.append(plist);
   // pool is grouped by 카테고리(분류); each group header has a "세션 불필요" checkbox that exempts (hides) the whole
   // category from the pool. Exempt headers stay visible (collapsed to one dimmed row) so they can be toggled back.
   function fillPool(){
     const q=(state.sessFilter.q||"").toLowerCase();
-    const match=p=>!q||p.name.toLowerCase().includes(q)||p.id.toLowerCase().includes(q)||(p.kname||"").toLowerCase().includes(q)||(p.aff||"").toLowerCase().includes(q);
+    // who is already booked within the current scope (this slot, or the whole day) → excluded from the pool.
+    // Plus a per-person total-session count, to badge people already booked elsewhere (still available here).
+    const inScope=new Set(); scopeKeys.forEach(k=>{ const st=state.sessionAssign[k]; if(st) st.forEach(id=>inScope.add(id)); });
+    const asgCount={}; Object.values(state.sessionAssign).forEach(set=>set&&set.forEach(id=>{ asgCount[id]=(asgCount[id]||0)+1; }));
+    const match=p=>!inScope.has(p.id)&&(!q||p.name.toLowerCase().includes(q)||p.id.toLowerCase().includes(q)||(p.kname||"").toLowerCase().includes(q)||(p.aff||"").toLowerCase().includes(q));
     const groups=new Map();
     state.parties.forEach(p=>{ const c=p.cat||"(분류 없음)"; (groups.get(c)||groups.set(c,[]).get(c)).push(p); });
     const catKeys=[...groups.keys()].sort((a,b)=>a.localeCompare(b));
     let shown=0; catKeys.forEach(c=>{ if(!state.sessExempt.has(c)) shown+=groups.get(c).filter(match).length; });
-    const cn=$("#sesspoolcount"); if(cn) cn.textContent=`(${shown}명)`;
+    const cn=$("#sesspoolcount"); if(cn) cn.textContent=dayMode?`(이 날 미배정 ${shown}명)`:`(이 시간대 미배정 ${shown}명)`;
     plist.innerHTML="";
     if(state.sessPicks.size) plist.append(sessPickHint());
     let any=false;
@@ -2107,11 +2412,15 @@ function renderSession(){
       const nm=el("span","sesscatname",c);
       const ct=el("span","sesscatcount", exempt?`세션 불필요 · ${ppl.length}명`:`${vis.length}명`);
       hdr.append(cb,badge,nm,ct); grp.append(hdr);
-      vis.forEach(p=>grp.append(sessChip(p,null,null)));
+      vis.forEach(p=>{
+        const ch=sessChip(p,null,null);
+        if(asgCount[p.id]){ const ab=el("span","sessasgn",asgCount[p.id]+"개"); ab.title=`다른 시간대 포함 ${asgCount[p.id]}개 세션에 배정됨`; ab.setAttribute("aria-hidden","true"); ch.append(ab); }
+        grp.append(ch);
+      });
       plist.append(grp);
     });
-    if(!any){ const eh=el("div","empty-hint"); eh.textContent=q?`'${search.value}' 검색 결과가 없습니다`:"참가자가 없습니다"; plist.append(eh); }
-    const v=$("#sessvenues"); if(v) v.classList.toggle("picking", !!state.sessPicks.size);
+    if(!any){ const eh=el("div","empty-hint"); eh.textContent=q?`'${search.value}' 검색 결과가 없습니다`:(dayMode?"이 날 배정할 인원이 없습니다":"이 시간대에 배정할 인원이 없습니다"); plist.append(eh); }
+    const v=$("#sessright"); if(v) v.classList.toggle("picking", !!state.sessPicks.size);
   }
   sessFillPool=fillPool;
   const syncClr=()=>clr.classList.toggle("show", !!search.value);
@@ -2119,105 +2428,117 @@ function renderSession(){
   clr.onclick=()=>{ search.value=""; state.sessFilter.q=""; syncClr(); fillPool(); search.focus(); };
   syncClr();
 
-  // ----- mobile jump bar (mirrors #jumpbar): jump to a day / time-slot -----
-  const jump=el("div"); jump.id="sessjump"; jump.setAttribute("aria-label","세션 그룹으로 이동");
-  const jsel=el("select"); jsel.setAttribute("aria-label","요일·시간으로 이동"); jsel.add(new Option("요일·시간으로 이동…",""));
-  jump.append(jsel);
-
-  // ----- right: sessions grouped by day (.venue) → time-slot (.floorgrp) → .rooms grid -----
-  const venues=el("div"); venues.id="sessvenues";
-  const dmin=d=>{ const m=/(\d{1,2})\/(\d{1,2})/.exec(d||""); return m?(+m[1])*100+(+m[2]):9999; };
-  const tmin=t=>{ const m=/(\d{1,2}):(\d{2})/.exec(t||""); return m?(+m[1])*60+(+m[2]):9999; };
-  const cnt=key=>(state.sessionAssign[key]||{size:0}).size||0;
-
-  // group: day -> time -> [sessions] (preserve 일정-tab order within a slot)
-  const days=new Map();
-  state.sessionList.forEach(s=>{ if(!days.has(s.day)) days.set(s.day,new Map());
-    const tm=days.get(s.day); if(!tm.has(s.time)) tm.set(s.time,[]); tm.get(s.time).push(s); });
-  const dayKeys=[...days.keys()].sort((a,b)=>dmin(a)-dmin(b));
-
-  const jumps=[];
-  dayKeys.forEach((day,di)=>{
-    const dId="sday-"+di, dCol=!!state.collapsedSess[dId];
-    const dv=el("div","venue"+(dCol?" collapsed":"")); dv.id=dId;
-    const tmap=days.get(day);
-    const totSess=[...tmap.values()].reduce((s,a)=>s+a.length,0);
-    const totPpl=[...tmap.values()].reduce((s,a)=>s+a.reduce((q,x)=>q+cnt(x.key),0),0);
-    const dh=el("h2"); dh.setAttribute("role","button"); dh.tabIndex=0; dh.setAttribute("aria-expanded", dCol?"false":"true");
-    dh.innerHTML=`<span class="vchev" aria-hidden="true">▼</span> ${esc(day)} <span class="cap">· ${totSess}개 세션 · ${totPpl}명</span>`;
-    const dtog=()=>{ state.collapsedSess[dId]=!dCol; saveUI(); renderSession(); };
-    dh.addEventListener("click",dtog); dh.addEventListener("keydown",e=>{ if(e.key==="Enter"||e.key===" "){e.preventDefault();dtog();} });
-    // day-wide lock + empty (mirrors the venue/hotel level): lock = roster protected from 비우기
-    const dKeys=[...tmap.values()].flat().map(s=>s.key);
-    const dAll=dKeys.length && dKeys.every(k=>state.sessionLocked[k]);
-    dv.classList.toggle("vlocked", !!dAll);
-    const dlk=el("button","vlk"+(dAll?" locked":"")); dlk.type="button"; dlk.innerHTML=ico(dAll?'lock':'unlock');
-    dlk.setAttribute("aria-pressed", dAll?"true":"false");
-    dlk.title=dAll?"이 날 전체 잠금 해제":"이 날 전체 잠금(비우기에서 제외)";
-    dlk.setAttribute("aria-label",(dAll?"이 날 전체 잠금 해제":"이 날 전체 잠금")+" — "+day);
-    dlk.addEventListener("click",e=>{ e.stopPropagation();
-      if(dAll) dKeys.forEach(k=>delete state.sessionLocked[k]); else dKeys.forEach(k=>state.sessionLocked[k]=true); renderSession(); });
-    dlk.addEventListener("keydown",e=>{ if(e.key==="Enter"||e.key===" ") e.stopPropagation(); });
-    const dem=el("button","vlk hempty"); dem.type="button"; dem.innerHTML=ico('undo');
-    dem.title="이 날의 모든 세션 배정을 해제합니다"; dem.setAttribute("aria-label","이 날 비우기 — "+day);
-    dem.addEventListener("click",e=>{ e.stopPropagation(); sessConfirmEmpty(dKeys, day); });
-    dem.addEventListener("keydown",e=>{ if(e.key==="Enter"||e.key===" ") e.stopPropagation(); });
-    dh.append(dlk,dem);
-    dv.append(dh);
-    jumps.push({label:`▸ ${day}`, id:dId});
-
-    [...tmap.keys()].sort((a,b)=>tmin(a)-tmin(b)).forEach((time,ti)=>{
-      const sId=`sslot-${di}-${ti}`, sCol=!!state.collapsedSess[sId];
-      const fg=el("div","floorgrp"+(sCol?" collapsed":"")); fg.id=sId;
-      const arr=tmap.get(time);
-      const slotPpl=arr.reduce((q,x)=>q+cnt(x.key),0);
-      const h3=el("h3"); h3.setAttribute("role","button"); h3.tabIndex=0; h3.setAttribute("aria-expanded", sCol?"false":"true");
-      h3.innerHTML=`<span class="fchev" aria-hidden="true">▼</span><span>${esc(time||"시간 미정")}</span><span class="fcount">${arr.length}개 · ${slotPpl}명</span>`;
-      const ttog=()=>{ state.collapsedSess[sId]=!sCol; saveUI(); renderSession(); };
-      h3.addEventListener("click",ttog); h3.addEventListener("keydown",e=>{ if(e.key==="Enter"||e.key===" "){e.preventDefault();ttog();} });
-      // time-slot lock + empty (mirrors the 동·층 group level)
-      const tLabel=time||"시간 미정", tKeys=arr.map(s=>s.key);
-      const tAll=tKeys.every(k=>state.sessionLocked[k]);
-      fg.classList.toggle("glocked", tAll);
-      const slk=el("button","glk"+(tAll?" locked":"")); slk.type="button"; slk.innerHTML=ico(tAll?'lock':'unlock');
-      slk.setAttribute("aria-pressed", tAll?"true":"false");
-      slk.title=tAll?"이 시간대 잠금 해제":"이 시간대 잠금(비우기에서 제외)";
-      slk.setAttribute("aria-label",(tAll?"시간대 잠금 해제":"시간대 잠금")+" — "+tLabel);
-      slk.addEventListener("click",e=>{ e.stopPropagation();
-        if(tAll) tKeys.forEach(k=>delete state.sessionLocked[k]); else tKeys.forEach(k=>state.sessionLocked[k]=true); renderSession(); });
-      slk.addEventListener("keydown",e=>{ if(e.key==="Enter"||e.key===" ") e.stopPropagation(); });
-      const sem=el("button","glk hempty"); sem.type="button"; sem.innerHTML=ico('undo');
-      sem.title="이 시간대의 모든 세션 배정을 해제합니다"; sem.setAttribute("aria-label","시간대 비우기 — "+tLabel);
-      sem.addEventListener("click",e=>{ e.stopPropagation(); sessConfirmEmpty(tKeys, tLabel); });
-      sem.addEventListener("keydown",e=>{ if(e.key==="Enter"||e.key===" ") e.stopPropagation(); });
-      h3.append(slk,sem);
-      fg.append(h3);
-      const grid=el("div","rooms");
-      arr.forEach(s=>grid.append(sessionCard(s)));
-      fg.append(grid); dv.append(fg);
-      jumps.push({label:`    ${time||"시간 미정"} (${arr.length})`, id:sId});
+  // ----- slot picker: day pill (→ whole day) + a chip per time-slot (→ that one slot), grouped by day -----
+  const picker=el("div"); picker.id="sesspicker";
+  [...new Set(slots.map(s=>s.day))].forEach(day=>{
+    const g=el("div","sbday");
+    const daySlots=slots.filter(s=>s.day===day);
+    const dayActive = state.sessDay===day;
+    const lab=el("span","sbdaylab"+(dayActive&&dayMode?" on":"")+(dayActive&&!dayMode?" dim":"")); lab.textContent=dayWD(day);
+    lab.setAttribute("role","button"); lab.tabIndex=0; lab.title=`${dayWD(day)} — 이 날의 모든 시간대 보기`;
+    const pickDay=()=>{ if(state.sessDay===day && dayMode) return; state.sessDay=day; state.sessSlot=null; state.sessPicks.clear(); saveUI(); renderSession(); };
+    lab.onclick=pickDay; lab.addEventListener("keydown",e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); pickDay(); } });
+    g.append(lab);
+    const row=el("div","sbslots");
+    daySlots.forEach(sl=>{
+      const keys=sl.sessions.map(s=>s.key);
+      const ppl=keys.reduce((q,k)=>q+cnt(k),0);
+      const allLk=keys.length && keys.every(k=>state.sessionLocked[k]);
+      const on=sl.key===state.sessSlot;                       // highlighted only in single-slot mode
+      const inDay=dayMode && sl.day===state.sessDay;           // shown (but not "on") when the whole day is open
+      const b=el("button","sbslot"+(on?" on":"")+(inDay?" inday":"")+(allLk?" alllocked":"")); b.type="button";
+      b.innerHTML=`${esc(sl.time||"시간 미정")}<span class="n">${sl.sessions.length}개·${ppl}명</span>`+(allLk?" 🔒":"");
+      b.title=`${dayWD(day)} ${sl.time||"시간 미정"} — 세션 ${sl.sessions.length}개 · ${ppl}명 배정 (이 시간대만 보기)`+(allLk?" · 잠김":"");
+      b.setAttribute("aria-pressed", on?"true":"false");
+      b.onclick=()=>{ if(sl.key===state.sessSlot) return; state.sessSlot=sl.key; state.sessDay=sl.day; state.sessPicks.clear(); saveUI(); renderSession(); };
+      row.append(b);
     });
-    venues.append(dv);
+    g.append(row); picker.append(g);
   });
-  jumps.forEach(j=>jsel.add(new Option(j.label, j.id)));
-  jsel.onchange=e=>{ const id=e.target.value; e.target.selectedIndex=0; if(!id) return;
-    delete state.collapsedSess[id];
-    if(id.indexOf("sslot-")===0){ const di=id.split("-")[1]; delete state.collapsedSess["sday-"+di]; }   // also open its day
-    renderSession();
-    requestAnimationFrame(()=>{ const n=document.getElementById(id); if(n) n.scrollIntoView({behavior:"smooth",block:"start"}); });
+
+  // ----- right: picker + (single slot → one bar + grid) OR (whole day → bar + a section per time-slot) -----
+  const right=el("div"); right.id="sessright";
+  right.append(picker);   // picker sits in the right pane so it spans the columns' width, not the pool's
+  // lock + empty buttons (reuse .glk) for a set of session keys
+  const lockEmptyBtns=(keys,label)=>{
+    const allLocked=keys.length && keys.every(k=>state.sessionLocked[k]);
+    const lk=el("button","glk"+(allLocked?" locked":"")); lk.type="button"; lk.innerHTML=ico(allLocked?'lock':'unlock');
+    lk.setAttribute("aria-pressed", allLocked?"true":"false"); lk.title=allLocked?`${label} 잠금 해제`:`${label} 잠금(비우기에서 제외)`;
+    lk.setAttribute("aria-label",(allLocked?"잠금 해제":"잠금")+" — "+label);
+    lk.onclick=e=>{ e.stopPropagation(); if(allLocked) keys.forEach(k=>delete state.sessionLocked[k]); else keys.forEach(k=>state.sessionLocked[k]=true); renderSession(); };
+    const em=el("button","glk hempty"); em.type="button"; em.innerHTML=ico('undo');
+    em.title=`${label} 비우기 (배정 해제)`; em.setAttribute("aria-label","비우기 — "+label);
+    em.onclick=e=>{ e.stopPropagation(); sessConfirmEmpty(keys, label); };
+    return [lk,em];
+  };
+  // a slot's cards, GROUPED BY PARENT session: each subsession group gets a heading (parent name + code);
+  // when a slot runs parallel parents (e.g. Breakout + Stream) the groups sit side by side as columns.
+  const colsFor=sl=>{
+    const groups=[], gmap=new Map();
+    sl.sessions.forEach(s=>{
+      const gk = s.sub ? (s.parentKey||s.parentName||"") : "__solo__";   // slot-level cards share one headless group
+      let g=gmap.get(gk);
+      if(!g){ const label=s.sub?(s.parentName||"").replace(/\s*\([A-Za-z0-9_]+\)\s*$/,"").trim():"";   // strip the (CODE) — it rides as a pill
+        g={label,pcode:s.sub?(s.pcode||""):"",sub:s.sub,sessions:[]}; gmap.set(gk,g); groups.push(g); }
+      g.sessions.push(s);
+    });
+    const wrap=el("div","sessgroups"+(groups.length>1?" multi":""));   // >1 parent → 2-column layout
+    groups.forEach(g=>{
+      const sec=el("div","sessgrp");
+      if(g.sub){                                                       // subsession group → show its parent session as the heading
+        const hd=el("div","sessgrphd");
+        hd.append(el("span","sgname", g.label||"세션"));
+        if(g.pcode) hd.append(el("span","sgcode", g.pcode));
+        sec.append(hd);
+      }
+      const grid=el("div","sesscols");
+      g.sessions.forEach(s=>grid.append(sessionCard(s)));
+      sec.append(grid); wrap.append(sec);
+    });
+    return wrap;
   };
 
+  if(!dayMode && curSlot){
+    const sKeys=curSlot.sessions.map(s=>s.key), slotPpl=sKeys.reduce((q,k)=>q+cnt(k),0);
+    const slotLabel=`${dayWD(curSlot.day)} ${curSlot.time||"시간 미정"}`;
+    const bar=el("div"); bar.id="sessslotbar";
+    bar.append(el("h3",null,`${dayWD(curSlot.day)} · ${curSlot.time||"시간 미정"}`),
+               el("span","meta",`${curSlot.sessions.length}개 세션 · ${slotPpl}명 배정`));
+    bar.append(...lockEmptyBtns(sKeys, slotLabel));
+    right.append(bar, colsFor(curSlot));
+  } else {                                  // whole-day view: a bar + one section per time-slot
+    const dayKeys=showSlots.flatMap(sl=>sl.sessions.map(x=>x.key)), dayPpl=dayKeys.reduce((q,k)=>q+cnt(k),0);
+    const bar=el("div"); bar.id="sessslotbar";
+    bar.append(el("h3",null,dayWD(state.sessDay)),
+               el("span","meta",`${showSlots.length}개 시간대 · 세션 ${dayKeys.length}개 · ${dayPpl}명 배정`));
+    bar.append(...lockEmptyBtns(dayKeys, dayWD(state.sessDay)));
+    right.append(bar);
+    showSlots.forEach(sl=>{
+      const keys=sl.sessions.map(x=>x.key), ppl=keys.reduce((q,k)=>q+cnt(k),0);
+      const sec=el("div","slotsec");
+      const hd=el("div","slotsechd");
+      hd.append(el("span","slotsec-t", sl.time||"시간 미정"), el("span","slotsec-meta",`${sl.sessions.length}개·${ppl}명`));
+      hd.append(...lockEmptyBtns(keys, `${dayWD(sl.day)} ${sl.time||""}`.trim()));
+      sec.append(hd, colsFor(sl)); right.append(sec);
+    });
+  }
+
+  const board=el("div"); board.id="sessboard"; board.append(pool, right);
   fillPool();
-  root.append(pool, jump, venues);
+  root.append(board);
 }
-function sessionCard(s){
+function sessionCard(s,showParent){
   const set=state.sessionAssign[s.key]||new Set(), cap=state.sessionCap[s.key];
   const load=set.size, over=cap!=null && load>cap, slock=!!state.sessionLocked[s.key];
   const card=el("div","room prog-"+(s.prog||"none")+(over?" over":"")+(slock?" locked":"")); card.dataset.dropkey=s.key;   // drop target for drag-to-assign
   card.tabIndex=0; card.setAttribute("role","group");
-  card.setAttribute("aria-label",`${s.name}, ${load}${cap!=null?"/"+cap:""}명${slock?", 잠김":""}. 선택한 인원을 여기에 배정하려면 누르세요`);
+  card.setAttribute("aria-label",`${s.name}${s.speaker?" — "+s.speaker:""}, ${load}${cap!=null?"/"+cap:""}명${slock?", 잠김":""}. 선택한 인원을 여기에 배정하려면 누르세요`);
   const hdr=el("div","rhdr");
-  const left=el("span"); left.innerHTML=`<span class="rno">${esc(s.name)}</span>`;
+  const left=el("span");
+  const ccode = s.sub ? (s.scode||"") : (s.pcode||"");   // sub card → its subsession code (MSI_/PS_/#No); slot-level card → its own code
+  left.innerHTML=(ccode?`<span class="rcode">${esc(ccode)}</span>`:"")   // code pill first → top-left corner, before the title
+    +`<span class="rno">${esc(s.name)}</span>`
+    +(s.speaker?`<span class="rsub">${esc(s.speaker)}</span>`:"");
   const cls = over?"over":(cap!=null&&load===cap)?"full":"ok";
   const cap_=el("span","capbadge "+cls, cap!=null?`${load}/${cap}`:`${load}`);
   cap_.title="더블클릭: 정원 수정"; cap_.style.cursor="pointer";
@@ -2244,7 +2565,10 @@ function sessionCard(s){
     hdr.append(rem);
   }
   card.append(hdr);
-  [...set].map(pid=>state.byId[pid]).filter(Boolean).sort((a,b)=>a.name.localeCompare(b.name)).forEach(p=>card.append(sessChip(p,s.key,s.prog)));
+  const body=el("div","roomchips");   // flex-wrap container so chips fill a wide card's width instead of stacking
+  if(!set.size) body.append(el("div","sess-drophint","비어 있음 · 선택 후 클릭/드래그"));
+  [...set].map(pid=>state.byId[pid]).filter(Boolean).sort((a,b)=>a.name.localeCompare(b.name)).forEach(p=>body.append(sessChip(p,s.key,s.prog)));
+  card.append(body);
   // tap the card body = assign the current pool selection to this session (chips/badge stop propagation)
   const assign=()=>{ if(state.sessPicks.size) sessAddPicks(s.key); };
   card.addEventListener("click",e=>{ if(lpFired||dragFired) return; if(e.target.closest(".chip")) return; assign(); });
@@ -2773,14 +3097,15 @@ function syncTop(){                                   // keep panels sized to th
   applyColW();   // re-evaluate the night-track floor for the new width
 }
 const UIKEY="icmda_ui";
-function saveUI(){ try{ localStorage.setItem(UIKEY, JSON.stringify({colW:state.colW, collapsed:state.collapsed, collapsedRooms:state.collapsedRooms, collapsedSess:state.collapsedSess, view:state.view})); }catch(e){} }
+function saveUI(){ try{ localStorage.setItem(UIKEY, JSON.stringify({colW:state.colW, collapsed:state.collapsed, collapsedRooms:state.collapsedRooms, sessSlot:state.sessSlot, sessDay:state.sessDay, view:state.view})); }catch(e){} }
 function loadUI(){ try{
   const s=JSON.parse(localStorage.getItem(UIKEY)||"{}");
   if(Array.isArray(s.colW) && s.colW.length===state.colW.length) state.colW=s.colW.map(Number);
   if(state.colW[0]<70) state.colW[0]=74;   // ensure the ID column fits the relocated drag handle (⠿) + 'P0001'
   if(s.collapsed && typeof s.collapsed==="object") state.collapsed=s.collapsed;
   if(s.collapsedRooms && typeof s.collapsedRooms==="object") state.collapsedRooms=s.collapsedRooms;
-  if(s.collapsedSess && typeof s.collapsedSess==="object") state.collapsedSess=s.collapsedSess;
+  if(typeof s.sessSlot==="string") state.sessSlot=s.sessSlot;
+  if(typeof s.sessDay==="string") state.sessDay=s.sessDay;
   if(s.view==="rooms"||s.view==="timeline"||s.view==="schedule"||s.view==="session") state.view=s.view;
 }catch(e){} }
 function makeColGrip(ci){
@@ -3520,17 +3845,20 @@ function writeManagedSheet(files,name,aoa){
     `<Override PartName="/xl/worksheets/sheet${idx}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/></Types>`));
 }
 // assemble the '세션배정' tab as an array-of-arrays: header + capacity row + one row per assigned participant
+// compact layout: A=참가자ID · B=이름 · C=세션선택 (the participant's subsession keys, "; "-joined).
+// caps/locks/exempts ride along as tag rows so the per-person column stays clean. Orphan keys dropped.
 function sessionSheetAoa(){
   const sessions=state.sessionList; if(!sessions.length) return null;
-  const keys=sessions.map(s=>s.key);
-  const hdr=["참가자ID","이름",...keys];
-  const capRow=["(정원)","",...keys.map(k=>{ const c=state.sessionCap[k]; return c==null?"":c; })];
-  const lockRow=["(잠금)","",...keys.map(k=>state.sessionLocked[k]?"✓":"")];   // ✓ = session locked (persisted so locks survive reload)
-  const exemptRows=[...state.sessExempt].map(c=>["(면제분류)",c]);   // each exempt 카테고리 on its own row
-  const assigned=new Set(); keys.forEach(k=>(state.sessionAssign[k]||new Set()).forEach(pid=>assigned.add(pid)));
-  const rows=[...assigned].map(pid=>state.byId[pid]).filter(Boolean).sort((a,b)=>a.name.localeCompare(b.name))
-    .map(p=>[p.id,p.name,...keys.map(k=>(state.sessionAssign[k]||new Set()).has(p.id)?"✓":"")]);
-  return [hdr,capRow,lockRow,...exemptRows,...rows];
+  const keySet=new Set(sessions.map(s=>s.key));
+  const hdr=["참가자ID","이름","세션선택"];
+  const exemptRows=[...state.sessExempt].map(c=>["(면제분류)",c,""]);   // each exempt 카테고리 on its own row
+  const capRows=Object.keys(state.sessionCap).filter(k=>keySet.has(k)&&state.sessionCap[k]!=null).map(k=>["(정원)",k,state.sessionCap[k]]);
+  const lockRows=Object.keys(state.sessionLocked).filter(k=>keySet.has(k)&&state.sessionLocked[k]).map(k=>["(잠금)",k,"✓"]);   // ✓ = session locked
+  const picks={};
+  Object.keys(state.sessionAssign).forEach(k=>{ if(!keySet.has(k)) return; (state.sessionAssign[k]||new Set()).forEach(pid=>{ (picks[pid]=picks[pid]||[]).push(k); }); });
+  const rows=Object.keys(picks).map(pid=>state.byId[pid]).filter(Boolean).sort((a,b)=>a.name.localeCompare(b.name))
+    .map(p=>[p.id,p.name,picks[p.id].sort().join("; ")]);
+  return [hdr,...exemptRows,...capRows,...lockRows,...rows];
 }
 // Save bytes to disk. Chromium browsers get a real "다른 이름으로 저장" dialog (pick folder + filename);
 // everything else falls back to the classic download into the browser's default folder.
@@ -3539,15 +3867,20 @@ async function downloadBytes(bytes,name,mime){
   mime=mime||"application/octet-stream";
   const blob=new Blob([bytes],{type:mime});
   if(window.showSaveFilePicker){
+    let handle=null;
     try{
       const ext=(/\.[^.]+$/.exec(name)||[""])[0];
-      const handle=await window.showSaveFilePicker({suggestedName:name,
+      handle=await window.showSaveFilePicker({suggestedName:name,
         types: ext?[{description:"파일", accept:{[mime]:[ext]}}]:undefined});
-      const w=await handle.createWritable(); await w.write(blob); await w.close();
-      return true;
     }catch(err){
-      if(err && err.name==="AbortError") return false;            // user closed the dialog → don't also download / toast success
-      // any other failure (unsupported options, lost activation, permission) → fall through to the classic download
+      if(err && (err.name==="AbortError"||err.name==="NotAllowedError")) return false;   // user dismissed the picker → don't also download
+      // the picker itself couldn't open (unsupported/blocked) → fall through to the classic download below
+    }
+    if(handle){
+      // a location was chosen — write HERE and never also fire the legacy <a download> (writing it in the catch above
+      // double-prompted: if the write failed because the file was locked/open in Excel, the fallback opened a 2nd "save as")
+      try{ const w=await handle.createWritable(); await w.write(blob); await w.close(); return true; }
+      catch(err){ if(err && (err.name==="AbortError"||err.name==="NotAllowedError")) return false; throw err; }   // real write error → surface it, don't silently re-prompt
     }
   }
   const url=URL.createObjectURL(blob);
@@ -3664,10 +3997,18 @@ async function exportMaster(){
     });
     changed+=schedChanged;
   }
+  // session detail modal edits → write back to 'All Sessions (DB)' / 'All Speakers'. Surgical: only changed cells (styles preserved).
+  let detailChanged=0;
+  [["All Sessions (DB)",state.dbDirty],["All Speakers",state.spkDirty]].forEach(([name,map])=>{
+    if(!map||!map.size||!paths[name]) return;
+    const W=writerFor(name);
+    map.forEach((v,k)=>{ const [r,cc]=k.split(",").map(Number); W.set(r,cc,nrm(v)); detailChanged++; });   // inlineStr; existing cell keeps its style
+  });
+  changed+=detailChanged;
   // 세션 배정 보기 → write/refresh the app-managed '세션배정' tab (full rewrite, not a surgical edit)
   let sessRows=0;
   const sessAoa=sessionSheetAoa();
-  if(sessAoa){ writeManagedSheet(files,"세션배정",sessAoa); sessRows=sessAoa.length-2; }
+  if(sessAoa){ writeManagedSheet(files,"세션배정",sessAoa); sessRows=sessAoa.filter((r,i)=>i>0 && !String(r[0]||"").startsWith("(")).length; }   // count participant rows (skip header + tag rows)
   // keep the 요약(Overview) sheet's "데이터 v{N} 기준 …" version note in sync with the new file version
   const outName=bumpMasterName(state.masterName);
   const newVer=(()=>{ const m=/v(\d+)\.xlsx$/i.exec(outName); return m?+m[1]:null; })();   // same number the filename bumps to → cell + filename always agree
@@ -4011,10 +4352,10 @@ document.addEventListener("click",e=>{
   if(e.target.closest(".chip,.room,#poollist,.pickhint,.vtab,#mobilebar,#jumpbar,#sheet,.venue>h2,.floorgrp>h3")) return;
   clearSel();
 });
-// same for 세션 배정 보기 (reuses .room/.chip; sesspool + sessjump are its sidebar + jump bar)
+// same for 세션 배정 보기 — slot board (reuses .room/.chip; #sesspicker = slot chips, #sessslotbar = slot toolbar)
 document.addEventListener("click",e=>{
   if(!state.sessPicks.size) return;
-  if(e.target.closest(".chip,.room,.sesspoollist,.sesscatgrp,.pickhint,.vtab,#mobilebar,#sessjump,#sheet,#sesspool h2,.venue>h2,.floorgrp>h3")) return;
+  if(e.target.closest(".chip,.room,.sesspoollist,.sesscatgrp,.pickhint,.vtab,#mobilebar,#sesspicker,#sessslotbar,.slotsec,#sheet,#sesspool h2")) return;
   state.sessPicks.clear(); sessFillPool();
 });
 
