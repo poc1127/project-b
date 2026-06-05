@@ -444,6 +444,24 @@
   .card .sec{grid-column:1/-1;display:flex;align-items:center;gap:8px;margin:18px 0 4px;padding-bottom:7px;border-bottom:1px solid #edf0f3;font-weight:700;font-size:12.5px;letter-spacing:.02em;color:var(--ink);}
   .card .sec::before{content:"";width:4px;height:14px;border-radius:2px;background:var(--catc,var(--primary));flex:none;}
   .card .cbody>.sec:first-child{margin-top:0;}
+  /* session detail: bilingual (KR + EN) intro + key-point summary */
+  .card .cbody .sess-sum{grid-column:1/-1;}
+  .card .sum-lang{font-size:10.5px;font-weight:700;letter-spacing:.04em;color:var(--text-muted);text-transform:uppercase;margin:15px 0 5px;padding-bottom:4px;border-bottom:1px solid #eef0f3;}
+  .card .sess-sum .sum-lang:first-child{margin-top:0;}
+  .card .sum-intro{margin:0 0 8px;font-size:13px;line-height:1.55;color:#26323f;}
+  .card .sum-pts{margin:0 0 4px;padding-left:18px;display:flex;flex-direction:column;gap:5px;}
+  .card .sum-pts li{font-size:12.5px;line-height:1.5;color:#3a4754;}
+  .card .sess-listitem{grid-column:1/-1;border:1px solid #eef0f3;border-radius:9px;padding:10px 12px;}
+  .card .sess-listitem .li-title{font-weight:700;color:#26323f;font-size:13px;}
+  .card .sess-listitem .li-meta{font-size:11.5px;color:var(--text-muted);margin-top:2px;}
+  .card .sess-listitem .sum-intro{margin:6px 0 0;}
+  .card .sess-listitem .sum-intro.en{color:#5a6675;font-size:12px;}
+  /* session detail (Option 2): program kicker in header + meta-chip strip above the bilingual body */
+  .card.sess-modal .chead{align-items:flex-start;}
+  .card.sess-modal .chead .kicker{font-size:10.5px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;opacity:.92;margin-bottom:4px;}
+  .card .cstrip{display:flex;flex-wrap:wrap;gap:8px;padding:12px 22px;border-bottom:1px solid #eceff3;background:#fafbfc;flex:none;}
+  .card .cstrip .chip{display:inline-flex;align-items:center;gap:6px;background:#fff;border:1px solid #e3e7ec;border-radius:999px;padding:5px 11px;font-size:12px;font-weight:600;color:#3a4754;}
+  .card .cstrip .chip .ci{color:var(--accent,var(--primary));font-weight:700;font-size:11px;}
   /* long-press row context action sheet (timeline) */
   #rowsheet{position:fixed;inset:0;z-index:210;background:rgba(15,23,35,.45);display:flex;align-items:flex-end;justify-content:center;animation:modalin .15s ease;}
   #rowsheet[hidden]{display:none;}
@@ -1051,7 +1069,7 @@
 "use strict";
 // ⚑ index.html build version — shown bottom-right on the start screen. BUMP ON EACH DEPLOY.
 //   Format: vYYYY.MM.DD-N  (N = same-day build counter; reset to 1 on a new date).
-const APP_VERSION = "v2026.06.05-4";
+const APP_VERSION = "v2026.06.05-6";
 /* ============================================================
    ICMDA 2026 Room Assignment Dashboard (single file)
    - reads the live master .xlsx (columns mapped by HEADER NAME)
@@ -1774,10 +1792,13 @@ function parseSessionDB(aoa){
   if(!aoa||!aoa.length) return [];
   const H=(aoa[0]||[]).map(h=>String(h==null?"":h).trim().toLowerCase());
   const idx=key=>H.findIndex(h=>h.includes(key));
-  const ci={program:idx("program"),day:idx("day"),time:idx("time"),session:idx("session"),code:idx("code"),speakers:idx("speaker"),title:idx("title"),location:idx("location"),desc:idx("description")};
+  const exact=name=>H.findIndex(h=>h===name);   // summary columns: precise match ('intro' appears in two headers)
+  const ci={program:idx("program"),day:idx("day"),time:idx("time"),session:idx("session"),code:idx("code"),speakers:idx("speaker"),title:idx("title"),location:idx("location"),desc:idx("description"),
+            introEn:exact("intro (en)"),ptsEn:exact("key points (en)"),introKo:exact("intro (ko)"),ptsKo:exact("key points (ko)")};
   const out=[];
   for(let i=1;i<aoa.length;i++){ const row=aoa[i]||[]; const g=k=>ci[k]>=0?String(row[ci[k]]==null?"":row[ci[k]]).trim():"";
-    const o={program:g("program"),day:g("day"),time:g("time"),session:g("session"),code:g("code"),speakers:g("speakers"),title:g("title"),location:g("location"),desc:g("desc")};
+    const o={program:g("program"),day:g("day"),time:g("time"),session:g("session"),code:g("code"),speakers:g("speakers"),title:g("title"),location:g("location"),desc:g("desc"),
+             introEn:g("introEn"),ptsEn:g("ptsEn"),introKo:g("introKo"),ptsKo:g("ptsKo")};
     if(o.session||o.code||o.title) out.push(o);
   }
   return out;
@@ -1807,35 +1828,56 @@ function resolveSessionDetail(text){
   if(nm){ const row=db.find(r=>norm(r.session)===nm); if(row && (nz(row.title)||nz(row.desc)||nz(row.speakers))) return {kind:"one",row,heading:first}; }
   return {kind:"none",heading:first};
 }
+const _nz=s=>String(s==null?"":s).trim();
+const _pts=s=>_nz(s).split("\n").map(x=>x.trim()).filter(Boolean);   // newline-joined bullets → array
+// bilingual (KR + EN stacked) intro + key-point block from a DB row's summary columns; null if none authored yet
+function sumBlock(r){
+  const koP=_pts(r.ptsKo), enP=_pts(r.ptsEn), koI=_nz(r.introKo), enI=_nz(r.introEn);
+  if(!koI && !enI && !koP.length && !enP.length) return null;
+  const lang=(label,intro,pts)=>(!intro&&!pts.length)?"":
+    `<div class="sum-lang">${label}</div>${intro?`<p class="sum-intro">${esc(intro)}</p>`:""}${pts.length?`<ul class="sum-pts">${pts.map(p=>`<li>${esc(p)}</li>`).join("")}</ul>`:""}`;
+  return `<div class="sess-sum">${lang("한국어",koI,koP)}${lang("English",enI,enP)}</div>`;
+}
 function openSessionDetail(text){
-  const nz=s=>String(s==null?"":s).trim(), br=s=>esc(s).replace(/\n/g,"<br>");
+  const nz=_nz, br=s=>esc(s).replace(/\n/g,"<br>"), trim=(s,n)=>s.length>n?s.slice(0,n).replace(/\s+\S*$/,"")+"…":s;
   const d=resolveSessionDetail(text);
   const prog = d.kind==="one" ? progForRow(d.row) : (d.prog||null);
   const color = SESS_PROGCOLOR[prog]||"#5a6675";
-  let head, body;
+  let head, strip="", body;
   if(d.kind==="one"){
     const r=d.row, title=nz(r.title)||stripCode(r.session)||d.heading;
-    const sub=[nz(r.program),nz(r.day),nz(r.time)].filter(Boolean).join(" · ");
-    head=`<h2>${esc(title)}</h2><div class="sub">${esc(sub)}${nz(r.code)?` · <b>${esc(r.code)}</b>`:""}</div>`;
-    const f=[];
-    if(nz(r.speakers)) f.push(["강사/코디네이터",r.speakers]);
-    if(nz(r.location) && nz(r.location).toUpperCase()!=="TBA") f.push(["장소",r.location]);
-    if(nz(r.desc)) f.push(["설명",r.desc]);
-    body = f.length ? f.map(([k,v])=>`<div class="field"><div class="k">${k}</div><div class="v">${br(v)}</div></div>`).join("")
-                    : `<div class="v" style="grid-column:1/-1;color:var(--text-muted)">아직 등록된 세부 정보가 없습니다.</div>`;
+    const sub=[nz(r.day),nz(r.time)].filter(Boolean).join(" · ");          // program → kicker, code → chip; sub keeps day·time only
+    head=`${nz(r.program)?`<div class="kicker">${esc(r.program)}</div>`:""}<h2>${esc(title)}</h2>${sub?`<div class="sub">${esc(sub)}</div>`:""}`;
+    const oneline=s=>esc(s).replace(/\s*\n\s*/g," · ");                    // facts → chip strip (코드 · 강사 · 장소), above the description
+    const chips=[];
+    if(nz(r.code)) chips.push(["코드",oneline(r.code)]);
+    if(nz(r.speakers)) chips.push(["강사",oneline(r.speakers)]);
+    if(nz(r.location) && nz(r.location).toUpperCase()!=="TBA") chips.push(["장소",oneline(r.location)]);
+    if(chips.length) strip=`<div class="cstrip">${chips.map(([k,v])=>`<span class="chip"><span class="ci">${k}</span> ${v}</span>`).join("")}</div>`;
+    const sb=sumBlock(r);
+    if(sb){                                                                // authored summary → bilingual KR/EN block
+      body = sb;
+    } else if(nz(r.desc)){                                                 // fallback: raw description
+      body = `<div class="field"><div class="k">설명</div><div class="v">${br(r.desc)}</div></div>`;
+    } else {
+      body = `<div class="v" style="grid-column:1/-1;color:var(--text-muted)">아직 등록된 세부 정보가 없습니다.</div>`;
+    }
   } else if(d.kind==="list"){
     head=`<h2>${esc(d.heading)}</h2>${d.note?`<div class="sub">${esc(d.note)}</div>`:""}`;
     body = d.rows.map(r=>{ const t=nz(r.title)||stripCode(r.session); const meta=[nz(r.code),nz(r.speakers)].filter(Boolean).join(" · ");
-      return `<div style="grid-column:1/-1;border:1px solid #eef0f3;border-radius:9px;padding:10px 12px;">
-        <div style="font-weight:700;color:#26323f;font-size:13px;">${esc(t)}</div>
-        ${meta?`<div style="font-size:11.5px;color:var(--text-muted);margin-top:2px;">${esc(meta)}</div>`:""}
-        ${nz(r.desc)?`<div style="font-size:12px;color:#3a4754;margin-top:6px;line-height:1.5;">${br(r.desc)}</div>`:""}
+      const koI=nz(r.introKo), enI=nz(r.introEn);
+      const intro = (koI||enI) ? `${koI?`<div class="sum-intro ko">${esc(koI)}</div>`:""}${enI?`<div class="sum-intro en">${esc(enI)}</div>`:""}`
+                              : (nz(r.desc)?`<div class="sum-intro">${esc(trim(r.desc,170))}</div>`:"");
+      return `<div class="sess-listitem">
+        <div class="li-title">${esc(t)}</div>
+        ${meta?`<div class="li-meta">${esc(meta)}</div>`:""}${intro}
       </div>`; }).join("");
   } else {
     head=`<h2>${esc(d.heading||"세션")}</h2>`;
     body=`<div class="v" style="grid-column:1/-1;color:var(--text-muted)">이 항목에 대한 추가 세부 정보가 없습니다.</div>`;
   }
-  $("#card").innerHTML=`<div class="chead" style="background:${color}"><div class="htitle">${head}</div><button class="cx" onclick="closeCard()">×</button></div><div class="cbody">${body}</div>`;
+  const card=$("#card"); card.className="card sess-modal"; card.style.setProperty("--accent",color);
+  card.innerHTML=`<div class="chead" style="background:${color}"><div class="htitle">${head}</div><button class="cx" onclick="closeCard()">×</button></div>${strip}<div class="cbody">${body}</div>`;
   $("#modal").style.display="flex";
 }
 
@@ -2894,7 +2936,7 @@ function enableBarDrag(p,bar,hl,hr,track,n,place){
 
 /* ---------- ⑤ detail card ---------- */
 function openCard(p){
-  const card=$("#card"); const ci=catInfo(p.cat); card.style.setProperty("--catc",ci.c);
+  const card=$("#card"); card.className="card"; const ci=catInfo(p.cat); card.style.setProperty("--catc",ci.c);
   const venue=partyVenue(p); const a=state.assign[p.id];
   let roomTxt=venue;
   if(a && a!=="BOOY"){ const rm=state.roomById[a]; if(rm) roomTxt=`${rm.hotel} · ${rm.bldg?rm.bldg+"동 ":""}${rm.floor?rm.floor+" ":""}${rm.rno||rm.id} (${rm.type||""})`; }
@@ -2982,7 +3024,7 @@ const FIELD_HDR={name:"이름",kname:"한글이름",sex:"성별",dob:"생년월�
   aff:"소속",title:"직책",wb:"WB등급",pay:"결제상태",cat:"카테고리",team:"팀",group:"그룹ID",
   need:"배정필요",note:"비고",companions:"동반자요약"};
 function editCard(p){
-  const card=$("#card"); const ci=catInfo(p.cat); card.style.setProperty("--catc",ci.c);
+  const card=$("#card"); card.className="card"; const ci=catInfo(p.cat); card.style.setProperty("--catc",ci.c);
   const opt=(arr,cur)=>arr.map(o=>{const v=Array.isArray(o)?o[0]:o,t=Array.isArray(o)?o[1]:o;return `<option value="${esc(v)}"${String(cur)===String(v)?" selected":""}>${esc(t)}</option>`;}).join("");
   const txt=(k,v)=>`<input data-f="${k}" value="${esc(v??"")}">`;
   const numI=(k,v)=>`<input type="number" min="0" data-f="${k}" value="${v||0}">`;
