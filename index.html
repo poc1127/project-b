@@ -150,6 +150,9 @@
   /* slot picker (chips grouped by day) */
   /* days stack vertically; each day = label on the left + its time-slot chips wrapping to the right (no horizontal scroll) */
   #sesspicker{position:sticky;top:var(--headerh,52px);z-index:6;background:var(--bg);display:flex;flex-direction:column;gap:3px;padding:5px 2px 6px;margin-bottom:8px;border-bottom:1px solid var(--line);}   /* sticky day/slot nav: flush under the header (no see-through gap) — jump + tracks the day you scroll into */
+  .sbtools{display:flex;justify-content:flex-end;gap:6px;}
+  .sbtool{font-size:11px;font-weight:600;color:var(--text2);background:#fff;border:1px solid var(--border);border-radius:6px;padding:2px 9px;cursor:pointer;white-space:nowrap;}
+  .sbtool:hover{border-color:var(--primary);color:var(--primary);background:#fdecea;}
   .sbday{display:flex;gap:10px;align-items:flex-start;}
   .sbdaylab{flex:none;width:112px;text-align:center;font-size:11px;font-weight:700;color:var(--text2);background:#fff;border:1px solid var(--border);border-radius:7px;padding:2px 10px;cursor:pointer;user-select:none;white-space:nowrap;}
   .sbdaylab:hover{color:var(--primary);border-color:var(--primary);background:#fdecea;}
@@ -1126,7 +1129,7 @@
 "use strict";
 // ⚑ index.html build version — shown bottom-right on the start screen. BUMP ON EACH DEPLOY.
 //   Format: vYYYY.MM.DD-N  (N = same-day build counter; reset to 1 on a new date).
-const APP_VERSION = "v2026.06.09-21";
+const APP_VERSION = "v2026.06.09-22";
 /* ============================================================
    ICMDA 2026 Room Assignment Dashboard (single file)
    - reads the live master .xlsx (columns mapped by HEADER NAME)
@@ -2599,6 +2602,14 @@ function renderSession(){
 
   // ----- slot picker: day pill (→ whole day) + a chip per time-slot (→ that one slot), grouped by day -----
   const picker=el("div"); picker.id="sesspicker";
+  if(dayMode){                                  // fold controls only apply to the continuous day view
+    const tb=el("div","sbtools");
+    const exp=el("button","sbtool"); exp.type="button"; exp.textContent="모두 펼치기";
+    const col=el("button","sbtool"); col.type="button"; col.textContent="모두 접기";
+    exp.onclick=()=>{ state.sessFolded={}; saveUI(); renderSession(); };
+    col.onclick=()=>{ const f={}; [...new Set(slots.map(s=>s.day))].forEach(d=>f["day:"+d]=true); state.sessFolded=f; saveUI(); renderSession(); };
+    tb.append(exp,col); picker.append(tb);
+  }
   [...new Set(slots.map(s=>s.day))].forEach(day=>{
     const g=el("div","sbday");
     const daySlots=slots.filter(s=>s.day===day);
