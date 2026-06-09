@@ -14,6 +14,9 @@
     --byytc:#fff2cc; --byytc-b:#e0c200;
     --youus:#dbe9f5; --youus-b:#5b8fc9;
     --booyoung:#f3e2d2; --booyoung-b:#c08b55;
+    /* rotating accents for any extra hotels added to the 객실 tab beyond the three named above */
+    --vx1:#e1f0e2; --vx1-b:#4e9e63; --vx2:#ece1f0; --vx2-b:#8a5bb5; --vx3:#dcefef; --vx3-b:#3a9aa0;
+    --vx4:#f6e2e6; --vx4-b:#c0607a; --vx5:#e2e6f2; --vx5-b:#5d6fb0;
     /* ===== THEME TOKENS — "Slate & Coral". Retheme by editing only this block. ===== */
     --ink:#2a3645; --primary:#cf4631; --primary-hover:#b3392a;
     --bg:#eef1f4; --surface:#ffffff;
@@ -62,6 +65,9 @@
   .venue.byytc>h2{background:var(--byytc);border-bottom:2px solid var(--byytc-b);}
   .venue.youus>h2{background:var(--youus);border-bottom:2px solid var(--youus-b);}
   .venue.booyoung>h2{background:var(--booyoung);border-bottom:2px solid var(--booyoung-b);}
+  .venue.vx1>h2{background:var(--vx1);border-bottom:2px solid var(--vx1-b);} .venue.vx2>h2{background:var(--vx2);border-bottom:2px solid var(--vx2-b);}
+  .venue.vx3>h2{background:var(--vx3);border-bottom:2px solid var(--vx3-b);} .venue.vx4>h2{background:var(--vx4);border-bottom:2px solid var(--vx4-b);}
+  .venue.vx5>h2{background:var(--vx5);border-bottom:2px solid var(--vx5-b);}
   .venue>h2 .cap{font-size:12px;font-weight:500;}
   .venue>h2 .vlk{margin-left:auto;cursor:pointer;display:inline-flex;align-items:center;color:inherit;
     background:rgba(0,0,0,.10);border:1px solid rgba(0,0,0,.2);border-radius:6px;padding:3px 7px;flex:none;}
@@ -395,6 +401,7 @@
   .tlgroup:hover .ghint{opacity:.95;}
   .tlgroup.byytc{background:var(--byytc);} .tlgroup.youus{background:var(--youus);}
   .tlgroup.booyoung{background:var(--booyoung);} .tlgroup.unassigned{background:#e9e9ec;color:#666;}
+  .tlgroup.vx1{background:var(--vx1);} .tlgroup.vx2{background:var(--vx2);} .tlgroup.vx3{background:var(--vx3);} .tlgroup.vx4{background:var(--vx4);} .tlgroup.vx5{background:var(--vx5);}
   .tlrow{border-bottom:1px solid #e8e8ec;transition:opacity .12s ease;align-items:stretch;}   /* cells fill the full row height so the zebra fill + dup marker reach top/bottom (no stray padding) */
   .tlrow.alt{background:#f6f7f9;}                 /* soft, neutral zebra — subtle so the table reads clean */
   .tlrow:hover{background:#f3f7fb;}
@@ -1102,7 +1109,7 @@
 "use strict";
 // ⚑ index.html build version — shown bottom-right on the start screen. BUMP ON EACH DEPLOY.
 //   Format: vYYYY.MM.DD-N  (N = same-day build counter; reset to 1 on a new date).
-const APP_VERSION = "v2026.06.05-28";
+const APP_VERSION = "v2026.06.09-1";
 /* ============================================================
    ICMDA 2026 Room Assignment Dashboard (single file)
    - reads the live master .xlsx (columns mapped by HEADER NAME)
@@ -1707,7 +1714,22 @@ function autoAssign(){
 }
 
 /* ---------- rendering ---------- */
-function venueClass(hotel){ return hotel===VEN.BYYTC?"byytc":hotel===VEN.YOUUS?"youus":"booyoung"; }
+// ordered list of assignable hotels actually present in the 객실 data: the two named hotels first
+// (canonical order), then any extra hotels added to the tab, in first-appearance order. 부영호텔 is
+// off-inventory (NOC pre-booking via the "BOOY" marker, not real 객실 rows) and is handled separately.
+function inventoryHotels(){
+  const seen=new Set(), out=[];
+  [VEN.BYYTC,VEN.YOUUS].forEach(h=>{ if(!seen.has(h)&&state.rooms.some(r=>r.hotel===h)){ seen.add(h); out.push(h); } });
+  state.rooms.forEach(r=>{ if(r.hotel && r.hotel!==VEN.BOOY && !seen.has(r.hotel)){ seen.add(r.hotel); out.push(r.hotel); } });
+  return out;
+}
+const VEN_CLASS={[VEN.BYYTC]:"byytc",[VEN.YOUUS]:"youus",[VEN.BOOY]:"booyoung"};
+const VX_PALETTE=["vx1","vx2","vx3","vx4","vx5"];
+function venueClass(hotel){
+  if(VEN_CLASS[hotel]) return VEN_CLASS[hotel];
+  const i=inventoryHotels().filter(h=>!VEN_CLASS[h]).indexOf(hotel);   // stable accent per extra hotel
+  return VX_PALETTE[(Math.max(0,i))%VX_PALETTE.length];
+}
 
 function render(){
   setEmpty(false);                 // a master is loaded → leave the import screen, reveal the dashboard
@@ -2578,7 +2600,7 @@ function sessionCard(s,showParent){
 function populateFilters(){
   const vsel=$("#tlvenue"), csel=$("#tlcat");
   vsel.length=1; csel.length=1;
-  [VEN.BYYTC,VEN.YOUUS,VEN.BOOY,"(미배정)"].forEach(v=>vsel.add(new Option(v,v)));
+  [...inventoryHotels(),VEN.BOOY,"(미배정)"].forEach(v=>vsel.add(new Option(v,v)));
   [...new Set(state.parties.map(p=>p.cat).filter(Boolean))].sort().forEach(c=>csel.add(new Option(c,c)));
 }
 
@@ -2588,17 +2610,19 @@ function renderStats(issues){
   const total=state.parties.reduce((s,p)=>s+p.hc,0);
   const needP=state.parties.filter(p=>p.need!=="No").reduce((s,p)=>s+p.hc,0);
   const noRoom=state.parties.filter(p=>p.need==="No").reduce((s,p)=>s+p.hc,0);
-  let assignedP=0, byBYYTC=0,byYOUUS=0,byBOOY=0, unassigned=0;
+  const hotels=inventoryHotels();
+  let assignedP=0, byBOOY=0, unassigned=0;
+  const byHotel={}, capHotel={};                       // per-hotel used / capacity, data-driven
+  hotels.forEach(h=>{ byHotel[h]=0; capHotel[h]=0; });
+  state.rooms.forEach(r=>{ if(capHotel[r.hotel]!=null) capHotel[r.hotel]+=r.total; });
   state.parties.forEach(p=>{
     if(p.need==="No") return;
     const a=state.assign[p.id];
     if(!a){ unassigned+=p.hc; return; }
     assignedP+=p.hc;
     if(a==="BOOY") byBOOY+=p.hc;
-    else { const rm=state.roomById[a]; if(rm){ if(rm.hotel===VEN.BYYTC)byBYYTC+=p.hc; else byYOUUS+=p.hc; } }
+    else { const rm=state.roomById[a]; if(rm && byHotel[rm.hotel]!=null) byHotel[rm.hotel]+=p.hc; }
   });
-  const capBYYTC=state.rooms.filter(r=>r.hotel===VEN.BYYTC).reduce((s,r)=>s+r.total,0);
-  const capYOUUS=state.rooms.filter(r=>r.hotel===VEN.YOUUS).reduce((s,r)=>s+r.total,0);
   const pct=(u,c)=>c>0?Math.min(100,Math.round(u/c*100)):0;
   const lvl=(u,c)=> u>c?"red":(c>0&&u/c>=0.9)?"amber":"ok";          // green / amber(≥90%) / red(over)
   const mk=(label,val,extra)=>{const d=el("span","stat"); d.innerHTML=`${label} <b>${val}</b>${extra||""}`; return d;};
@@ -2614,8 +2638,7 @@ function renderStats(issues){
     mk("배정완료",assignedP,`<span class="frac">/${needP}</span>`),   // consistent fraction vs 방 필요
     un,
     mk("방 불필요",noRoom),
-    venStat("부영수련원",byBYYTC,capBYYTC),
-    venStat("유어스",byYOUUS,capYOUUS),
+    ...hotels.map(h=>venStat(h===VEN.BYYTC?"부영수련원":venShort(h),byHotel[h],capHotel[h])),
     mk("부영호텔(NOC)",byBOOY),
   );
   // surfaced warning badge → jumps to the detail warning panel (DESIGN-5)
@@ -2812,7 +2835,7 @@ function setEmpty(isEmpty){
 }
 function renderVenues(){
   const root=$("#venues"); root.innerHTML="";
-  const order=[VEN.BYYTC,VEN.YOUUS,VEN.BOOY];
+  const order=[...inventoryHotels(),VEN.BOOY];      // every hotel in the 객실 data, NOC venue last
   const jumps=[];                                  // {label,id} for the mobile jump-to-floor control
   // collapsible venue header (accordion). Collapse state is keyed by element id.
   const venueHeader=(div,vKey,inner,lockHotel)=>{
@@ -2870,9 +2893,11 @@ function renderVenues(){
     const cap=rooms.reduce((s,r)=>s+r.total,0);
     venueHeader(div,vId,`${hotel} <span class="cap">· ${rooms.length}실 · ${used}/${cap}명</span>`,hotel);
     jumps.push({label:`▸ ${venShort(hotel)}`, id:vId});
-    // group by floor (부영) / by type (유어스, since floor blank)
+    // group by 동/층 when those columns are filled (부영청소년수련원 + any new hotel that uses them),
+    // otherwise by 방 타입 (유어스, since floor blank)
+    const useFloor = rooms.some(r=>r.bldg||r.floor);
     const groups={};
-    rooms.forEach(r=>{ const key = hotel===VEN.BYYTC ? `${r.bldg||"-"}동 ${r.floor||"-"}` : (r.type||"기타"); (groups[key]=groups[key]||[]).push(r); });
+    rooms.forEach(r=>{ const key = useFloor ? `${r.bldg||"-"}동 ${r.floor||"-"}` : (r.type||"기타"); (groups[key]=groups[key]||[]).push(r); });
     Object.keys(groups).sort().forEach((gk,gi)=>{
       const fId=`flr-${vi}-${gi}`, fCollapsed=!!state.collapsedRooms[fId];
       const fg=el("div","floorgrp"+(fCollapsed?" collapsed":"")); fg.id=fId;
@@ -3203,7 +3228,7 @@ function renderTimeline(){
   const wrap=$("#tlrows"); const frag=document.createDocumentFragment();
   if(!rows.length){ wrap.replaceChildren(el("div","empty-hint","해당 조건의 참가자가 없습니다.")); return; }
   // ② group by hotel (horizontal split) · ⑤ foldable · custom vertical order
-  const order=[VEN.BYYTC,VEN.YOUUS,VEN.BOOY,"(미배정)"];
+  const order=[...inventoryHotels(),VEN.BOOY,"(미배정)"];
   const groups={}; rows.forEach(p=>{ const v=partyVenue(p); (groups[v]=groups[v]||[]).push(p); });
   const pos={}; state.orderList.forEach((id,i)=>pos[id]=i);
   let shown=0; const CAP=500;
@@ -3211,7 +3236,7 @@ function renderTimeline(){
     const list=groups[v]; if(!list||!list.length) return;
     list.sort((a,b)=> (pos[a.id]??1e9)-(pos[b.id]??1e9));
     const people=list.reduce((s,p)=>s+p.hc,0);
-    const vc = v===VEN.BYYTC?"byytc":v===VEN.YOUUS?"youus":v===VEN.BOOY?"booyoung":"unassigned";
+    const vc = v==="(미배정)"?"unassigned":venueClass(v);
     const open = !state.collapsed[v];
     const gh=el("div","tlgroup "+vc);
     gh.append(el("span","chev"+(open?" open":""),"▶"),
@@ -3232,7 +3257,7 @@ function renderTimeline(){
 function renderTLCards(rows, off629, planEnd, n){
   const wrap=$("#tlcards"); const frag=document.createDocumentFragment();
   if(!rows.length){ wrap.replaceChildren(el("div","empty-hint","해당 조건의 참가자가 없습니다.")); return; }
-  const order=[VEN.BYYTC,VEN.YOUUS,VEN.BOOY,"(미배정)"];
+  const order=[...inventoryHotels(),VEN.BOOY,"(미배정)"];
   const groups={}; rows.forEach(p=>{ const v=partyVenue(p); (groups[v]=groups[v]||[]).push(p); });
   const pos={}; state.orderList.forEach((id,i)=>pos[id]=i);
   if(n==null) n=state.dates.length;   // fallback if called without the trimmed column count
@@ -3240,7 +3265,7 @@ function renderTLCards(rows, off629, planEnd, n){
     const list=groups[v]; if(!list||!list.length) return;
     list.sort((a,b)=>(pos[a.id]??1e9)-(pos[b.id]??1e9));
     const people=list.reduce((s,p)=>s+p.hc,0);
-    const vc = v===VEN.BYYTC?"byytc":v===VEN.YOUUS?"youus":v===VEN.BOOY?"booyoung":"unassigned";
+    const vc = v==="(미배정)"?"unassigned":venueClass(v);
     const open=!state.collapsed[v];
     const gh=el("div","tlgroup "+vc);
     gh.append(el("span","chev"+(open?" open":""),"▶"), el("span","glabel",`${v} — ${list.length}건 / ${people}명`));
@@ -3524,8 +3549,7 @@ function openRowSheet(p,row){
      </div>
      <div class="rs-sec">숙소 이동</div>
      <div class="rs-venues">
-       ${venBtn(VEN.BYYTC,VEN.BYYTC)}
-       ${venBtn(VEN.YOUUS,VEN.YOUUS)}
+       ${inventoryHotels().map(h=>venBtn(h,h)).join("")}
        ${venBtn(VEN.BOOY+"(NOC)",VEN.BOOY)}
        <button class="rsbtn${cur==null?" cur":""}" data-act="venue" data-h=""><span class="ic">${ico('undo')}</span>미배정${cur==null?ico('check'):""}</button>
      </div>
@@ -3573,11 +3597,10 @@ function editCard(p){
   const curVen = a==="BOOY"?VEN.BOOY : (a&&state.roomById[a]?state.roomById[a].hotel:"");
   const venSel=`<select data-f="venue" id="edVenue">
       <option value="">미배정</option>
-      <option value="${esc(VEN.BYYTC)}"${curVen===VEN.BYYTC?" selected":""}>${esc(VEN.BYYTC)}</option>
-      <option value="${esc(VEN.YOUUS)}"${curVen===VEN.YOUUS?" selected":""}>${esc(VEN.YOUUS)}</option>
+      ${inventoryHotels().map(h=>`<option value="${esc(h)}"${curVen===h?" selected":""}>${esc(h)}</option>`).join("")}
       <option value="${esc(VEN.BOOY)}"${curVen===VEN.BOOY?" selected":""}>${esc(VEN.BOOY)} (외부예약)</option></select>`;
   const roomSelHtml=ven=>{
-    if(ven!==VEN.BYYTC&&ven!==VEN.YOUUS) return `<select data-f="room" id="edRoom" disabled><option value="">—</option></select>`;
+    if(!inventoryHotels().includes(ven)) return `<select data-f="room" id="edRoom" disabled><option value="">—</option></select>`;
     const rs=state.rooms.filter(r=>r.hotel===ven);
     return `<select data-f="room" id="edRoom"><option value="">(방 선택 / 자동)</option>${rs.map(r=>{
       const load=roomLoad(r.key);
@@ -3696,7 +3719,7 @@ function exportExcel(){
   XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(res),"배정결과");
   // per-room roster
   const ros=[["숙소","건물","층","호실","유형","성별","정원","배정","점유자"]];
-  const order=[VEN.BYYTC,VEN.YOUUS];
+  const order=inventoryHotels();
   _occ=buildOcc();                                 // O(occupants) room lookups for the roster
   order.forEach(h=>state.rooms.filter(r=>r.hotel===h).forEach(r=>{
     const occ=roomOccupants(r.key);
@@ -4049,15 +4072,16 @@ async function exportMaster(){
 function buildPrint(){
   const pa=$("#printarea"); pa.innerHTML="";
   _occ=buildOcc();                                 // O(occupants) room lookups while building the printout
-  [VEN.BYYTC,VEN.YOUUS].forEach(hotel=>{
+  inventoryHotels().forEach(hotel=>{
     const rooms=state.rooms.filter(r=>r.hotel===hotel);
     if(!rooms.length) return;
     const g=el("div","pgroup");
     const used=rooms.reduce((s,r)=>s+roomLoad(r.key),0), cap=rooms.reduce((s,r)=>s+r.total,0);
     g.append(el("h2",null,`${hotel}  (배정 ${used} / 정원 ${cap}명, ${rooms.length}실)`));
-    // group consistently: 부영 by 동/층, 유어스 by 유형
+    // group consistently: by 동/층 when those columns are filled, otherwise by 유형
+    const useFloor = rooms.some(r=>r.bldg||r.floor);
     const groups={};
-    rooms.forEach(r=>{ const k= hotel===VEN.BYYTC ? `${r.bldg||"-"}동 ${r.floor||"-"}` : (r.type||"기타"); (groups[k]=groups[k]||[]).push(r); });
+    rooms.forEach(r=>{ const k= useFloor ? `${r.bldg||"-"}동 ${r.floor||"-"}` : (r.type||"기타"); (groups[k]=groups[k]||[]).push(r); });
     Object.keys(groups).sort().forEach(gk=>{
       g.append(el("h3",null,gk));
       const t=el("table","proom");
