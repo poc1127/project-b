@@ -201,9 +201,10 @@
   /* columns = parallel sessions of a slot, as .room cards. auto-fit (not auto-fill) so cards stretch to fill the
      row instead of leaving phantom empty tracks; chips wrap inside each card so wide cards use their width. */
   .sesscols{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:10px;align-items:stretch;min-width:0;}   /* auto-FILL → uniform card width (orphans in the last row don't balloon to fill it) */
-  .sesscols .room{min-height:78px;border-left:3px solid #c2c8cf;}   /* program-color accent (mirrors the 일정 보기 legend) */
-  .sesscols .room .roomchips{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:5px;align-content:flex-start;}   /* fixed column tracks: auto-fill keeps the empty track, so a lone chip sits in half a wide box (next drop fills the other half) */
+  .sesscols .room{display:flex;flex-direction:column;min-height:165px;border-left:3px solid #c2c8cf;}   /* program-color accent (mirrors the 일정 보기 legend); flex column + min-height → every empty box is the same height regardless of title/speaker line count, the drop body fills the slack */
+  .sesscols .room .roomchips{flex:1 1 auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:5px;align-content:flex-start;}   /* grows to fill the card's min-height; fixed column tracks: auto-fill keeps the empty track, so a lone chip sits in half a wide box (next drop fills the other half) */
   .sesscols .room .roomchips .chip{min-width:0;}   /* let long names ellipsis inside their track */
+  .sesscols .room .roomchips.empty{align-content:center;}   /* lone hint sits in the vertical middle of the empty drop area */
   .sesscols .room .sess-drophint{grid-column:1/-1;}   /* span all tracks so the empty-box hint stays centered across the full width */
   #sessright.picking .room{outline:1px dashed #79b27c;cursor:pointer;}
   #sessright.picking .room:hover{outline:2px solid var(--ok);background:#f1f8f1;}
@@ -1117,7 +1118,7 @@
 "use strict";
 // ⚑ index.html build version — shown bottom-right on the start screen. BUMP ON EACH DEPLOY.
 //   Format: vYYYY.MM.DD-N  (N = same-day build counter; reset to 1 on a new date).
-const APP_VERSION = "v2026.06.09-16";
+const APP_VERSION = "v2026.06.09-17";
 /* ============================================================
    ICMDA 2026 Room Assignment Dashboard (single file)
    - reads the live master .xlsx (columns mapped by HEADER NAME)
@@ -2770,7 +2771,7 @@ function sessionCard(s,showParent){
   }
   card.append(hdr);
   const body=el("div","roomchips");   // flex-wrap container so chips fill a wide card's width instead of stacking
-  if(!set.size) body.append(el("div","sess-drophint","비어 있음 · 선택 후 클릭/드래그"));
+  if(!set.size){ body.classList.add("empty"); body.append(el("div","sess-drophint","비어 있음 · 선택 후 클릭/드래그")); }
   [...set].map(pid=>state.byId[pid]).filter(Boolean).sort((a,b)=>a.name.localeCompare(b.name)).forEach(p=>body.append(sessChip(p,s.key,s.prog)));
   card.append(body);
   // tap the card body = assign the current pool selection to this session (chips/badge stop propagation)
