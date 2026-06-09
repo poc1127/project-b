@@ -161,6 +161,9 @@
   .sbslot.on{background:var(--primary);color:#fff;border-color:var(--primary);}
   .sbslot.on:hover{background:var(--primary-hover);color:#fff;}
   .sbslot.inday{border-color:var(--ink);}   /* part of the day currently shown in full */
+  .sbslot.cur{background:var(--ink);color:#fff;border-color:var(--ink);}   /* the time-slot you've scrolled into (mirrors the active day label) */
+  .sbslot.cur:hover{background:var(--ink);color:#fff;}
+  .sbslot.cur .n{color:#fff;opacity:.85;}
   .sbslot .n{font-size:10px;opacity:.8;margin-left:5px;}
   .sbslot.alllocked{border-style:dashed;}
   /* current-slot bar (label + slot-wide lock/empty) */
@@ -1118,7 +1121,7 @@
 "use strict";
 // ⚑ index.html build version — shown bottom-right on the start screen. BUMP ON EACH DEPLOY.
 //   Format: vYYYY.MM.DD-N  (N = same-day build counter; reset to 1 on a new date).
-const APP_VERSION = "v2026.06.09-17";
+const APP_VERSION = "v2026.06.09-18";
 /* ============================================================
    ICMDA 2026 Room Assignment Dashboard (single file)
    - reads the live master .xlsx (columns mapped by HEADER NAME)
@@ -2609,7 +2612,7 @@ function renderSession(){
       const allLk=keys.length && keys.every(k=>state.sessionLocked[k]);
       const on=sl.key===state.sessSlot;                       // highlighted only in single-slot mode
       const inDay=dayMode && sl.day===state.sessDay;           // shown (but not "on") when the whole day is open
-      const b=el("button","sbslot"+(on?" on":"")+(inDay?" inday":"")+(allLk?" alllocked":"")); b.type="button"; b.dataset.day=sl.day;
+      const b=el("button","sbslot"+(on?" on":"")+(inDay?" inday":"")+(allLk?" alllocked":"")); b.type="button"; b.dataset.day=sl.day; b.dataset.slot=sl.key;
       const tlab=slotTimeLabel(sl);
       b.innerHTML=`${esc(tlab)}<span class="n">${sl.sessions.length}개·${ppl}명</span>`+(allLk?" 🔒":"");
       b.title=`${dayWD(day)} ${tlab} — 세션 ${sl.sessions.length}개 · ${ppl}명 배정 (이 시간대만 보기)`+(allLk?" · 잠김":"");
@@ -2700,7 +2703,7 @@ function renderSession(){
       dayWrap.append(bar);
       dSlots.forEach(sl=>{
         const keys=sl.sessions.map(x=>x.key), ppl=keys.reduce((q,k)=>q+cnt(k),0);
-        const sec=el("div","slotsec");
+        const sec=el("div","slotsec"); sec.dataset.slot=sl.key;   // tagged so the scroll handler can highlight the matching picker pill
         const hd=el("div","slotsechd");
         hd.append(el("span","slotsec-t", slotTimeLabel(sl)), el("span","slotsec-meta",`${sl.sessions.length}개·${ppl}명`));
         hd.append(...lockEmptyBtns(keys, `${dayWD(sl.day)} ${slotTimeLabel(sl)}`.trim()));
@@ -2716,9 +2719,10 @@ function renderSession(){
 
   // ----- continuous-scroll plumbing: jump-to-day + keep the sticky pool's scope on the day you've scrolled into -----
   const dayEls=[...right.querySelectorAll(".sessday")];
+  const slotEls=[...right.querySelectorAll(".slotsec[data-slot]")];
   scrollToSessDay=(d)=>{ const elm=dayEls.find(x=>x.dataset.day===d); if(elm) elm.scrollIntoView({behavior:"smooth",block:"start"}); };
   if(wasBoard) window.scrollTo(0,prevY); else window.scrollTo(0,0);   // preserve place across in-view re-renders; top on fresh entry
-  if(dayMode && dayEls.length>1){
+  if(dayMode && (dayEls.length>1 || slotEls.length>1)){
     const headerH=(parseInt(getComputedStyle(document.documentElement).getPropertyValue("--headerh"))||52), lineY=headerH+110;
     let raf=0;
     const setActive=()=>{ raf=0; if(!document.body.contains(dayEls[0]) || root.style.display==="none") return;   // skip when the view is hidden (rects read 0)
@@ -2726,7 +2730,11 @@ function renderSession(){
       for(const elm of dayEls){ if(elm.getBoundingClientRect().top<=lineY) active=elm.dataset.day; else break; }
       if(active && active!==state.sessDay){ state.sessDay=active; saveUI(); sessFillPool();
         picker.querySelectorAll(".sbdaylab").forEach(p=>p.classList.toggle("on", p.dataset.day===active));
-        picker.querySelectorAll(".sbslot").forEach(b=>b.classList.toggle("inday", b.dataset.day===active)); } };
+        picker.querySelectorAll(".sbslot").forEach(b=>b.classList.toggle("inday", b.dataset.day===active)); }
+      // finer grain: highlight the single time-slot pill whose section you've scrolled into
+      let curSlot=slotEls.length?slotEls[0].dataset.slot:null;
+      for(const elm of slotEls){ if(elm.getBoundingClientRect().top<=lineY) curSlot=elm.dataset.slot; else break; }
+      picker.querySelectorAll(".sbslot").forEach(b=>b.classList.toggle("cur", b.dataset.slot===curSlot)); };
     const onScroll=()=>{ if(!raf) raf=requestAnimationFrame(setActive); };
     window.addEventListener("scroll",onScroll,{passive:true}); state._sessScroll=onScroll; setActive();
   }
