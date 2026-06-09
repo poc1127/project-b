@@ -176,6 +176,11 @@
   .sessdayhd h3{font-size:16px;}
   /* whole-day view: one section per time-slot (dashed sub-header + its own columns grid) */
   .slotsec{margin-bottom:16px;}
+  .sessdayhd,.slotsechd{cursor:pointer;user-select:none;}   /* whole header folds its section (lock/empty buttons stop propagation) */
+  .sessdayhd .fchev,.slotsechd .fchev{flex:none;font-size:10px;color:var(--text-faint);transition:transform .15s;width:12px;text-align:center;}
+  .sessday.folded .sessdayhd .fchev,.slotsec.folded .slotsechd .fchev{transform:rotate(-90deg);}
+  .sessday.folded .slotsec{display:none;}        /* folded day → hide its time-slots */
+  .slotsec.folded .sessgroups{display:none;}     /* folded slot → hide its session cards */
   .slotsechd{display:flex;align-items:center;gap:8px;margin:0 0 7px;padding-bottom:4px;border-bottom:1px dashed var(--line);}
   .slotsec-t{font-size:13px;font-weight:700;color:var(--text2);}
   .slotsec-meta{font-size:11px;color:var(--text-faint);}
@@ -204,7 +209,7 @@
   /* columns = parallel sessions of a slot, as .room cards. auto-fit (not auto-fill) so cards stretch to fill the
      row instead of leaving phantom empty tracks; chips wrap inside each card so wide cards use their width. */
   .sesscols{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:10px;align-items:stretch;min-width:0;}   /* auto-FILL → uniform card width (orphans in the last row don't balloon to fill it) */
-  .sesscols .room{display:flex;flex-direction:column;min-height:165px;border-left:3px solid #c2c8cf;}   /* program-color accent (mirrors the 일정 보기 legend); flex column + min-height → every empty box is the same height regardless of title/speaker line count, the drop body fills the slack */
+  .sesscols .room{display:flex;flex-direction:column;min-height:165px;border-left:3px solid #c2c8cf;user-select:none;-webkit-user-select:none;}   /* program-color accent (mirrors the 일정 보기 legend); flex column + min-height → every empty box is the same height regardless of title/speaker line count, the drop body fills the slack; user-select:none → click/drag-to-assign never selects the card text */
   .sesscols .room .roomchips{flex:1 1 auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:5px;align-content:flex-start;}   /* grows to fill the card's min-height; fixed column tracks: auto-fill keeps the empty track, so a lone chip sits in half a wide box (next drop fills the other half) */
   .sesscols .room .roomchips .chip{min-width:0;}   /* let long names ellipsis inside their track */
   .sesscols .room .roomchips.empty{align-content:center;}   /* lone hint sits in the vertical middle of the empty drop area */
@@ -1121,7 +1126,7 @@
 "use strict";
 // ⚑ index.html build version — shown bottom-right on the start screen. BUMP ON EACH DEPLOY.
 //   Format: vYYYY.MM.DD-N  (N = same-day build counter; reset to 1 on a new date).
-const APP_VERSION = "v2026.06.09-19";
+const APP_VERSION = "v2026.06.09-21";
 /* ============================================================
    ICMDA 2026 Room Assignment Dashboard (single file)
    - reads the live master .xlsx (columns mapped by HEADER NAME)
@@ -1182,6 +1187,7 @@ const state = {
   orderList: [],   // custom vertical order of party ids (timeline)
   collapsed: {},   // venue -> true (timeline fold)
   collapsedRooms: {}, // rooms-view accordion fold, keyed by venue/floor element id
+  sessFolded: {},  // 세션 배정 보기 day-mode fold, keyed by "day:<day>" and "slot:<slotKey>"
   colW: [74,58,150,78,84,52],  // resizable widths: ID(+손잡이)·분류·이름/팀·호텔·객실번호·수용 (track = 1fr)
   picks: new Set(),// tap-to-assign: pool party ids currently selected (multi). Tap a room / drag to assign all.
   selAnchor: null, // Shift+click range anchor: the last individually-clicked pool id
@@ -2694,19 +2700,27 @@ function renderSession(){
   } else {                                  // continuous: EVERY day stacked → scrolling down rolls into the next day
     dayList.forEach(day=>{
       const dSlots=slots.filter(s=>s.day===day);
-      const dayWrap=el("div","sessday"); dayWrap.dataset.day=day;
+      const dayFold=!!state.sessFolded["day:"+day];
+      const dayWrap=el("div","sessday"+(dayFold?" folded":"")); dayWrap.dataset.day=day;
       const dayKeys=dSlots.flatMap(sl=>sl.sessions.map(x=>x.key)), dayPpl=dayKeys.reduce((q,k)=>q+cnt(k),0);
-      const bar=el("div","sessdayhd");
-      bar.append(el("h3",null,dayWD(day)),
+      const bar=el("div","sessdayhd"); bar.setAttribute("role","button"); bar.tabIndex=0; bar.setAttribute("aria-expanded",dayFold?"false":"true");
+      bar.append(el("span","fchev","▼"), el("h3",null,dayWD(day)),
                  el("span","meta",`${dSlots.length}개 시간대 · 세션 ${dayKeys.length}개 · ${dayPpl}명 배정`));
       bar.append(...lockEmptyBtns(dayKeys, dayWD(day)));
+      const dayTog=()=>{ state.sessFolded["day:"+day]=!dayFold; saveUI(); renderSession(); };
+      bar.onclick=e=>{ if(e.target.closest(".glk")) return; dayTog(); };
+      bar.addEventListener("keydown",e=>{ if((e.key==="Enter"||e.key===" ")&&!e.target.closest(".glk")){ e.preventDefault(); dayTog(); } });
       dayWrap.append(bar);
       dSlots.forEach(sl=>{
         const keys=sl.sessions.map(x=>x.key), ppl=keys.reduce((q,k)=>q+cnt(k),0);
-        const sec=el("div","slotsec"); sec.dataset.slot=sl.key;   // tagged so the scroll handler can highlight the matching picker pill
-        const hd=el("div","slotsechd");
-        hd.append(el("span","slotsec-t", slotTimeLabel(sl)), el("span","slotsec-meta",`${sl.sessions.length}개·${ppl}명`));
+        const slotFold=!!state.sessFolded["slot:"+sl.key];
+        const sec=el("div","slotsec"+(slotFold?" folded":"")); sec.dataset.slot=sl.key;   // tagged so the scroll handler can highlight the matching picker pill
+        const hd=el("div","slotsechd"); hd.setAttribute("role","button"); hd.tabIndex=0; hd.setAttribute("aria-expanded",slotFold?"false":"true");
+        hd.append(el("span","fchev","▼"), el("span","slotsec-t", slotTimeLabel(sl)), el("span","slotsec-meta",`${sl.sessions.length}개·${ppl}명`));
         hd.append(...lockEmptyBtns(keys, `${dayWD(sl.day)} ${slotTimeLabel(sl)}`.trim()));
+        const slotTog=()=>{ state.sessFolded["slot:"+sl.key]=!slotFold; saveUI(); renderSession(); };
+        hd.onclick=e=>{ if(e.target.closest(".glk")) return; slotTog(); };
+        hd.addEventListener("keydown",e=>{ if((e.key==="Enter"||e.key===" ")&&!e.target.closest(".glk")){ e.preventDefault(); slotTog(); } });
         sec.append(hd, colsFor(sl)); dayWrap.append(sec);
       });
       right.append(dayWrap);
@@ -3316,13 +3330,14 @@ function syncTop(){                                   // keep panels sized to th
   applyColW();   // re-evaluate the night-track floor for the new width
 }
 const UIKEY="icmda_ui";
-function saveUI(){ try{ localStorage.setItem(UIKEY, JSON.stringify({colW:state.colW, collapsed:state.collapsed, collapsedRooms:state.collapsedRooms, sessSlot:state.sessSlot, sessDay:state.sessDay, view:state.view})); }catch(e){} }
+function saveUI(){ try{ localStorage.setItem(UIKEY, JSON.stringify({colW:state.colW, collapsed:state.collapsed, collapsedRooms:state.collapsedRooms, sessFolded:state.sessFolded, sessSlot:state.sessSlot, sessDay:state.sessDay, view:state.view})); }catch(e){} }
 function loadUI(){ try{
   const s=JSON.parse(localStorage.getItem(UIKEY)||"{}");
   if(Array.isArray(s.colW) && s.colW.length===state.colW.length) state.colW=s.colW.map(Number);
   if(state.colW[0]<70) state.colW[0]=74;   // ensure the ID column fits the relocated drag handle (⠿) + 'P0001'
   if(s.collapsed && typeof s.collapsed==="object") state.collapsed=s.collapsed;
   if(s.collapsedRooms && typeof s.collapsedRooms==="object") state.collapsedRooms=s.collapsedRooms;
+  if(s.sessFolded && typeof s.sessFolded==="object") state.sessFolded=s.sessFolded;
   if(typeof s.sessSlot==="string") state.sessSlot=s.sessSlot;
   if(typeof s.sessDay==="string") state.sessDay=s.sessDay;
   if(s.view==="rooms"||s.view==="timeline"||s.view==="schedule"||s.view==="session") state.view=s.view;
@@ -4574,7 +4589,7 @@ document.addEventListener("click",e=>{
 // same for 세션 배정 보기 — slot board (reuses .room/.chip; #sesspicker = slot chips, #sessslotbar = slot toolbar)
 document.addEventListener("click",e=>{
   if(!state.sessPicks.size) return;
-  if(e.target.closest(".chip,.room,.sesspoollist,.sesscatgrp,.pickhint,.vtab,#mobilebar,#sesspicker,#sessslotbar,.slotsec,#sheet,#sesspool h2")) return;
+  if(e.target.closest(".chip,.room,.sesspoollist,.sesscatgrp,.pickhint,.vtab,#mobilebar,#sesspicker,#sessslotbar,.sessdayhd,.slotsec,#sheet,#sesspool h2")) return;
   state.sessPicks.clear(); sessFillPool();
 });
 
