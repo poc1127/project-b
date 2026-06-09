@@ -151,7 +151,7 @@
   /* days stack vertically; each day = label on the left + its time-slot chips wrapping to the right (no horizontal scroll) */
   #sesspicker{position:sticky;top:var(--headerh,52px);z-index:6;background:var(--bg);display:flex;flex-direction:column;gap:7px;padding:8px 2px 9px;margin-bottom:10px;border-bottom:1px solid var(--line);}   /* sticky day/slot nav: flush under the header (no see-through gap) — jump + tracks the day you scroll into */
   .sbday{display:flex;gap:10px;align-items:flex-start;}
-  .sbdaylab{flex:none;min-width:74px;text-align:center;font-size:11px;font-weight:700;color:var(--text2);background:#fff;border:1px solid var(--border);border-radius:7px;padding:4px 10px;cursor:pointer;user-select:none;white-space:nowrap;}
+  .sbdaylab{flex:none;width:112px;text-align:center;font-size:11px;font-weight:700;color:var(--text2);background:#fff;border:1px solid var(--border);border-radius:7px;padding:4px 10px;cursor:pointer;user-select:none;white-space:nowrap;}
   .sbdaylab:hover{color:var(--primary);border-color:var(--primary);background:#fdecea;}
   .sbdaylab.on{background:var(--ink);color:#fff;border-color:var(--ink);}   /* whole day shown */
   .sbdaylab.dim{border-color:var(--ink);color:var(--ink);}                 /* this day is active but a single slot is focused */
@@ -203,7 +203,7 @@
   .sesscols{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:10px;align-items:stretch;min-width:0;}   /* auto-FILL → uniform card width (orphans in the last row don't balloon to fill it) */
   .sesscols .room{min-height:78px;border-left:3px solid #c2c8cf;}   /* program-color accent (mirrors the 일정 보기 legend) */
   .sesscols .room .roomchips{display:flex;flex-wrap:wrap;gap:5px;align-content:flex-start;}
-  .sesscols .room .roomchips .chip{flex:1 1 200px;max-width:280px;}   /* chips fill the row, wrapping in wide cards */
+  .sesscols .room .roomchips .chip{flex:1 1 140px;max-width:280px;}   /* low basis so two chips fit per row in a normal-width column; grow fills the row, max-width keeps a lone chip from over-stretching */
   .sesscols .room .sess-drophint{flex:1 0 100%;}
   #sessright.picking .room{outline:1px dashed #79b27c;cursor:pointer;}
   #sessright.picking .room:hover{outline:2px solid var(--ok);background:#f1f8f1;}
@@ -227,6 +227,7 @@
   .sessgrphd .sgtime{font-size:10px;font-weight:700;color:#7a8694;letter-spacing:.01em;}   /* this column's time range */
   .sesscols .room .rcode{display:inline-block;margin:0 0 3px;font-size:10px;font-weight:700;letter-spacing:.02em;padding:1px 6px;border-radius:999px;background:#eef1f4;color:#41505f;border:1px solid var(--border);}   /* code pill sits top-left, above the title */
   .sessgrp .sessrangehd{font-size:11px;font-weight:700;color:#6b7785;margin:9px 0 5px;padding-left:2px;}   /* sequential sub-slot label within a column (e.g. 10:30~11:45 then 11:45~13:00) */
+  .sessgrp .sessrangehd.spacer{visibility:hidden;}   /* same height, no text — aligns a single-range column's card with multi-range siblings without repeating the header time */
   @media (max-width:1024px){
     #session{gap:10px;padding:10px;}
     #sesspool{width:228px;}
@@ -1116,7 +1117,7 @@
 "use strict";
 // ⚑ index.html build version — shown bottom-right on the start screen. BUMP ON EACH DEPLOY.
 //   Format: vYYYY.MM.DD-N  (N = same-day build counter; reset to 1 on a new date).
-const APP_VERSION = "v2026.06.09-11";
+const APP_VERSION = "v2026.06.09-15";
 /* ============================================================
    ICMDA 2026 Room Assignment Dashboard (single file)
    - reads the live master .xlsx (columns mapped by HEADER NAME)
@@ -2646,6 +2647,9 @@ function renderSession(){
       c.sessions.push(s);
     });
     const wrap=el("div","sessgroups"+(cols.length>1?" multi":""));   // >1 column → side-by-side layout
+    // range sub-headings are a SLOT-level decision: if ANY parallel column is split into time-ranges, every column
+    // shows its range label so the first card in each column lines up (no column starts a row higher than its peers).
+    const slotMultiRange = cols.some(c=>new Set(c.sessions.map(s=>s.trange||"__")).size>1);
     cols.forEach(c=>{
       const sec=el("div","sessgrp");
       if(c.sub){                                                       // column heading = parent/category + its overall time span
@@ -2662,7 +2666,10 @@ function renderSession(){
       ranges.sort((x,y)=>tmin(x.trange||"")-tmin(y.trange||""));
       const multiRange=ranges.length>1;
       ranges.forEach(g=>{
-        if(multiRange && g.trange) sec.append(el("div","sessrangehd", g.trange));
+        if(g.trange){
+          if(multiRange) sec.append(el("div","sessrangehd", g.trange));                    // genuine sub-slot label (10:30~11:45 then 11:45~13:00)
+          else if(slotMultiRange) sec.append(el("div","sessrangehd spacer", g.trange));    // single-range column: invisible height-matcher → card lines up with multi-range siblings, no time duplicated from the header
+        }
         const grid=el("div","sesscols");
         g.sessions.forEach(s=>grid.append(sessionCard(s)));
         sec.append(grid);
