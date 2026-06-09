@@ -219,7 +219,9 @@
   .sessgrphd{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin:0 0 8px;padding-bottom:5px;border-bottom:1px solid var(--border);}
   .sessgrphd .sgname{font-size:11px;font-weight:800;letter-spacing:.03em;text-transform:uppercase;color:#5a6675;}
   .sessgrphd .sgcode{display:inline-block;font-size:10px;font-weight:700;letter-spacing:.02em;padding:1px 7px;border-radius:999px;background:#41505f;color:#fff;}
+  .sessgrphd .sgtime{font-size:10px;font-weight:700;color:#7a8694;letter-spacing:.01em;}   /* this column's time range */
   .sesscols .room .rcode{display:inline-block;margin:0 0 3px;font-size:10px;font-weight:700;letter-spacing:.02em;padding:1px 6px;border-radius:999px;background:#eef1f4;color:#41505f;border:1px solid var(--border);}   /* code pill sits top-left, above the title */
+  .sesscols .room .rtrack{display:inline-block;margin:0 0 3px 4px;font-size:10px;font-weight:700;letter-spacing:.02em;padding:1px 6px;border-radius:999px;background:#e7f0fb;color:#2f5d8a;border:1px solid #c9ddf2;}   /* Track/Code subject pill, next to the code pill */
   @media (max-width:1024px){
     #session{gap:10px;padding:10px;}
     #sesspool{width:228px;}
@@ -1109,7 +1111,7 @@
 "use strict";
 // ⚑ index.html build version — shown bottom-right on the start screen. BUMP ON EACH DEPLOY.
 //   Format: vYYYY.MM.DD-N  (N = same-day build counter; reset to 1 on a new date).
-const APP_VERSION = "v2026.06.09-3";
+const APP_VERSION = "v2026.06.09-5";
 /* ============================================================
    ICMDA 2026 Room Assignment Dashboard (single file)
    - reads the live master .xlsx (columns mapped by HEADER NAME)
@@ -1452,6 +1454,8 @@ function loadMaster(arrbuf){
   state.sessionDB = dbSheet ? parseSessionDB(XLSX.utils.sheet_to_json(dbSheet,{header:1,raw:false,defval:""})) : [];
   const spkSheet = wb.Sheets["All Speakers"];       // appended speaker table → enriches the modal (joined on Code / breakout slot)
   state.allSpeakers = spkSheet ? parseAllSpeakers(XLSX.utils.sheet_to_json(spkSheet,{header:1,raw:false,defval:""})) : [];
+  const catSheet = wb.Sheets["세션 배정"];          // explicit session catalog (with space) → drives 세션 배정 보기 cards; cap from 수용인원. Falls back to 일정-derived when absent.
+  state.sessCatalog = catSheet ? parseSessCatalog(XLSX.utils.sheet_to_json(catSheet,{header:1,raw:false,defval:""})) : null;
   buildSpeakerIndex();
   state.scheduleDirty = new Set();              // fresh master → no pending 일정 edits
   state.dbDirty = new Map(); state.spkDirty = new Map();   // fresh master → no pending session-modal edits
@@ -1543,7 +1547,8 @@ function parseParticipants(aoa, wb){
   state.collapsed={};
   // 세션 배정 보기: derive session cards from '일정', then load saved assignments/capacities from the '세션배정' tab
   deriveSessions();
-  state.sessionAssign={}; state.sessionCap={}; state.sessionLocked={}; state.sessPicks=new Set(); state.sessExempt=new Set();
+  // working caps default to the catalog's 수용인원 (state.sessionCapCat); saved (정원) rows below override per session.
+  state.sessionAssign={}; state.sessionCap=Object.assign({},state.sessionCapCat||{}); state.sessionLocked={}; state.sessPicks=new Set(); state.sessExempt=new Set();
   // '세션배정' tab — compact format: A=참가자ID · B=이름 · C=세션선택 ("; "-joined subsession keys).
   //   tag rows keyed on col A: (정원) B=key C=정원 · (잠금) B=key · (면제분류) B=분류.
   const xSheet=wb.Sheets["세션배정"];
@@ -2142,8 +2147,49 @@ function progForLine(line, base){
 // is a PARENT; its assignable units are the SUBSESSIONS pulled from the 'All Speakers' join:
 //   Breakout (SBO_n/MBO_n) → its parallel topics (key MBO_1#<No>) · SIG → the 20 MSI groups (key MSI_NN)
 //   Stream Session N → the 10 streams, PER-SLOT (key "<slot>::PS_n") · slots with no catalog stay slot-level.
+// parse the explicit '세션 배정' catalog tab → one record per assignable session (rows that carry a 세션 코드).
+// Bible Exposition / Plenary rows have no code (whole-congress, not assignable) and are skipped.
+function parseSessCatalog(aoa){
+  if(!aoa||!aoa.length) return null;
+  const nz=s=>(s==null?"":String(s)).trim();
+  let hi=aoa.findIndex(r=>r&&r.some(c=>nz(c)==="세션 코드")); if(hi<0) return null;
+  const H={}; (aoa[hi]||[]).forEach((h,i)=>{ const k=nz(h); if(k&&H[k]==null) H[k]=i; });
+  const col=(row,name)=> H[name]!=null ? nz(row[H[name]]) : "";
+  const out=[];
+  for(let r=hi+1;r<aoa.length;r++){
+    const row=aoa[r]||[]; const code=col(row,"세션 코드"); if(!code) continue;
+    const capN=parseInt(col(row,"수용인원"),10);
+    out.push({ code, day:col(row,"Date"), time:col(row,"Time"), cat:col(row,"Category"),
+      track:col(row,"Track / Code"), name:col(row,"Session / Group")||col(row,"Track / Code")||code,
+      speaker:col(row,"Speaker(s)"), loc:col(row,"장소"),
+      cap:(isNaN(capN)||capN<=0)?null:capN });   // 0 / blank 수용인원 → ∞ (no cap) for now
+  }
+  return out.length?out:null;
+}
+// program color band from a catalog Category (mirrors the 일정 fill colors / eligibleForProg keys)
+function progForCategory(cat){
+  const c=(cat||"").toLowerCase();
+  if(c.indexOf("student")>=0) return "student";
+  if(c.indexOf("pre-conference")>=0||c.indexOf("stream")>=0) return "grad";
+  if(c.indexOf("special interest")>=0) return "sig";
+  if(c.indexOf("breakout")>=0) return "congress";
+  return null;
+}
 function deriveSessions(){
-  state.sessionList=[];
+  state.sessionList=[]; state.sessionCapCat={};
+  if(state.sessCatalog && state.sessCatalog.length){          // catalog tab present → it is the source of truth
+    const startOf=t=>{ const m=/(\d{1,2}:\d{2})/.exec(t||""); return m?m[1]:(t||""); };   // "10:30~13:00" → "10:30"
+    state.sessCatalog.forEach(s=>{
+      const start=startOf(s.time);                            // a "slot" = same day + same START time → sessions that run in PARALLEL share it
+      const gk=start+"||"+s.cat;                              // group cards by Category within that parallel slot
+      state.sessionList.push({ day:s.day, time:start, trange:s.time, prog:progForCategory(s.cat),
+        parentKey:s.day+"||"+gk, parentName:s.cat, sub:true,
+        key:s.code, name:s.name, speaker:s.speaker,
+        pcode:"", scode:s.code, track:s.track, location:s.loc });
+      state.sessionCapCat[s.code]=s.cap;
+    });
+    return;
+  }
   const aoa=state.schedule; if(!aoa||!aoa.length) return;
   const nz=s=>(s==null?"":String(s)).trim();
   const ncol=aoa.reduce((m,r)=>Math.max(m,r?r.length:0),0);
@@ -2376,13 +2422,18 @@ function renderSession(){
 
   // ----- time-slot model: a "slot" = every session sharing (day, time). A person holds ≤1 session per slot,
   //       so each slot is a self-contained 1:1 board. -----
-  const dmin=d=>{ const m=/(\d{1,2})\/(\d{1,2})/.exec(d||""); return m?(+m[1])*100+(+m[2]):9999; };
+  const dmin=d=>{ let m=/(\d{1,2})\/(\d{1,2})/.exec(d||""); if(m) return (+m[1])*100+(+m[2]);   // "7/3"
+    m=/(\d{1,2})\s+([A-Za-z]{3})/.exec(d||"");                                                    // "3 July (Fri)"
+    const mo={jan:1,feb:2,mar:3,apr:4,may:5,jun:6,jul:7,aug:8,sep:9,oct:10,nov:11,dec:12}[m?m[2].toLowerCase():""];
+    return mo?mo*100+(+m[1]):9999; };
   const tmin=t=>{ const m=/(\d{1,2}):(\d{2})/.exec(t||""); return m?(+m[1])*60+(+m[2]):9999; };
   const cnt=key=>(state.sessionAssign[key]||{size:0}).size||0;
   const dayWD=d=>{ if(!d) return ""; if(d.indexOf("(")>=0) return d; const m=/(\d{1,2})\/(\d{1,2})/.exec(d); return m?`${d} (${WDAY[new Date(2026,+m[1]-1,+m[2]).getDay()]})`:d; };   // "7/1" → "7/1 (수)"
   const slotsMap=new Map();
-  state.sessionList.forEach(s=>{ const sk=s.day+"||"+s.time; if(!slotsMap.has(sk)) slotsMap.set(sk,{key:sk,day:s.day,time:s.time,sessions:[]}); slotsMap.get(sk).sessions.push(s); });
+  state.sessionList.forEach(s=>{ const sk=s.day+"||"+s.time; if(!slotsMap.has(sk)) slotsMap.set(sk,{key:sk,day:s.day,time:s.time,sessions:[],ranges:[]}); const sl=slotsMap.get(sk); sl.sessions.push(s); if(s.trange&&sl.ranges.indexOf(s.trange)<0) sl.ranges.push(s.trange); });
   const slots=[...slotsMap.values()].sort((a,b)=>dmin(a.day)-dmin(b.day)||tmin(a.time)-tmin(b.time));
+  // a slot is keyed by START time so parallel sessions (e.g. 10:30~11:45 ‖ 10:30~13:00) share it; the label shows their full ranges.
+  const slotTimeLabel=sl=>{ const rs=(sl.ranges||[]).slice().sort((a,b)=>tmin(a)-tmin(b)); return rs.length?rs.join(" / "):(sl.time||"시간 미정"); };
   // selection: a focused day (state.sessDay) + optionally one slot within it (state.sessSlot). sessSlot=null → show
   // the WHOLE day (all its slots); a slot set → focus just that slot. A valid sessSlot implies its day.
   const dayList=[...new Set(slots.map(s=>s.day))];
@@ -2478,8 +2529,9 @@ function renderSession(){
       const on=sl.key===state.sessSlot;                       // highlighted only in single-slot mode
       const inDay=dayMode && sl.day===state.sessDay;           // shown (but not "on") when the whole day is open
       const b=el("button","sbslot"+(on?" on":"")+(inDay?" inday":"")+(allLk?" alllocked":"")); b.type="button";
-      b.innerHTML=`${esc(sl.time||"시간 미정")}<span class="n">${sl.sessions.length}개·${ppl}명</span>`+(allLk?" 🔒":"");
-      b.title=`${dayWD(day)} ${sl.time||"시간 미정"} — 세션 ${sl.sessions.length}개 · ${ppl}명 배정 (이 시간대만 보기)`+(allLk?" · 잠김":"");
+      const tlab=slotTimeLabel(sl);
+      b.innerHTML=`${esc(tlab)}<span class="n">${sl.sessions.length}개·${ppl}명</span>`+(allLk?" 🔒":"");
+      b.title=`${dayWD(day)} ${tlab} — 세션 ${sl.sessions.length}개 · ${ppl}명 배정 (이 시간대만 보기)`+(allLk?" · 잠김":"");
       b.setAttribute("aria-pressed", on?"true":"false");
       b.onclick=()=>{ if(sl.key===state.sessSlot) return; state.sessSlot=sl.key; state.sessDay=sl.day; state.sessPicks.clear(); saveUI(); renderSession(); };
       row.append(b);
@@ -2520,6 +2572,7 @@ function renderSession(){
         const hd=el("div","sessgrphd");
         hd.append(el("span","sgname", g.label||"세션"));
         if(g.pcode) hd.append(el("span","sgcode", g.pcode));
+        const tr=(g.sessions[0]||{}).trange; if(tr) hd.append(el("span","sgtime", tr));   // this column's own time range (parallel columns may differ)
         sec.append(hd);
       }
       const grid=el("div","sesscols");
@@ -2531,9 +2584,9 @@ function renderSession(){
 
   if(!dayMode && curSlot){
     const sKeys=curSlot.sessions.map(s=>s.key), slotPpl=sKeys.reduce((q,k)=>q+cnt(k),0);
-    const slotLabel=`${dayWD(curSlot.day)} ${curSlot.time||"시간 미정"}`;
+    const slotLabel=`${dayWD(curSlot.day)} ${slotTimeLabel(curSlot)}`;
     const bar=el("div"); bar.id="sessslotbar";
-    bar.append(el("h3",null,`${dayWD(curSlot.day)} · ${curSlot.time||"시간 미정"}`),
+    bar.append(el("h3",null,`${dayWD(curSlot.day)} · ${slotTimeLabel(curSlot)}`),
                el("span","meta",`${curSlot.sessions.length}개 세션 · ${slotPpl}명 배정`));
     bar.append(...lockEmptyBtns(sKeys, slotLabel));
     right.append(bar, colsFor(curSlot));
@@ -2548,8 +2601,8 @@ function renderSession(){
       const keys=sl.sessions.map(x=>x.key), ppl=keys.reduce((q,k)=>q+cnt(k),0);
       const sec=el("div","slotsec");
       const hd=el("div","slotsechd");
-      hd.append(el("span","slotsec-t", sl.time||"시간 미정"), el("span","slotsec-meta",`${sl.sessions.length}개·${ppl}명`));
-      hd.append(...lockEmptyBtns(keys, `${dayWD(sl.day)} ${sl.time||""}`.trim()));
+      hd.append(el("span","slotsec-t", slotTimeLabel(sl)), el("span","slotsec-meta",`${sl.sessions.length}개·${ppl}명`));
+      hd.append(...lockEmptyBtns(keys, `${dayWD(sl.day)} ${slotTimeLabel(sl)}`.trim()));
       sec.append(hd, colsFor(sl)); right.append(sec);
     });
   }
@@ -2567,9 +2620,11 @@ function sessionCard(s,showParent){
   const hdr=el("div","rhdr");
   const left=el("span");
   const ccode = s.sub ? (s.scode||"") : (s.pcode||"");   // sub card → its subsession code (MSI_/PS_/#No); slot-level card → its own code
+  const sub2=[s.location,s.speaker].filter(Boolean).join(" · ");          // 장소 · 강사 (catalog cards); fallback cards have only speaker
   left.innerHTML=(ccode?`<span class="rcode">${esc(ccode)}</span>`:"")   // code pill first → top-left corner, before the title
+    +(s.track?`<span class="rtrack">${esc(s.track)}</span>`:"")          // Track / Code subject pill (catalog only)
     +`<span class="rno">${esc(s.name)}</span>`
-    +(s.speaker?`<span class="rsub">${esc(s.speaker)}</span>`:"");
+    +(sub2?`<span class="rsub">${esc(sub2)}</span>`:"");
   const cls = over?"over":(cap!=null&&load===cap)?"full":"ok";
   const cap_=el("span","capbadge "+cls, cap!=null?`${load}/${cap}`:`${load}`);
   cap_.title="더블클릭: 정원 수정"; cap_.style.cursor="pointer";
@@ -3887,7 +3942,8 @@ function sessionSheetAoa(){
   const keySet=new Set(sessions.map(s=>s.key));
   const hdr=["참가자ID","이름","세션선택"];
   const exemptRows=[...state.sessExempt].map(c=>["(면제분류)",c,""]);   // each exempt 카테고리 on its own row
-  const capRows=Object.keys(state.sessionCap).filter(k=>keySet.has(k)&&state.sessionCap[k]!=null).map(k=>["(정원)",k,state.sessionCap[k]]);
+  const capCat=state.sessionCapCat||{};   // only persist caps the user CHANGED from the catalog's 수용인원 (keeps the tab lean)
+  const capRows=Object.keys(state.sessionCap).filter(k=>keySet.has(k)&&state.sessionCap[k]!=null&&state.sessionCap[k]!==capCat[k]).map(k=>["(정원)",k,state.sessionCap[k]]);
   const lockRows=Object.keys(state.sessionLocked).filter(k=>keySet.has(k)&&state.sessionLocked[k]).map(k=>["(잠금)",k,"✓"]);   // ✓ = session locked
   const picks={};
   Object.keys(state.sessionAssign).forEach(k=>{ if(!keySet.has(k)) return; (state.sessionAssign[k]||new Set()).forEach(pid=>{ (picks[pid]=picks[pid]||[]).push(k); }); });
