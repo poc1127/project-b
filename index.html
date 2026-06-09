@@ -202,9 +202,9 @@
      row instead of leaving phantom empty tracks; chips wrap inside each card so wide cards use their width. */
   .sesscols{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:10px;align-items:stretch;min-width:0;}   /* auto-FILL → uniform card width (orphans in the last row don't balloon to fill it) */
   .sesscols .room{min-height:78px;border-left:3px solid #c2c8cf;}   /* program-color accent (mirrors the 일정 보기 legend) */
-  .sesscols .room .roomchips{display:flex;flex-wrap:wrap;gap:5px;align-content:flex-start;}
-  .sesscols .room .roomchips .chip{flex:1 1 140px;max-width:280px;}   /* low basis so two chips fit per row in a normal-width column; grow fills the row, max-width keeps a lone chip from over-stretching */
-  .sesscols .room .sess-drophint{flex:1 0 100%;}
+  .sesscols .room .roomchips{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:5px;align-content:flex-start;}   /* fixed column tracks: auto-fill keeps the empty track, so a lone chip sits in half a wide box (next drop fills the other half) */
+  .sesscols .room .roomchips .chip{min-width:0;}   /* let long names ellipsis inside their track */
+  .sesscols .room .sess-drophint{grid-column:1/-1;}   /* span all tracks so the empty-box hint stays centered across the full width */
   #sessright.picking .room{outline:1px dashed #79b27c;cursor:pointer;}
   #sessright.picking .room:hover{outline:2px solid var(--ok);background:#f1f8f1;}
   .sesscols .room .rhdr{align-items:flex-start;}   /* beat base .room .rhdr{align-items:center} so the count+lock pin to the TOP-right */
@@ -1117,7 +1117,7 @@
 "use strict";
 // ⚑ index.html build version — shown bottom-right on the start screen. BUMP ON EACH DEPLOY.
 //   Format: vYYYY.MM.DD-N  (N = same-day build counter; reset to 1 on a new date).
-const APP_VERSION = "v2026.06.09-15";
+const APP_VERSION = "v2026.06.09-16";
 /* ============================================================
    ICMDA 2026 Room Assignment Dashboard (single file)
    - reads the live master .xlsx (columns mapped by HEADER NAME)
