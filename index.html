@@ -149,14 +149,14 @@
   #sessright{flex:1;min-width:0;}
   /* slot picker (chips grouped by day) */
   /* days stack vertically; each day = label on the left + its time-slot chips wrapping to the right (no horizontal scroll) */
-  #sesspicker{display:flex;flex-direction:column;gap:7px;padding:2px 2px 9px;margin-bottom:10px;border-bottom:1px solid var(--line);}
+  #sesspicker{position:sticky;top:calc(var(--headerh,52px) + 4px);z-index:6;background:var(--bg);display:flex;flex-direction:column;gap:7px;padding:6px 2px 9px;margin-bottom:10px;border-bottom:1px solid var(--line);}   /* sticky day/slot nav: jump + tracks the day you scroll into */
   .sbday{display:flex;gap:10px;align-items:flex-start;}
   .sbdaylab{flex:none;min-width:74px;text-align:center;font-size:11px;font-weight:700;color:var(--text2);background:#fff;border:1px solid var(--border);border-radius:7px;padding:4px 10px;cursor:pointer;user-select:none;white-space:nowrap;}
   .sbdaylab:hover{color:var(--primary);border-color:var(--primary);background:#fdecea;}
   .sbdaylab.on{background:var(--ink);color:#fff;border-color:var(--ink);}   /* whole day shown */
   .sbdaylab.dim{border-color:var(--ink);color:var(--ink);}                 /* this day is active but a single slot is focused */
   .sbslots{display:flex;flex-wrap:wrap;gap:5px;flex:1;min-width:0;}
-  .sbslot{background:#fff;border:1px solid var(--border);border-radius:999px;padding:4px 11px;font-size:12px;font-weight:600;color:var(--text2);cursor:pointer;white-space:nowrap;}
+  .sbslot{background:#fff;border:1px solid var(--border);border-radius:999px;padding:4px 11px;font-size:12px;font-weight:600;color:var(--text2);cursor:pointer;white-space:nowrap;min-width:152px;text-align:center;}
   .sbslot:hover{background:#fdecea;border-color:var(--primary);color:var(--primary);}   /* override the global blue button:hover */
   .sbslot.on{background:var(--primary);color:#fff;border-color:var(--primary);}
   .sbslot.on:hover{background:var(--primary-hover);color:#fff;}
@@ -164,19 +164,23 @@
   .sbslot .n{font-size:10px;opacity:.8;margin-left:5px;}
   .sbslot.alllocked{border-style:dashed;}
   /* current-slot bar (label + slot-wide lock/empty) */
-  #sessslotbar{display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap;}
-  #sessslotbar h3{font-size:15px;margin:0;color:var(--ink);}
-  #sessslotbar .meta{font-size:12px;color:var(--text-faint);}
+  #sessslotbar,.sessdayhd{display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap;}
+  #sessslotbar h3,.sessdayhd h3{font-size:15px;margin:0;color:var(--ink);}
+  #sessslotbar .meta,.sessdayhd .meta{font-size:12px;color:var(--text-faint);}
+  .sessday{scroll-margin-top:calc(var(--headerh,52px) + 96px);}                              /* land below the sticky picker when jumping to a day */
+  .sessday + .sessday{margin-top:6px;}
+  .sessday + .sessday .sessdayhd{padding-top:12px;border-top:2px solid var(--border-strong,#bbb);}   /* visible divider where one day rolls into the next */
+  .sessdayhd h3{font-size:16px;}
   /* whole-day view: one section per time-slot (dashed sub-header + its own columns grid) */
   .slotsec{margin-bottom:16px;}
   .slotsechd{display:flex;align-items:center;gap:8px;margin:0 0 7px;padding-bottom:4px;border-bottom:1px dashed var(--line);}
   .slotsec-t{font-size:13px;font-weight:700;color:var(--text2);}
   .slotsec-meta{font-size:11px;color:var(--text-faint);}
-  #sessslotbar .glk,.slotsechd .glk{cursor:pointer;display:inline-flex;align-items:center;color:#9aa3ad;background:none;border:1px solid var(--line);border-radius:5px;padding:2px 6px;flex:none;}
-  #sessslotbar .glk:hover,.slotsechd .glk:hover{background:#eef2f6;color:#555;}
-  #sessslotbar .glk .ico,.slotsechd .glk .ico{width:14px;height:14px;}
-  #sessslotbar .glk.locked,.slotsechd .glk.locked{background:#fff7df;border-color:#e6cf8a;color:#b8860b;}
-  #sessslotbar .glk.hempty:hover,.slotsechd .glk.hempty:hover{color:var(--warn);background:rgba(207,70,49,.12);}
+  #sessslotbar .glk,.slotsechd .glk,.sessdayhd .glk{cursor:pointer;display:inline-flex;align-items:center;color:#9aa3ad;background:none;border:1px solid var(--line);border-radius:5px;padding:2px 6px;flex:none;}
+  #sessslotbar .glk:hover,.slotsechd .glk:hover,.sessdayhd .glk:hover{background:#eef2f6;color:#555;}
+  #sessslotbar .glk .ico,.slotsechd .glk .ico,.sessdayhd .glk .ico{width:14px;height:14px;}
+  #sessslotbar .glk.locked,.slotsechd .glk.locked,.sessdayhd .glk.locked{background:#fff7df;border-color:#e6cf8a;color:#b8860b;}
+  #sessslotbar .glk.hempty:hover,.slotsechd .glk.hempty:hover,.sessdayhd .glk.hempty:hover{color:var(--warn);background:rgba(207,70,49,.12);}
   .sess-drophint{font-size:11px;color:var(--text-faint);text-align:center;padding:16px 4px;}
   #sesspool{width:260px;flex:none;background:var(--pool);border:1px solid var(--line);border-radius:8px;padding:8px;position:sticky;top:calc(var(--headerh,52px) + 6px);max-height:calc(100vh - var(--headerh,52px) - 16px);overflow:auto;}
   #sesspool h2{font-size:13px;margin:2px 0 6px;display:flex;align-items:center;gap:6px;}
@@ -196,8 +200,8 @@
   .sesscatgrp.exempt .sesscatname{text-decoration:line-through;opacity:.75;}
   /* columns = parallel sessions of a slot, as .room cards. auto-fit (not auto-fill) so cards stretch to fill the
      row instead of leaving phantom empty tracks; chips wrap inside each card so wide cards use their width. */
-  .sesscols{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px;align-items:stretch;min-width:0;}   /* wider cards → less crowded; stretch → cards in a row share one height */
-  .sesscols .room{min-height:96px;border-left:3px solid #c2c8cf;}   /* program-color accent (mirrors the 일정 보기 legend) */
+  .sesscols{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:10px;align-items:stretch;min-width:0;}   /* auto-FILL → uniform card width (orphans in the last row don't balloon to fill it) */
+  .sesscols .room{min-height:78px;border-left:3px solid #c2c8cf;}   /* program-color accent (mirrors the 일정 보기 legend) */
   .sesscols .room .roomchips{display:flex;flex-wrap:wrap;gap:5px;align-content:flex-start;}
   .sesscols .room .roomchips .chip{flex:1 1 200px;max-width:280px;}   /* chips fill the row, wrapping in wide cards */
   .sesscols .room .sess-drophint{flex:1 0 100%;}
@@ -236,7 +240,7 @@
   @media (max-width:640px){
     #session{padding:8px;gap:8px;}
     #sesspool{max-height:38vh;}
-    .sesscols{grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:8px;}
+    .sesscols{grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px;}
   }
   .room.over{border-color:var(--warn);background:#fff5f5;}
   .room.locked{background:#fff7df;border-color:#e6cf8a;}
@@ -1112,7 +1116,7 @@
 "use strict";
 // ⚑ index.html build version — shown bottom-right on the start screen. BUMP ON EACH DEPLOY.
 //   Format: vYYYY.MM.DD-N  (N = same-day build counter; reset to 1 on a new date).
-const APP_VERSION = "v2026.06.09-7";
+const APP_VERSION = "v2026.06.09-10";
 /* ============================================================
    ICMDA 2026 Room Assignment Dashboard (single file)
    - reads the live master .xlsx (columns mapped by HEADER NAME)
@@ -2253,15 +2257,44 @@ function eligibleForProg(p,prog){
   if(prog==="student")  return ev.includes("student");
   return true;
 }
+// ----- stream-series mirroring -----
+// Codes shaped PREFIX_<mid>_<group> (e.g. PS_1_001) form ONE series per (PREFIX, group): the middle number is
+// the day/instance, the trailing group is the track a participant registered for. Someone in a series attends it
+// EVERY day, so assigning/removing in one session mirrors to all siblings (same prefix + same trailing group).
+function sessSeriesOf(key){
+  const s=state.sessionList.find(x=>x.key===key); if(!s) return null;
+  const m=/^([A-Za-z]+)_\d+_(\d+)$/.exec(s.scode||""); return m?m[1]+"|"+m[2]:null;   // 3-part numeric codes only (MSI_01 / #1 / slot keys don't match)
+}
+function sessSeriesSiblings(key){
+  const sig=sessSeriesOf(key); if(!sig) return [];
+  return state.sessionList.filter(s=>s.key!==key && sessSeriesOf(s.key)===sig).map(s=>s.key);
+}
+function sessSeriesAdd(ids,targetKey){   // returns count of sibling sessions people were also added to (skips locked)
+  let n=0;
+  sessSeriesSiblings(targetKey).forEach(k=>{
+    if(state.sessionLocked[k]) return;
+    sessClearSlotConflicts(ids,k,null);                                 // each sibling sits in another slot — keep one-per-slot there too
+    const set=state.sessionAssign[k]||(state.sessionAssign[k]=new Set());
+    ids.forEach(id=>set.add(id)); n++;
+  });
+  return n;
+}
+function sessSeriesRemove(ids,fromKey){   // pull people out of every sibling of fromKey (skips locked)
+  sessSeriesSiblings(fromKey).forEach(k=>{
+    if(state.sessionLocked[k]) return;
+    const set=state.sessionAssign[k]; if(set) ids.forEach(id=>set.delete(id));
+  });
+}
 function sessAddPicks(key){
   if(!state.sessPicks.size){ toast("먼저 왼쪽에서 참가자를 선택하세요.","warn"); return; }
   const ids=[...state.sessPicks];
   const moved=sessClearSlotConflicts(ids,key,null);    // a person can hold only one session per time-slot
   const set=state.sessionAssign[key]||(state.sessionAssign[key]=new Set());
   ids.forEach(pid=>set.add(pid));
+  const sibs=sessSeriesAdd(ids,key);                   // stream series → also place in every sibling session
   state.sessPicks.clear(); renderSession();
   const label=(state.sessionList.find(x=>x.key===key)||{}).name||key;   // friendly session name, not the raw subsession key
-  toast(`${ids.length}명을 '${label}'에 배정했습니다.`+(moved.length?` (같은 시간대 ${moved.join(", ")}에서 이동)`:""),"ok");
+  toast(`${ids.length}명을 '${label}'에 배정했습니다.`+(sibs?` · 같은 스트림 ${sibs}개 세션에도 함께 배정`:"")+(moved.length?` (같은 시간대 ${moved.join(", ")}에서 이동)`:""),"ok");
 }
 // non-overlap rule: a participant may sit in at most ONE session per time-slot (day+time). Before assigning
 // `ids` to `targetKey`, pull them out of any OTHER session sharing targetKey's slot (skip fromKey — the caller
@@ -2301,13 +2334,16 @@ function sessConfirmEmpty(keys,label){
 function sessApplyDrop(ids, targetKey, fromKey){
   if(!targetKey || targetKey===fromKey) return;
   if(targetKey==="__sesspool__"){
-    if(fromKey){ const src=state.sessionAssign[fromKey]; if(src) ids.forEach(id=>src.delete(id)); }
+    if(fromKey){ const src=state.sessionAssign[fromKey]; if(src) ids.forEach(id=>src.delete(id)); sessSeriesRemove(ids,fromKey); }
     state.sessPicks.clear(); renderSession(); return;
   }
+  // remove first (source + its series), then add (target + its series) — so a within-series move nets to no change
+  // and a cross-series move cleanly switches every day's track.
+  if(fromKey){ const src=state.sessionAssign[fromKey]; if(src) ids.forEach(id=>src.delete(id)); sessSeriesRemove(ids,fromKey); }
   const moved=sessClearSlotConflicts(ids,targetKey,fromKey);   // enforce one-session-per-time-slot
   const set=state.sessionAssign[targetKey]||(state.sessionAssign[targetKey]=new Set());
   ids.forEach(id=>set.add(id));
-  if(fromKey){ const src=state.sessionAssign[fromKey]; if(src) ids.forEach(id=>src.delete(id)); }
+  sessSeriesAdd(ids,targetKey);                               // stream series → mirror into every sibling session
   state.sessPicks.clear(); renderSession();
   if(moved.length) toast(`같은 시간대 ${moved.join(", ")}에서 이동했습니다.`,"info");
 }
@@ -2434,8 +2470,12 @@ function sessEditCap(s, capEl, load){
   inp.addEventListener("dblclick",e=>e.stopPropagation());
 }
 
+let scrollToSessDay=()=>{};   // set by renderSession (in continuous day mode); lets the day pills jump-scroll
 function renderSession(){
-  const root=$("#session"); root.innerHTML="";
+  const root=$("#session");
+  const prevY=window.scrollY, wasBoard=!!root.querySelector("#sessboard");   // preserve scroll across in-view re-renders (assignments)
+  if(state._sessScroll){ window.removeEventListener("scroll",state._sessScroll); state._sessScroll=null; }   // drop the stale day-tracker
+  root.innerHTML="";
   if(!state.parties.length){ root.append(el("div","empty-hint","마스터 .xlsx 파일을 먼저 여세요.")); return; }
   if(!state.sessionList.length){ root.append(el("div","empty-hint","'일정' 탭에서 배정할 세션(Breakout/Stream 등)을 찾지 못했습니다.")); return; }
 
@@ -2477,8 +2517,8 @@ function renderSession(){
   else { state.sessSlot=null; if(!dayList.includes(state.sessDay)) state.sessDay = dayList[0]||null; }
   const dayMode = !state.sessSlot;
   const curSlot = state.sessSlot ? slotsMap.get(state.sessSlot) : null;
-  const showSlots = dayMode ? slots.filter(s=>s.day===state.sessDay) : [curSlot];   // slots whose columns are rendered
-  const scopeKeys = showSlots.flatMap(sl=>sl.sessions.map(x=>x.key));               // pool excludes anyone assigned within scope
+  // pool scope follows the day currently IN VIEW (state.sessDay, updated on scroll) — or the focused slot. Recomputed per fillPool.
+  const scopeKeysNow = ()=> (state.sessSlot ? (curSlot?[curSlot]:[]) : slots.filter(s=>s.day===state.sessDay)).flatMap(sl=>sl.sessions.map(x=>x.key));
 
   // ----- left: participant pool — scoped to the current slot (who's still unassigned THIS slot) -----
   const pool=el("div"); pool.id="sesspool"; if(state.sessPoolCollapsed) pool.classList.add("collapsed");
@@ -2504,7 +2544,7 @@ function renderSession(){
     const q=(state.sessFilter.q||"").toLowerCase();
     // who is already booked within the current scope (this slot, or the whole day) → excluded from the pool.
     // Plus a per-person total-session count, to badge people already booked elsewhere (still available here).
-    const inScope=new Set(); scopeKeys.forEach(k=>{ const st=state.sessionAssign[k]; if(st) st.forEach(id=>inScope.add(id)); });
+    const inScope=new Set(); scopeKeysNow().forEach(k=>{ const st=state.sessionAssign[k]; if(st) st.forEach(id=>inScope.add(id)); });
     const asgCount={}; Object.values(state.sessionAssign).forEach(set=>set&&set.forEach(id=>{ asgCount[id]=(asgCount[id]||0)+1; }));
     const match=p=>!inScope.has(p.id)&&(!q||p.name.toLowerCase().includes(q)||p.id.toLowerCase().includes(q)||(p.kname||"").toLowerCase().includes(q)||(p.aff||"").toLowerCase().includes(q));
     const groups=new Map();
@@ -2552,9 +2592,12 @@ function renderSession(){
     const g=el("div","sbday");
     const daySlots=slots.filter(s=>s.day===day);
     const dayActive = state.sessDay===day;
-    const lab=el("span","sbdaylab"+(dayActive&&dayMode?" on":"")+(dayActive&&!dayMode?" dim":"")); lab.textContent=dayWD(day);
-    lab.setAttribute("role","button"); lab.tabIndex=0; lab.title=`${dayWD(day)} — 이 날의 모든 시간대 보기`;
-    const pickDay=()=>{ if(state.sessDay===day && dayMode) return; state.sessDay=day; state.sessSlot=null; state.sessPicks.clear(); saveUI(); renderSession(); };
+    const lab=el("span","sbdaylab"+(dayActive&&dayMode?" on":"")+(dayActive&&!dayMode?" dim":"")); lab.textContent=dayWD(day); lab.dataset.day=day;
+    lab.setAttribute("role","button"); lab.tabIndex=0; lab.title=`${dayWD(day)} — 이 날로 이동`;
+    const pickDay=()=>{ state.sessPicks.clear();
+      if(!dayMode){ state.sessSlot=null; state.sessDay=day; saveUI(); renderSession(); requestAnimationFrame(()=>scrollToSessDay(day)); return; }   // leaving slot-focus → rebuild then jump
+      state.sessDay=day; saveUI(); scrollToSessDay(day);                                                                                          // continuous: just scroll
+      picker.querySelectorAll(".sbdaylab").forEach(p=>p.classList.toggle("on", p.dataset.day===day)); };
     lab.onclick=pickDay; lab.addEventListener("keydown",e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); pickDay(); } });
     g.append(lab);
     const row=el("div","sbslots");
@@ -2564,7 +2607,7 @@ function renderSession(){
       const allLk=keys.length && keys.every(k=>state.sessionLocked[k]);
       const on=sl.key===state.sessSlot;                       // highlighted only in single-slot mode
       const inDay=dayMode && sl.day===state.sessDay;           // shown (but not "on") when the whole day is open
-      const b=el("button","sbslot"+(on?" on":"")+(inDay?" inday":"")+(allLk?" alllocked":"")); b.type="button";
+      const b=el("button","sbslot"+(on?" on":"")+(inDay?" inday":"")+(allLk?" alllocked":"")); b.type="button"; b.dataset.day=sl.day;
       const tlab=slotTimeLabel(sl);
       b.innerHTML=`${esc(tlab)}<span class="n">${sl.sessions.length}개·${ppl}명</span>`+(allLk?" 🔒":"");
       b.title=`${dayWD(day)} ${tlab} — 세션 ${sl.sessions.length}개 · ${ppl}명 배정 (이 시간대만 보기)`+(allLk?" · 잠김":"");
@@ -2637,26 +2680,48 @@ function renderSession(){
                el("span","meta",`${curSlot.sessions.length}개 세션 · ${slotPpl}명 배정`));
     bar.append(...lockEmptyBtns(sKeys, slotLabel));
     right.append(bar, colsFor(curSlot));
-  } else {                                  // whole-day view: a bar + one section per time-slot
-    const dayKeys=showSlots.flatMap(sl=>sl.sessions.map(x=>x.key)), dayPpl=dayKeys.reduce((q,k)=>q+cnt(k),0);
-    const bar=el("div"); bar.id="sessslotbar";
-    bar.append(el("h3",null,dayWD(state.sessDay)),
-               el("span","meta",`${showSlots.length}개 시간대 · 세션 ${dayKeys.length}개 · ${dayPpl}명 배정`));
-    bar.append(...lockEmptyBtns(dayKeys, dayWD(state.sessDay)));
-    right.append(bar);
-    showSlots.forEach(sl=>{
-      const keys=sl.sessions.map(x=>x.key), ppl=keys.reduce((q,k)=>q+cnt(k),0);
-      const sec=el("div","slotsec");
-      const hd=el("div","slotsechd");
-      hd.append(el("span","slotsec-t", slotTimeLabel(sl)), el("span","slotsec-meta",`${sl.sessions.length}개·${ppl}명`));
-      hd.append(...lockEmptyBtns(keys, `${dayWD(sl.day)} ${slotTimeLabel(sl)}`.trim()));
-      sec.append(hd, colsFor(sl)); right.append(sec);
+  } else {                                  // continuous: EVERY day stacked → scrolling down rolls into the next day
+    dayList.forEach(day=>{
+      const dSlots=slots.filter(s=>s.day===day);
+      const dayWrap=el("div","sessday"); dayWrap.dataset.day=day;
+      const dayKeys=dSlots.flatMap(sl=>sl.sessions.map(x=>x.key)), dayPpl=dayKeys.reduce((q,k)=>q+cnt(k),0);
+      const bar=el("div","sessdayhd");
+      bar.append(el("h3",null,dayWD(day)),
+                 el("span","meta",`${dSlots.length}개 시간대 · 세션 ${dayKeys.length}개 · ${dayPpl}명 배정`));
+      bar.append(...lockEmptyBtns(dayKeys, dayWD(day)));
+      dayWrap.append(bar);
+      dSlots.forEach(sl=>{
+        const keys=sl.sessions.map(x=>x.key), ppl=keys.reduce((q,k)=>q+cnt(k),0);
+        const sec=el("div","slotsec");
+        const hd=el("div","slotsechd");
+        hd.append(el("span","slotsec-t", slotTimeLabel(sl)), el("span","slotsec-meta",`${sl.sessions.length}개·${ppl}명`));
+        hd.append(...lockEmptyBtns(keys, `${dayWD(sl.day)} ${slotTimeLabel(sl)}`.trim()));
+        sec.append(hd, colsFor(sl)); dayWrap.append(sec);
+      });
+      right.append(dayWrap);
     });
   }
 
   const board=el("div"); board.id="sessboard"; board.append(pool, right);
   fillPool();
   root.append(board);
+
+  // ----- continuous-scroll plumbing: jump-to-day + keep the sticky pool's scope on the day you've scrolled into -----
+  const dayEls=[...right.querySelectorAll(".sessday")];
+  scrollToSessDay=(d)=>{ const elm=dayEls.find(x=>x.dataset.day===d); if(elm) elm.scrollIntoView({behavior:"smooth",block:"start"}); };
+  if(wasBoard) window.scrollTo(0,prevY); else window.scrollTo(0,0);   // preserve place across in-view re-renders; top on fresh entry
+  if(dayMode && dayEls.length>1){
+    const headerH=(parseInt(getComputedStyle(document.documentElement).getPropertyValue("--headerh"))||52), lineY=headerH+110;
+    let raf=0;
+    const setActive=()=>{ raf=0; if(!document.body.contains(dayEls[0]) || root.style.display==="none") return;   // skip when the view is hidden (rects read 0)
+      let active=dayEls[0].dataset.day;                                    // the last day whose top has passed the sticky line = the one in view
+      for(const elm of dayEls){ if(elm.getBoundingClientRect().top<=lineY) active=elm.dataset.day; else break; }
+      if(active && active!==state.sessDay){ state.sessDay=active; saveUI(); sessFillPool();
+        picker.querySelectorAll(".sbdaylab").forEach(p=>p.classList.toggle("on", p.dataset.day===active));
+        picker.querySelectorAll(".sbslot").forEach(b=>b.classList.toggle("inday", b.dataset.day===active)); } };
+    const onScroll=()=>{ if(!raf) raf=requestAnimationFrame(setActive); };
+    window.addEventListener("scroll",onScroll,{passive:true}); state._sessScroll=onScroll; setActive();
+  }
 }
 function sessionCard(s,showParent){
   const set=state.sessionAssign[s.key]||new Set(), cap=state.sessionCap[s.key];
