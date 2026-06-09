@@ -149,7 +149,7 @@
   #sessright{flex:1;min-width:0;}
   /* slot picker (chips grouped by day) */
   /* days stack vertically; each day = label on the left + its time-slot chips wrapping to the right (no horizontal scroll) */
-  #sesspicker{position:sticky;top:calc(var(--headerh,52px) + 4px);z-index:6;background:var(--bg);display:flex;flex-direction:column;gap:7px;padding:6px 2px 9px;margin-bottom:10px;border-bottom:1px solid var(--line);}   /* sticky day/slot nav: jump + tracks the day you scroll into */
+  #sesspicker{position:sticky;top:var(--headerh,52px);z-index:6;background:var(--bg);display:flex;flex-direction:column;gap:7px;padding:8px 2px 9px;margin-bottom:10px;border-bottom:1px solid var(--line);}   /* sticky day/slot nav: flush under the header (no see-through gap) — jump + tracks the day you scroll into */
   .sbday{display:flex;gap:10px;align-items:flex-start;}
   .sbdaylab{flex:none;min-width:74px;text-align:center;font-size:11px;font-weight:700;color:var(--text2);background:#fff;border:1px solid var(--border);border-radius:7px;padding:4px 10px;cursor:pointer;user-select:none;white-space:nowrap;}
   .sbdaylab:hover{color:var(--primary);border-color:var(--primary);background:#fdecea;}
@@ -1116,7 +1116,7 @@
 "use strict";
 // ⚑ index.html build version — shown bottom-right on the start screen. BUMP ON EACH DEPLOY.
 //   Format: vYYYY.MM.DD-N  (N = same-day build counter; reset to 1 on a new date).
-const APP_VERSION = "v2026.06.09-10";
+const APP_VERSION = "v2026.06.09-11";
 /* ============================================================
    ICMDA 2026 Room Assignment Dashboard (single file)
    - reads the live master .xlsx (columns mapped by HEADER NAME)
