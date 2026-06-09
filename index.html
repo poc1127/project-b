@@ -1109,7 +1109,7 @@
 "use strict";
 // ⚑ index.html build version — shown bottom-right on the start screen. BUMP ON EACH DEPLOY.
 //   Format: vYYYY.MM.DD-N  (N = same-day build counter; reset to 1 on a new date).
-const APP_VERSION = "v2026.06.09-1";
+const APP_VERSION = "v2026.06.09-2";
 /* ============================================================
    ICMDA 2026 Room Assignment Dashboard (single file)
    - reads the live master .xlsx (columns mapped by HEADER NAME)
@@ -1467,11 +1467,12 @@ function loadMaster(arrbuf){
   }
   // default assignment: respect 배정숙소 pre-locks, then restore any prior 배정 result (배정객실ID, written by 마스터 업데이트)
   state.assign={}; state.locked={}; state.roomLocked={}; state.tlSel.clear(); state.deletedRows=[]; state.roomOrder={};
+  const booyInv = booyIsInv();                                 // 부영호텔 has real 객실 rows → behaves like any inventory hotel (no BOOY lock)
   state.parties.forEach(p=>{
-    if(p.pre.indexOf("부영호텔")>=0){ state.assign[p.id]="BOOY"; state.locked[p.id]=true; return; }   // off-inventory NOC pre-booking → locked
+    if(!booyInv && p.pre.indexOf("부영호텔")>=0){ state.assign[p.id]="BOOY"; state.locked[p.id]=true; return; }   // off-inventory NOC pre-booking → locked
     const rid=p.asgRoom;                                       // restore a previously exported assignment so it shows on initial load
     if(!rid) return;
-    if(rid.indexOf("부영호텔")>=0) { state.assign[p.id]="BOOY"; state.locked[p.id]=true; }   // "개별예약(부영호텔)" marker
+    if(!booyInv && rid.indexOf("부영호텔")>=0) { state.assign[p.id]="BOOY"; state.locked[p.id]=true; }   // "개별예약(부영호텔)" marker
     else if(state.roomById[rid]) state.assign[p.id]=rid;       // real room — restore unlocked (re-running 자동 배정 may reshuffle, same as live)
   });
   setActionsEnabled(true);
@@ -1672,8 +1673,12 @@ function autoAssign(){
   // unit is placed, so compatible()/score() read O(occupants) instead of rescanning state.assign.
   const occL={}, loadL={};
   for(const pid in state.assign){ const k=state.assign[pid]; if(k && k!=="BOOY"){ (occL[k]=occL[k]||[]).push(state.byId[pid]); loadL[k]=(loadL[k]||0)+state.byId[pid].hc; } }
-  const prefVenue = p => p.pre.indexOf("유어스")>=0?VEN.YOUUS
-        : (p.pre.indexOf("부영청소년")>=0||p.pre.indexOf("수련")>=0)?VEN.BYYTC : null;
+  const invH = inventoryHotels();
+  const prefVenue = p => {
+    for(const h of invH) if(p.pre.indexOf(h)>=0) return h;     // exact hotel name in 배정숙소 → that venue (incl. 부영호텔 when inventory)
+    return p.pre.indexOf("유어스")>=0?VEN.YOUUS
+         : (p.pre.indexOf("부영청소년")>=0||p.pre.indexOf("수련")>=0)?VEN.BYYTC : null;   // fuzzy aliases
+  };
   let units = state.parties.filter(p=> !state.locked[p.id] && !state.assign[p.id] && p.need!=="No");
   const rank = p => p.partySex==="MIX"?0 : p.team?1 : 2;
   units.sort((a,b)=>{
@@ -1715,14 +1720,18 @@ function autoAssign(){
 
 /* ---------- rendering ---------- */
 // ordered list of assignable hotels actually present in the 객실 data: the two named hotels first
-// (canonical order), then any extra hotels added to the tab, in first-appearance order. 부영호텔 is
-// off-inventory (NOC pre-booking via the "BOOY" marker, not real 객실 rows) and is handled separately.
+// (canonical order), then any extra hotels added to the tab, in first-appearance order.
+// 부영호텔 is normally off-inventory (NOC pre-booking via the "BOOY" marker, no 객실 rows). BUT if the
+// 객실 tab actually contains 부영호텔 rooms, it becomes a regular assignable hotel — see booyIsInv().
 function inventoryHotels(){
   const seen=new Set(), out=[];
   [VEN.BYYTC,VEN.YOUUS].forEach(h=>{ if(!seen.has(h)&&state.rooms.some(r=>r.hotel===h)){ seen.add(h); out.push(h); } });
-  state.rooms.forEach(r=>{ if(r.hotel && r.hotel!==VEN.BOOY && !seen.has(r.hotel)){ seen.add(r.hotel); out.push(r.hotel); } });
+  state.rooms.forEach(r=>{ if(r.hotel && !seen.has(r.hotel)){ seen.add(r.hotel); out.push(r.hotel); } });
   return out;
 }
+// 부영호텔 is treated as real inventory only when the 객실 tab supplies actual rooms for it; otherwise it
+// stays the off-inventory NOC roster (the "BOOY" assign marker). Gates every BOOY-marker code path.
+function booyIsInv(){ return state.rooms.some(r=>r.hotel===VEN.BOOY); }
 const VEN_CLASS={[VEN.BYYTC]:"byytc",[VEN.YOUUS]:"youus",[VEN.BOOY]:"booyoung"};
 const VX_PALETTE=["vx1","vx2","vx3","vx4","vx5"];
 function venueClass(hotel){
@@ -2600,7 +2609,7 @@ function sessionCard(s,showParent){
 function populateFilters(){
   const vsel=$("#tlvenue"), csel=$("#tlcat");
   vsel.length=1; csel.length=1;
-  [...inventoryHotels(),VEN.BOOY,"(미배정)"].forEach(v=>vsel.add(new Option(v,v)));
+  [...inventoryHotels(),...(booyIsInv()?[]:[VEN.BOOY]),"(미배정)"].forEach(v=>vsel.add(new Option(v,v)));
   [...new Set(state.parties.map(p=>p.cat).filter(Boolean))].sort().forEach(c=>csel.add(new Option(c,c)));
 }
 
@@ -2639,7 +2648,7 @@ function renderStats(issues){
     un,
     mk("방 불필요",noRoom),
     ...hotels.map(h=>venStat(h===VEN.BYYTC?"부영수련원":venShort(h),byHotel[h],capHotel[h])),
-    mk("부영호텔(NOC)",byBOOY),
+    ...(booyIsInv()?[]:[mk("부영호텔(NOC)",byBOOY)]),   // NOC chip only when 부영호텔 is off-inventory (else it's a normal venStat above)
   );
   // surfaced warning badge → jumps to the detail warning panel (DESIGN-5)
   const issueN=issues.length;
@@ -2835,7 +2844,7 @@ function setEmpty(isEmpty){
 }
 function renderVenues(){
   const root=$("#venues"); root.innerHTML="";
-  const order=[...inventoryHotels(),VEN.BOOY];      // every hotel in the 객실 data, NOC venue last
+  const order=[...inventoryHotels(),...(booyIsInv()?[]:[VEN.BOOY])];   // every hotel in the data; off-inventory NOC venue appended only when it has no real rooms
   const jumps=[];                                  // {label,id} for the mobile jump-to-floor control
   // collapsible venue header (accordion). Collapse state is keyed by element id.
   const venueHeader=(div,vKey,inner,lockHotel)=>{
@@ -2876,7 +2885,7 @@ function renderVenues(){
   order.forEach((hotel,vi)=>{
     const vId="ven-"+vi;
     const div=el("div","venue "+venueClass(hotel)); div.id=vId;
-    if(hotel===VEN.BOOY){
+    if(hotel===VEN.BOOY && !booyIsInv()){            // off-inventory NOC roster (no real rooms) — when 부영호텔 has rooms, fall through to normal venue rendering
       const occ=state.parties.filter(p=>state.assign[p.id]==="BOOY");
       venueHeader(div,vId,`${hotel} <span class="cap">· 외부 예약(NOC) · ${occ.reduce((s,p)=>s+p.hc,0)}명</span>`);
       jumps.push({label:`▸ ${venShort(hotel)}`, id:vId});
@@ -3228,7 +3237,7 @@ function renderTimeline(){
   const wrap=$("#tlrows"); const frag=document.createDocumentFragment();
   if(!rows.length){ wrap.replaceChildren(el("div","empty-hint","해당 조건의 참가자가 없습니다.")); return; }
   // ② group by hotel (horizontal split) · ⑤ foldable · custom vertical order
-  const order=[...inventoryHotels(),VEN.BOOY,"(미배정)"];
+  const order=[...inventoryHotels(),...(booyIsInv()?[]:[VEN.BOOY]),"(미배정)"];
   const groups={}; rows.forEach(p=>{ const v=partyVenue(p); (groups[v]=groups[v]||[]).push(p); });
   const pos={}; state.orderList.forEach((id,i)=>pos[id]=i);
   let shown=0; const CAP=500;
@@ -3257,7 +3266,7 @@ function renderTimeline(){
 function renderTLCards(rows, off629, planEnd, n){
   const wrap=$("#tlcards"); const frag=document.createDocumentFragment();
   if(!rows.length){ wrap.replaceChildren(el("div","empty-hint","해당 조건의 참가자가 없습니다.")); return; }
-  const order=[...inventoryHotels(),VEN.BOOY,"(미배정)"];
+  const order=[...inventoryHotels(),...(booyIsInv()?[]:[VEN.BOOY]),"(미배정)"];
   const groups={}; rows.forEach(p=>{ const v=partyVenue(p); (groups[v]=groups[v]||[]).push(p); });
   const pos={}; state.orderList.forEach((id,i)=>pos[id]=i);
   if(n==null) n=state.dates.length;   // fallback if called without the trimmed column count
@@ -3399,7 +3408,7 @@ function tlGripStart(p,grip,row,ev){
 }
 function assignToHotel(p,hotel){
   if(hotel==="(미배정)"){ delete state.assign[p.id]; return; }
-  if(hotel===VEN.BOOY){ state.assign[p.id]="BOOY"; return; }
+  if(hotel===VEN.BOOY && !booyIsInv()){ state.assign[p.id]="BOOY"; return; }   // off-inventory NOC marker; when 부영호텔 has rooms, pick a real room below
   let cands=state.rooms.filter(rm=>rm.hotel===hotel && compatible(rm,p));
   if(!cands.length){ toast(`${hotel}에 ${p.name} 배치 가능한 방이 없습니다 (성별/정원).`,"warn"); return; }
   const scored=cands.map(rm=>({rm,fit:rm.total-(roomLoad(rm.key)+p.hc)}));   // roomLoad once per candidate, not 2× per comparison
@@ -3550,7 +3559,7 @@ function openRowSheet(p,row){
      <div class="rs-sec">숙소 이동</div>
      <div class="rs-venues">
        ${inventoryHotels().map(h=>venBtn(h,h)).join("")}
-       ${venBtn(VEN.BOOY+"(NOC)",VEN.BOOY)}
+       ${booyIsInv()?"":venBtn(VEN.BOOY+"(NOC)",VEN.BOOY)}
        <button class="rsbtn${cur==null?" cur":""}" data-act="venue" data-h=""><span class="ic">${ico('undo')}</span>미배정${cur==null?ico('check'):""}</button>
      </div>
      <div class="rs-row">
@@ -3598,7 +3607,7 @@ function editCard(p){
   const venSel=`<select data-f="venue" id="edVenue">
       <option value="">미배정</option>
       ${inventoryHotels().map(h=>`<option value="${esc(h)}"${curVen===h?" selected":""}>${esc(h)}</option>`).join("")}
-      <option value="${esc(VEN.BOOY)}"${curVen===VEN.BOOY?" selected":""}>${esc(VEN.BOOY)} (외부예약)</option></select>`;
+      ${booyIsInv()?"":`<option value="${esc(VEN.BOOY)}"${curVen===VEN.BOOY?" selected":""}>${esc(VEN.BOOY)} (외부예약)</option>`}</select>`;
   const roomSelHtml=ven=>{
     if(!inventoryHotels().includes(ven)) return `<select data-f="room" id="edRoom" disabled><option value="">—</option></select>`;
     const rs=state.rooms.filter(r=>r.hotel===ven);
@@ -3688,7 +3697,7 @@ function saveCard(p){
   // assignment — a room must be tied to the selected 숙소; never bind a room from another hotel
   const ven=val("venue"); const room=val("room");
   if(!ven){ delete state.assign[p.id]; }
-  else if(ven===VEN.BOOY){ state.assign[p.id]="BOOY"; }
+  else if(ven===VEN.BOOY && !booyIsInv()){ state.assign[p.id]="BOOY"; }
   else if(room && state.roomById[room] && state.roomById[room].hotel===ven){ state.assign[p.id]=room; }
   else if(room){                   // chosen room isn't in the selected hotel → auto-pick within it instead
     toast(`선택한 객실이 ${venShort(ven)} 소속이 아니어서 해당 숙소 내 방으로 자동 배정했습니다.`,"warn");
