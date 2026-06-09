@@ -1109,7 +1109,7 @@
 "use strict";
 // ⚑ index.html build version — shown bottom-right on the start screen. BUMP ON EACH DEPLOY.
 //   Format: vYYYY.MM.DD-N  (N = same-day build counter; reset to 1 on a new date).
-const APP_VERSION = "v2026.06.09-2";
+const APP_VERSION = "v2026.06.09-3";
 /* ============================================================
    ICMDA 2026 Room Assignment Dashboard (single file)
    - reads the live master .xlsx (columns mapped by HEADER NAME)
@@ -2911,9 +2911,12 @@ function renderVenues(){
       const fId=`flr-${vi}-${gi}`, fCollapsed=!!state.collapsedRooms[fId];
       const fg=el("div","floorgrp"+(fCollapsed?" collapsed":"")); fg.id=fId;
       const occN=groups[gk].reduce((s,r)=>s+roomLoad(r.key),0);
+      // capacity from the real columns, clearly labeled — shown on every group header (range when the group mixes room sizes)
+      const rng=f=>{ const v=groups[gk].map(f); const lo=Math.min(...v),hi=Math.max(...v); return lo===hi?`${lo}`:`${lo}~${hi}`; };
+      const capTxt=`기준인원 ${rng(r=>r.base||r.total||0)} / 총가능인원 ${rng(r=>r.total||0)}`;
       const h3=el("h3"); h3.setAttribute("role","button"); h3.tabIndex=0;
       h3.setAttribute("aria-expanded", fCollapsed?"false":"true");
-      h3.innerHTML=`<span class="fchev" aria-hidden="true">▼</span><span>${esc(gk)}</span><span class="fcount">${groups[gk].length}실 · ${occN}명</span>`;
+      h3.innerHTML=`<span class="fchev" aria-hidden="true">▼</span><span>${esc(gk)}</span><span class="fcount">${groups[gk].length}실 · ${esc(capTxt)} · 배정 ${occN}명</span>`;
       const tog=()=>{ state.collapsedRooms[fId]=!fCollapsed; saveUI(); renderVenues(); };
       h3.addEventListener("click",tog);
       h3.addEventListener("keydown",e=>{ if(e.key==="Enter"||e.key===" "){e.preventDefault();tog();} });
