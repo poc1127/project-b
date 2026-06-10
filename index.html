@@ -198,18 +198,19 @@
   .sess-drophint{font-size:11px;color:var(--text-faint);text-align:center;padding:16px 4px;}
   #sesspool{width:260px;flex:none;background:var(--pool);border:1px solid var(--line);border-radius:8px;padding:8px;position:sticky;top:calc(var(--headerh,52px) + 6px);max-height:calc(100vh - var(--headerh,52px) - 16px);overflow:hidden;display:flex;flex-direction:column;}
   #sesspool h2{font-size:13px;margin:2px 0 6px;display:flex;align-items:center;gap:6px;}
-  /* 풀 너비 드래그 핸들: 풀과 세션 보드 사이(#sessboard gap)에 위치 → 풀 내부 스크롤바와 겹치지 않음 */
-  .poolresize{flex:none;align-self:stretch;width:10px;margin:0 -3px;cursor:col-resize;position:relative;display:flex;align-items:center;justify-content:center;}
-  .poolresize::before{content:"";position:absolute;top:0;bottom:0;left:50%;transform:translateX(-50%);width:2px;background:var(--line);}   /* 항상 보이는 세로 구분선 (전체 높이) */
+  /* 풀 너비 드래그 핸들: 풀과 세션 보드 사이(#sessboard gap)에 위치 → 풀 내부 스크롤바와 겹치지 않음.
+     STICKY + 뷰포트 높이로 고정 (풀과 동일) → 그립이 항상 화면 중앙에 보임. (align-self:stretch면 보드 전체 높이로 늘어나 그립이 화면 밖 중앙에 가버림) */
+  .poolresize{flex:none;align-self:flex-start;position:sticky;top:calc(var(--headerh,52px) + 6px);height:calc(100vh - var(--headerh,52px) - 16px);width:10px;margin:0 -3px;cursor:col-resize;display:flex;align-items:center;justify-content:center;z-index:5;}
+  .poolresize::before{content:"";position:absolute;top:0;bottom:0;left:50%;transform:translateX(-50%);width:2px;background:var(--border-strong);}   /* 보이는 세로 구분선 (화면 높이) */
   .poolresize::after{content:"⋮";display:flex;align-items:center;justify-content:center;position:relative;width:12px;height:42px;border-radius:6px;background:var(--primary);color:#fff;font-size:13px;line-height:1;letter-spacing:-1px;box-shadow:0 1px 4px rgba(0,0,0,.28);}   /* 항상 보이는 그립 (어디를 끌어야 하는지 명확히) */
   .poolresize:hover::after,.poolresize.drag::after{background:var(--primary-hover);transform:scaleY(1.12);}
   body.poolresizing,body.poolresizing *{cursor:col-resize!important;user-select:none!important;}
-  /* 1회성 코치마크: 풀 너비 조절 핸들을 처음 안내 (×나 드래그 시 닫히고 localStorage로 다시 안 뜸) */
-  .poolcoach{position:absolute;left:16px;top:6px;z-index:20;background:var(--ink);color:#fff;font-size:11.5px;line-height:1.45;padding:8px 22px 8px 11px;border-radius:8px;width:184px;box-shadow:0 4px 14px rgba(0,0,0,.28);}
+  /* 1회성 코치마크: 풀 너비 조절 핸들을 처음 안내 (×나 드래그 시 닫히고 localStorage로 다시 안 뜸). 그립(화면 중앙) 옆을 가리킴 */
+  .poolcoach{position:absolute;left:16px;top:50%;transform:translateY(-50%);z-index:20;background:var(--ink);color:#fff;font-size:11.5px;line-height:1.45;padding:8px 22px 8px 11px;border-radius:8px;width:184px;box-shadow:0 4px 14px rgba(0,0,0,.28);}
   .poolcoach b{font-weight:700;}
   .poolcoach .x{position:absolute;top:3px;right:4px;background:none;border:0;color:#cbd3dc;font-size:14px;line-height:1;padding:2px 4px;cursor:pointer;}
   .poolcoach .x:hover{color:#fff;background:none;}
-  .poolcoach::before{content:"";position:absolute;left:-7px;top:14px;border:7px solid transparent;border-right-color:var(--ink);border-left:0;}
+  .poolcoach::before{content:"";position:absolute;left:-7px;top:50%;transform:translateY(-50%);border:7px solid transparent;border-right-color:var(--ink);border-left:0;}
   #sesspool input.search{width:100%;padding:5px;margin-bottom:6px;border:1px solid var(--line);border-radius:4px;}
   #sesspool .searchwrap{margin-bottom:6px;}
   /* 풀 상단 고정: 제목+검색+세션 배정 상황 요약을 한 묶음으로 스크롤 컨테이너 최상단에 핀 (목록만 스크롤). top:-8px → 컨테이너 8px 패딩만큼 끌어올려 그 위로 칩이 비치지 않게 함 */
@@ -1217,7 +1218,7 @@
 "use strict";
 // ⚑ index.html build version — shown bottom-right on the start screen. BUMP ON EACH DEPLOY.
 //   Format: vYYYY.MM.DD-N  (N = same-day build counter; reset to 1 on a new date).
-const APP_VERSION = "v2026.06.10-29";
+const APP_VERSION = "v2026.06.10-30";
 /* ============================================================
    ICMDA 2026 Room Assignment Dashboard (single file)
    - reads the live master .xlsx (columns mapped by HEADER NAME)
