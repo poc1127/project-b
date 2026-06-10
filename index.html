@@ -199,9 +199,10 @@
   #sesspool{width:260px;flex:none;background:var(--pool);border:1px solid var(--line);border-radius:8px;padding:8px;position:sticky;top:calc(var(--headerh,52px) + 6px);max-height:calc(100vh - var(--headerh,52px) - 16px);overflow:hidden;display:flex;flex-direction:column;}
   #sesspool h2{font-size:13px;margin:2px 0 6px;display:flex;align-items:center;gap:6px;}
   /* 풀 너비 드래그 핸들: 풀과 세션 보드 사이(#sessboard gap)에 위치 → 풀 내부 스크롤바와 겹치지 않음 */
-  .poolresize{flex:none;align-self:stretch;width:8px;margin:0 -4px;cursor:col-resize;border-radius:4px;background:transparent;position:relative;}
-  .poolresize::before{content:"";position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:2px;height:40px;border-radius:2px;background:var(--line);}
-  .poolresize:hover::before,.poolresize.drag::before{background:var(--primary);}
+  .poolresize{flex:none;align-self:stretch;width:10px;margin:0 -3px;cursor:col-resize;position:relative;display:flex;align-items:center;justify-content:center;}
+  .poolresize::before{content:"";position:absolute;top:0;bottom:0;left:50%;transform:translateX(-50%);width:2px;background:var(--line);}   /* 항상 보이는 세로 구분선 (전체 높이) */
+  .poolresize::after{content:"⋮";display:flex;align-items:center;justify-content:center;position:relative;width:12px;height:42px;border-radius:6px;background:var(--primary);color:#fff;font-size:13px;line-height:1;letter-spacing:-1px;box-shadow:0 1px 4px rgba(0,0,0,.28);}   /* 항상 보이는 그립 (어디를 끌어야 하는지 명확히) */
+  .poolresize:hover::after,.poolresize.drag::after{background:var(--primary-strong,#1d4ed8);transform:scaleY(1.12);}
   body.poolresizing,body.poolresizing *{cursor:col-resize!important;user-select:none!important;}
   #sesspool input.search{width:100%;padding:5px;margin-bottom:6px;border:1px solid var(--line);border-radius:4px;}
   #sesspool .searchwrap{margin-bottom:6px;}
@@ -243,6 +244,10 @@
   .sessgb:not(.on):hover{background:var(--bg);}
   /* pool grouped by 카테고리(분류); each group header carries a "세션 불필요" exempt checkbox */
   .sesscatgrp{margin-bottom:7px;}
+  /* 풀을 넓히면 칩이 여러 칼럼으로 흐르도록: 그룹을 그리드로(헤더는 전체폭). auto-fill minmax → 폭에 맞춰 칼럼 수 자동 증가 (기본 260px=1칼럼, 넓히면 2~3칼럼) */
+  .sesspoollist .sesscatgrp{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:2px 6px;align-content:start;}
+  .sesspoollist .sesscathdr{grid-column:1/-1;}
+  .sesspoollist .sesscatgrp .chip{margin:0;min-width:0;}
   .sesscathdr.nox{cursor:default;}   /* 나이대/성별 그룹 헤더 — 체크박스 없음 */
   .sesscathdr{display:flex;align-items:center;gap:6px;font-size:11px;font-weight:700;color:var(--text2);padding:3px 2px;margin-bottom:3px;cursor:pointer;user-select:none;border-bottom:1px solid var(--line);}
   .sesscathdr input{margin:0;flex:none;cursor:pointer;}
@@ -1206,7 +1211,7 @@
 "use strict";
 // ⚑ index.html build version — shown bottom-right on the start screen. BUMP ON EACH DEPLOY.
 //   Format: vYYYY.MM.DD-N  (N = same-day build counter; reset to 1 on a new date).
-const APP_VERSION = "v2026.06.10-25";
+const APP_VERSION = "v2026.06.10-28";
 /* ============================================================
    ICMDA 2026 Room Assignment Dashboard (single file)
    - reads the live master .xlsx (columns mapped by HEADER NAME)
@@ -2815,7 +2820,7 @@ function renderSession(){
 
   // ----- 풀 그룹 보기 토글: 참가자를 분류 / 나이대 / 성별 / 확인필요 / 국가 중 하나로 묶어 보기 -----
   const gbWrap=el("div","sessgbtog"); gbWrap.setAttribute("role","group"); gbWrap.setAttribute("aria-label","참가자 그룹 보기 기준");
-  [["cat","분류"],["age","나이대"],["sex","성별"],["warn","확인필요"],["country","국가"]].forEach(([v,lbl])=>{
+  [["cat","분류"],["age","나이대"],["sex","성별"],["country","국가"],["warn","확인필요"]].forEach(([v,lbl])=>{
     const b=el("button","sessgb"+((state.sessGroupBy||"cat")===v?" on":"")); b.type="button"; b.textContent=lbl;
     b.setAttribute("aria-pressed",(state.sessGroupBy||"cat")===v?"true":"false");
     b.onclick=()=>{ if((state.sessGroupBy||"cat")===v) return; state.sessGroupBy=v;
@@ -3087,7 +3092,7 @@ function renderSession(){
   const rz=el("div","poolresize"); rz.title="드래그하여 참가자 풀 너비 조절 · 더블클릭하여 초기화"; rz.setAttribute("role","separator"); rz.setAttribute("aria-label","참가자 풀 너비 조절");
   rz.addEventListener("pointerdown",e=>{ e.preventDefault(); const startX=e.clientX, startW=pool.getBoundingClientRect().width;
     rz.classList.add("drag"); document.body.classList.add("poolresizing"); rz.setPointerCapture(e.pointerId);
-    const move=ev=>{ const w=Math.max(220,Math.min(520,Math.round(startW+(ev.clientX-startX)))); pool.style.width=w+"px"; state.sessPoolW=w; };
+    const move=ev=>{ const w=Math.max(220,Math.min(760,Math.round(startW+(ev.clientX-startX)))); pool.style.width=w+"px"; state.sessPoolW=w; };
     const up=()=>{ rz.classList.remove("drag"); document.body.classList.remove("poolresizing"); rz.removeEventListener("pointermove",move); rz.removeEventListener("pointerup",up); rz.removeEventListener("pointercancel",up); saveUI(); };
     rz.addEventListener("pointermove",move); rz.addEventListener("pointerup",up); rz.addEventListener("pointercancel",up); });
   rz.addEventListener("dblclick",()=>{ state.sessPoolW=null; pool.style.width=""; saveUI(); });   // 더블클릭 → 기본 너비로 초기화
@@ -3748,7 +3753,7 @@ function loadUI(){ try{
   if(typeof s.sessDay==="string") state.sessDay=s.sessDay;
   if(s.view==="rooms"||s.view==="timeline"||s.view==="schedule"||s.view==="session") state.view=s.view;
   if(s.sessSeriesNoPrompt) state.sessSeriesNoPrompt=true;
-  if(typeof s.sessPoolW==="number" && s.sessPoolW>=220 && s.sessPoolW<=520) state.sessPoolW=s.sessPoolW;
+  if(typeof s.sessPoolW==="number" && s.sessPoolW>=220 && s.sessPoolW<=760) state.sessPoolW=s.sessPoolW;
 }catch(e){} }
 function makeColGrip(ci){
   const g=el("div","colgrip");
