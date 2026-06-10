@@ -214,10 +214,11 @@
   .sesssumhdr .chev{flex:none;font-size:10px;color:var(--text-faint);}
   .sesssumbody{padding:1px 7px 6px;display:flex;flex-direction:column;gap:4px;}
   .sesssum.collapsed .sesssumbody{display:none;}
-  .sesssumrow{display:flex;align-items:center;gap:6px;font-size:10.5px;line-height:1.2;}
+  .sesssumrow{display:flex;align-items:center;gap:6px;font-size:10.5px;line-height:1.2;cursor:pointer;user-select:none;border-radius:4px;padding:1px 3px;margin:0 -3px;}   /* 행 클릭 → 세션 불필요 토글 */
+  .sesssumrow:hover{background:var(--bg);}
   .sesssumrow .dot{flex:none;width:8px;height:8px;border-radius:999px;}
   .sesssumrow .nm{flex:0 1 auto;min-width:40px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--text2);}
-  .sesssumrow.exempt .nm{flex:1 1 auto;}   /* exempt rows have no bar → name grows to push "세션 불필요" to the right edge */
+  .sesssumrow.exempt .nm{flex:1 1 auto;text-decoration:line-through;}   /* exempt rows have no bar → name grows to push "세션 불필요" to the right edge; 취소선으로 세션 불필요 표시 */
   .sesssumrow .nums{flex:none;font-weight:700;color:var(--text2);font-variant-numeric:tabular-nums;}
   .sesssumrow .nums b{color:var(--primary);}
   .sesssumrow .bar{position:static;flex:1 1 auto;min-width:24px;height:5px;border-radius:999px;background:var(--line);overflow:hidden;}  /* position:static beats the global .bar{position:absolute} (timeline) so this stays a flex item and grows to fill the row → summary spans the full pool width; nums then sit flush right */
@@ -563,6 +564,7 @@
   .card .cfoot{display:flex;gap:8px;justify-content:flex-end;padding:12px 20px;border-top:1px solid #eef0f3;flex:none;background:#fff;border-radius:0 0 14px 14px;}
   .card .cfoot button{padding:8px 18px;border-radius:8px;}
   .card .cfoot .cdanger{margin-right:auto;background:#fff;color:var(--danger);border:1px solid #e3b4ae;}
+  .card .cfoot .cdanger:only-child{margin-right:0;}   /* 단독 푸터(예: 세션 참가자 '기록 삭제')에서는 왼쪽으로 밀지 않고 우측 정렬 */
   .card .cfoot .cdanger:hover{background:#fdecea;border-color:#d49a93;}
   .card .carddup{margin:14px 22px 2px;display:flex;gap:8px;padding:9px 11px;border-radius:8px;font-size:12px;line-height:1.5;background:#fff6e6;border:1px solid #e7c98a;color:#5f4a1c;}   /* normal full-width block between header and body (NOT a grid child) → grid track sizing can never stretch it past the card edge */
   .card .carddup.d{background:#fdecec;border-color:#e3b4ae;color:#7a2018;}   /* email-match duplicate → red */
@@ -1198,7 +1200,7 @@
 "use strict";
 // ⚑ index.html build version — shown bottom-right on the start screen. BUMP ON EACH DEPLOY.
 //   Format: vYYYY.MM.DD-N  (N = same-day build counter; reset to 1 on a new date).
-const APP_VERSION = "v2026.06.10-22";
+const APP_VERSION = "v2026.06.10-24";
 /* ============================================================
    ICMDA 2026 Room Assignment Dashboard (single file)
    - reads the live master .xlsx (columns mapped by HEADER NAME)
@@ -2906,6 +2908,8 @@ function renderSession(){
         if(!exempt){ totAsg+=asg; totAll+=all; }
         const ci=catInfo(c), pct=all?Math.round(asg/all*100):0;
         const row=el("div","sesssumrow"+(exempt?" exempt":""));
+        row.title=exempt?`'${c}' — 세션 불필요 (클릭해 해제)`:`'${c}' — 클릭해 세션 불필요로 표시`;
+        row.onclick=()=>{ if(state.sessExempt.has(c)){ state.sessExempt.delete(c); } else { state.sessExempt.add(c); groups.get(c).forEach(p=>state.sessPicks.delete(p.id)); } fillPool(); };
         const dot=el("span","dot"); dot.style.background=ci.c;
         const nm=el("span","nm",c);
         const nums=el("span","nums"); nums.innerHTML=exempt?"세션 불필요":`<b>${asg}</b>/${all}`;
