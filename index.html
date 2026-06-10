@@ -216,10 +216,11 @@
   .sesssum.collapsed .sesssumbody{display:none;}
   .sesssumrow{display:flex;align-items:center;gap:6px;font-size:10.5px;line-height:1.2;}
   .sesssumrow .dot{flex:none;width:8px;height:8px;border-radius:999px;}
-  .sesssumrow .nm{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--text2);}
+  .sesssumrow .nm{flex:0 1 auto;min-width:40px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--text2);}
+  .sesssumrow.exempt .nm{flex:1 1 auto;}   /* exempt rows have no bar → name grows to push "세션 불필요" to the right edge */
   .sesssumrow .nums{flex:none;font-weight:700;color:var(--text2);font-variant-numeric:tabular-nums;}
   .sesssumrow .nums b{color:var(--primary);}
-  .sesssumrow .bar{flex:none;width:44px;height:5px;border-radius:999px;background:var(--line);overflow:hidden;}
+  .sesssumrow .bar{position:static;flex:1 1 auto;min-width:24px;height:5px;border-radius:999px;background:var(--line);overflow:hidden;}  /* position:static beats the global .bar{position:absolute} (timeline) so this stays a flex item and grows to fill the row → summary spans the full pool width; nums then sit flush right */
   .sesssumrow .bar>i{display:block;height:100%;background:var(--primary);border-radius:999px;}
   .sesssumrow.exempt{opacity:.5;}
   .sesssumrow.exempt .nums{color:var(--text-faint);font-weight:600;}
@@ -1189,7 +1190,7 @@
 "use strict";
 // ⚑ index.html build version — shown bottom-right on the start screen. BUMP ON EACH DEPLOY.
 //   Format: vYYYY.MM.DD-N  (N = same-day build counter; reset to 1 on a new date).
-const APP_VERSION = "v2026.06.10-16";
+const APP_VERSION = "v2026.06.10-18";
 /* ============================================================
    ICMDA 2026 Room Assignment Dashboard (single file)
    - reads the live master .xlsx (columns mapped by HEADER NAME)
@@ -2796,7 +2797,7 @@ function renderSession(){
 
   // ----- 풀 그룹 보기 토글: 참가자를 분류 / 나이대 / 성별 중 하나로 묶어 보기 -----
   const gbWrap=el("div","sessgbtog"); gbWrap.setAttribute("role","group"); gbWrap.setAttribute("aria-label","참가자 그룹 보기 기준");
-  [["cat","분류"],["age","나이대"],["sex","성별"]].forEach(([v,lbl])=>{
+  [["cat","분류"],["age","나이대"],["sex","성별"],["warn","확인필요"]].forEach(([v,lbl])=>{
     const b=el("button","sessgb"+((state.sessGroupBy||"cat")===v?" on":"")); b.type="button"; b.textContent=lbl;
     b.setAttribute("aria-pressed",(state.sessGroupBy||"cat")===v?"true":"false");
     b.onclick=()=>{ if((state.sessGroupBy||"cat")===v) return; state.sessGroupBy=v;
@@ -2857,15 +2858,19 @@ function renderSession(){
         plist.append(grp);
       });
     } else {
-      // ----- 나이대 / 성별 그룹 보기: 분류 exempt(세션 불필요)는 그대로 숨기되, 나머지를 선택한 기준으로 묶음 (체크박스 없음) -----
+      // ----- 나이대 / 성별 / 확인필요 그룹 보기: 분류 exempt(세션 불필요)는 그대로 숨기되, 나머지를 선택한 기준으로 묶음 (체크박스 없음) -----
       const ageKeyOf=p=>{ const ab=(p.band!=null&&p.band!=="")?p.band:ageBand(p.dob); return ab||"나이대 미상"; };
       const sexKeyOf=p=>p.partySex==="M"?"남성":p.partySex==="F"?"여성":p.partySex==="MIX"?"혼성":"성별 미상";
+      // 확인필요: 칩에 빨간/주황 ⚠ 경고가 붙는 사람만 묶음 — 시간 중복 배정 > 이메일 중복 레코드 > 이름 중복 레코드 (한 명은 가장 심각한 한 그룹에만). 경고 없으면 null → 제외.
+      const warnKeyOf=p=>{ if(state._sessConflict && state._sessConflict.pids.has(p.id)) return "시간 중복 배정"; const d=sessPoolDup(p); if(d) return d.severity==="danger"?"중복 레코드(이메일)":"중복 레코드(이름)"; return null; };
       const AGE_ORDER=["10세 미만","10대","20대","30대","40대","50대","60대","70대","80대","90대","나이대 미상"];
       const SEX_ORDER=["남성","여성","혼성","성별 미상"];
-      const keyOf=GB==="age"?ageKeyOf:sexKeyOf, ORDER=GB==="age"?AGE_ORDER:SEX_ORDER;
+      const WARN_ORDER=["시간 중복 배정","중복 레코드(이메일)","중복 레코드(이름)"];
+      const keyOf=GB==="age"?ageKeyOf:GB==="sex"?sexKeyOf:warnKeyOf, ORDER=GB==="age"?AGE_ORDER:GB==="sex"?SEX_ORDER:WARN_ORDER;
       const sexBadge=k=>k==="남성"?{c:"#3f7fbf",t:"남"}:k==="여성"?{c:"#c85d8e",t:"여"}:k==="혼성"?{c:"#8a6fc0",t:"혼"}:{c:"#9aa6b2",t:"?"};
+      const warnBadge=k=>k==="중복 레코드(이름)"?{c:"var(--warning-fill)",t:"⚠"}:{c:"var(--warn)",t:"⚠"};   // 이름 중복만 주황, 나머지(시간중복·이메일중복) 빨강
       const g2=new Map();
-      POOL.forEach(p=>{ if(state.sessExempt.has(p.cat||"(분류 없음)")) return; const k=keyOf(p); (g2.get(k)||g2.set(k,[]).get(k)).push(p); });
+      POOL.forEach(p=>{ if(state.sessExempt.has(p.cat||"(분류 없음)")) return; const k=keyOf(p); if(k==null) return; (g2.get(k)||g2.set(k,[]).get(k)).push(p); });
       const keys=[...g2.keys()].sort((a,b)=>{ let ia=ORDER.indexOf(a), ib=ORDER.indexOf(b); if(ia<0)ia=99; if(ib<0)ib=99; return ia-ib || a.localeCompare(b); });
       keys.forEach(k=>{
         const vis=g2.get(k).slice().sort((a,b)=>a.name.localeCompare(b.name)).filter(match);
@@ -2874,6 +2879,7 @@ function renderSession(){
         const grp=el("div","sesscatgrp");
         const hdr=el("div","sesscathdr nox");
         if(GB==="sex"){ const sb=sexBadge(k); const badge=el("span","sesscatbadge",sb.t); badge.style.background=sb.c; badge.setAttribute("aria-hidden","true"); hdr.append(badge); }
+        else if(GB==="warn"){ const wb=warnBadge(k); const badge=el("span","sesscatbadge",wb.t); badge.style.background=wb.c; badge.setAttribute("aria-hidden","true"); hdr.append(badge); }
         const nm=el("span","sesscatname",k);
         const ct=el("span","sesscatcount",`${vis.length}명`);
         hdr.append(nm,ct); grp.append(hdr);
@@ -2881,7 +2887,7 @@ function renderSession(){
         plist.append(grp);
       });
     }
-    if(!any){ const eh=el("div","empty-hint"); eh.textContent=q?`'${search.value}' 검색 결과가 없습니다`:(dayMode?"이 날 배정할 인원이 없습니다":"이 시간대에 배정할 인원이 없습니다"); plist.append(eh); }
+    if(!any){ const eh=el("div","empty-hint"); eh.textContent=q?`'${search.value}' 검색 결과가 없습니다`:(GB==="warn"?"확인이 필요한 인원이 없습니다 ✓":(dayMode?"이 날 배정할 인원이 없습니다":"이 시간대에 배정할 인원이 없습니다")); plist.append(eh); }
     const v=$("#sessright"); if(v) v.classList.toggle("picking", !!state.sessPicks.size);
     // --- 배정 상황 요약: per category, how many are booked in ≥1 session across the WHOLE program (scope-independent) ---
     if(csumBody){
@@ -2895,8 +2901,9 @@ function renderSession(){
         const dot=el("span","dot"); dot.style.background=ci.c;
         const nm=el("span","nm",c);
         const nums=el("span","nums"); nums.innerHTML=exempt?"세션 불필요":`<b>${asg}</b>/${all}`;
-        row.append(dot,nm,nums);
+        row.append(dot,nm);
         if(!exempt){ const bar=el("span","bar"); bar.title=`${pct}% 배정`; const bi=el("i"); bi.style.width=pct+"%"; bar.append(bi); row.append(bar); }
+        row.append(nums);
         csumBody.append(row);
       });
       if(csumTot) csumTot.textContent=totAll?`전체 ${totAll}명 중 ${totAsg}명`:"";
