@@ -297,10 +297,13 @@
   #venues.picking .room:hover{outline:2px solid var(--ok);background:#f1f8f1;}
   .pickhint{background:#e9f6ea;border:1px solid #b6e0b8;color:#256a2a;font-size:11px;font-weight:600;padding:5px 8px;border-radius:6px;margin-bottom:6px;line-height:1.35;}
   #warnpanel{padding:6px 16px;background:#fff8f8;border-top:1px solid #f0d0d0;font-size:12px;max-height:130px;overflow:auto;}
-  #warnpanel h3{margin:0 0 4px;font-size:12px;color:var(--warn);position:sticky;top:0;background:#fff8f8;padding:4px 0;display:flex;gap:6px;align-items:center;z-index:1;}
+  #warnpanel h3{margin:0 0 4px;font-size:12px;color:var(--warn);position:sticky;top:0;background:#fff8f8;padding:4px 0;display:flex;gap:6px;align-items:center;z-index:1;cursor:pointer;}
   #warnpanel .warnnote{color:#777;font-size:11px;margin:0 0 4px;}
   #warnpanel li{margin:1px 0;line-height:1.45;}
-  .warnchev{display:none;}   /* 점검 panel expand/collapse affordance — shown on mobile only */
+  /* 점검 panel collapses to just its summary bar (badges + chevron) at ALL widths; starts collapsed — click the bottom bar to expand the detail */
+  .warnchev{display:inline-block;margin-left:auto;color:var(--warn);font-size:12px;line-height:1;}
+  #warnpanel.collapsed{max-height:none;overflow:visible;}
+  #warnpanel.collapsed>:not(h3){display:none;}
   /* PC + tablet (≥641px): pin the 점검 panel to the viewport bottom so warnings stay visible without scrolling to the end of the rooms list; it rests in normal flow at the page bottom (nothing permanently hidden). Phones (≤640) keep the collapsible bottom panel instead. */
   @media (min-width:641px){
     #warnpanel{position:sticky;bottom:0;z-index:30;box-shadow:0 -2px 8px rgba(0,0,0,.06);}
@@ -676,11 +679,7 @@
     #main{padding:8px;gap:8px;}
     #pool{max-height:38vh;}
     #timeline{padding:4px 8px;}
-    /* 점검 panel: phones show only the summary line; tap the h3 (chevron ▸/▾) to expand */
-    #warnpanel h3{cursor:pointer;}
-    #warnpanel .warnchev{display:inline-block;margin-left:auto;color:var(--warn);font-size:12px;line-height:1;}
-    #warnpanel.collapsed{max-height:none;overflow:visible;}
-    #warnpanel.collapsed>:not(h3){display:none;}
+    /* 점검 panel collapse rules are now global (see base #warnpanel block) — applies on phones too */
     .card{width:96%;max-height:90vh;}
     .card .cbody{grid-template-columns:1fr;gap:2px 0;}                    /* edit mode: labels above values, single column */
     .card .cbody .k{margin-top:6px;}
@@ -1129,7 +1128,7 @@
 "use strict";
 // ⚑ index.html build version — shown bottom-right on the start screen. BUMP ON EACH DEPLOY.
 //   Format: vYYYY.MM.DD-N  (N = same-day build counter; reset to 1 on a new date).
-const APP_VERSION = "v2026.06.10-3";
+const APP_VERSION = "v2026.06.10-7";
 /* ============================================================
    ICMDA 2026 Room Assignment Dashboard (single file)
    - reads the live master .xlsx (columns mapped by HEADER NAME)
@@ -3310,14 +3309,14 @@ function renderWarnings(issues){
   const wp=$("#warnpanel"); wp.innerHTML="";
   if(issues===undefined) issues=computeIssues();
   const un=state.parties.filter(p=>p.need!=="No"&&!state.assign[p.id]).reduce((s,p)=>s+p.hc,0);
-  wp.classList.toggle("collapsed", !state.warnOpen);   // mobile: show only the summary line until tapped (desktop CSS ignores .collapsed)
+  wp.classList.toggle("collapsed", !state.warnOpen);   // all widths: show only the summary bar until clicked (default collapsed)
   const wh=el("h3");
   wh.append(el("span","pill "+(issues.length?"warn":"ok"),`경고 ${issues.length}건`));
   if(un) wh.append(el("span","pill warn",`미배정 ${un}명`));
-  const chev=el("span","warnchev",state.warnOpen?"▾":"▸");
+  const chev=el("span","warnchev",state.warnOpen?"▾":"▴");   // bottom-docked bar: ▴ = click to expand upward, ▾ = collapse
   wh.append(chev); wh.title="점검 결과 펼치기 / 접기";
   wh.addEventListener("click",()=>{ state.warnOpen=!state.warnOpen;
-    wp.classList.toggle("collapsed",!state.warnOpen); chev.textContent=state.warnOpen?"▾":"▸"; syncTop(); });
+    wp.classList.toggle("collapsed",!state.warnOpen); chev.textContent=state.warnOpen?"▾":"▴"; syncTop(); });
   wp.append(wh);
   wp.append(el("div","warnnote","아래는 배정 점검 결과입니다 — 정원 초과, 성별/조건 불일치, 그리고 같은 묶음(그룹)이 여러 방에 흩어진 경우를 안내합니다."));
   if(!issues.length){ const d=el("div"); d.innerHTML=un?"용량/성별 충돌 없음. 미배정 인원을 수동 배치하세요.":`문제 없음 ${ico('check')}`; wp.append(d); return; }
@@ -3344,17 +3343,30 @@ function partyRoomInfo(p){
   return {ven:null, vshort:"미배정", rno:"미배정", full:"미배정", cap:null};
 }
 function computeDups(){                       // flag rows sharing a name or email (duplicate participant)
-  const byName={}, byEmail={}; state.dupInfo={};
+  const byName={}, byEmail={}; state.dupInfo={}; state.dupWhy={};
   state.parties.forEach(p=>{
     const nk=(p.name||"").trim().toUpperCase(); if(nk){(byName[nk]=byName[nk]||[]).push(p.id);}
     const ek=(p.email||"").trim().toLowerCase(); if(ek){(byEmail[ek]=byEmail[ek]||[]).push(p.id);}
   });
-  const add=ids=>{ if(ids.length>1) ids.forEach(id=>{
+  const add=(ids,kind,key)=>{ if(ids.length>1) ids.forEach(id=>{
     const others=ids.filter(x=>x!==id);
     state.dupInfo[id]=Array.from(new Set([...(state.dupInfo[id]||[]),...others]));
+    const w=state.dupWhy[id]=state.dupWhy[id]||{name:null,email:null};   // record WHICH field collided (for the hover tooltip)
+    if(kind==="name") w.name=key; else w.email=key;
   }); };
-  Object.values(byName).forEach(add); Object.values(byEmail).forEach(add);
+  Object.entries(byName).forEach(([k,ids])=>add(ids,"name",k));
+  Object.entries(byEmail).forEach(([k,ids])=>add(ids,"email",k));
   state.dups=new Set(Object.keys(state.dupInfo));
+}
+// Build the duplicate-flag hover tooltip: states WHY (같은 이름 / 같은 이메일 + the shared value) and WHO it clashes with.
+function dupTip(p){
+  const w=(state.dupWhy||{})[p.id]||{};
+  const others=(state.dupInfo[p.id]||[]).map(id=>state.byId[id]?`${state.byId[id].name}(${id})`:id).join(", ");
+  const reasons=[];
+  if(w.name)  reasons.push("같은 이름");
+  if(w.email) reasons.push(`같은 이메일(${w.email})`);
+  const why=reasons.length?reasons.join(" · "):"동일 이름/이메일";
+  return `중복 의심 — ${why}`+(others?`\n같은 정보의 인원: ${others}`:"");
 }
 function applyColW(){
   const mobile = window.innerWidth<=640;
@@ -3378,12 +3390,11 @@ function syncTop(){                                   // keep panels sized to th
   applyColW();   // re-evaluate the night-track floor for the new width
 }
 const UIKEY="icmda_ui";
-function saveUI(){ try{ localStorage.setItem(UIKEY, JSON.stringify({colW:state.colW, collapsed:state.collapsed, collapsedRooms:state.collapsedRooms, sessFolded:state.sessFolded, sessSlot:state.sessSlot, sessDay:state.sessDay, view:state.view})); }catch(e){} }
+function saveUI(){ try{ localStorage.setItem(UIKEY, JSON.stringify({colW:state.colW, collapsedRooms:state.collapsedRooms, sessFolded:state.sessFolded, sessSlot:state.sessSlot, sessDay:state.sessDay, view:state.view})); }catch(e){} }   // timeline 'collapsed' is intentionally NOT persisted → 숙소 타임라인 always defaults to fully expanded
 function loadUI(){ try{
   const s=JSON.parse(localStorage.getItem(UIKEY)||"{}");
   if(Array.isArray(s.colW) && s.colW.length===state.colW.length) state.colW=s.colW.map(Number);
   if(state.colW[0]<70) state.colW[0]=74;   // ensure the ID column fits the relocated drag handle (⠿) + 'P0001'
-  if(s.collapsed && typeof s.collapsed==="object") state.collapsed=s.collapsed;
   if(s.collapsedRooms && typeof s.collapsedRooms==="object") state.collapsedRooms=s.collapsedRooms;
   if(s.sessFolded && typeof s.sessFolded==="object") state.sessFolded=s.sessFolded;
   if(typeof s.sessSlot==="string") state.sessSlot=s.sessSlot;
@@ -3488,7 +3499,7 @@ function renderTimeline(){
   const order=[...inventoryHotels(),...(booyIsInv()?[]:[VEN.BOOY]),"(미배정)"];
   const groups={}; rows.forEach(p=>{ const v=partyVenue(p); (groups[v]=groups[v]||[]).push(p); });
   const pos={}; state.orderList.forEach((id,i)=>pos[id]=i);
-  let shown=0; const CAP=500;
+  let shown=0, openTotal=0; const CAP=1000;   // PER-GROUP cap → each venue expands independently (a big group can't starve the others); high enough that real venues fully expand, still a guard against pathological data; openTotal counts EXPANDED rows so a collapse doesn't fake the overflow notice
   order.forEach(v=>{
     const list=groups[v]; if(!list||!list.length) return;
     list.sort((a,b)=> (pos[a.id]??1e9)-(pos[b.id]??1e9));
@@ -3503,9 +3514,11 @@ function renderTimeline(){
     gh.onclick=()=>{ state.collapsed[v]=open; saveUI(); renderTimeline(); };
     frag.append(gh);
     if(!open) return;
-    list.forEach((p,ri)=>{ if(shown<CAP){ const r=tlRow(p,n,off629,planEnd); if(ri%2) r.classList.add("alt"); frag.append(r); shown++; } });
+    openTotal+=list.length;
+    let gShown=0;
+    list.forEach((p,ri)=>{ if(gShown<CAP){ const r=tlRow(p,n,off629,planEnd); if(ri%2) r.classList.add("alt"); frag.append(r); gShown++; shown++; } });
   });
-  if(shown<rows.length) frag.append(el("div","muted",`… 외 ${rows.length-shown}명 (검색/필터로 좁혀 보세요)`));
+  if(shown<openTotal) frag.append(el("div","muted",`… 외 ${openTotal-shown}명 (검색/필터로 좁혀 보세요)`));
   wrap.replaceChildren(frag);
   updateGanttFades();
   updateTlSelHint();
@@ -3550,7 +3563,7 @@ function tlCard(p,n){
   if(p.stay) card.append(el("span","nts",`${stayNights(p)}박`), el("span","dts",`${md(p.arr)}~${md(p.dep)}`));
   else       card.append(el("span","nts"), el("span","dts nostay","숙박없음"));
   const d=el("span","dupflag");                                    // always rendered (empty unless dup) → reserved slot keeps columns aligned
-  if(state.dups&&state.dups.has(p.id)){ d.innerHTML=ico('alert'); d.title="중복 의심 — 동일 이름/이메일"; }
+  if(state.dups&&state.dups.has(p.id)){ d.innerHTML=ico('alert'); d.title=dupTip(p); }
   card.append(d, el("span","idc",p.id), el("span","chev","›"));
   const open=()=>openRowSheet(p,card);
   card.onclick=()=>{ if(lpFired) return; open(); };          // tap → action sheet (long-press handles multi-select)
@@ -3678,8 +3691,7 @@ function tlRow(p,n,off629,planEnd){
   who.append(nm); who.title="더블클릭/길게 누르기: 상세";
   if(state.dups && state.dups.has(p.id)){
     row.classList.add("dup");
-    const others=(state.dupInfo[p.id]||[]).map(id=>state.byId[id]?`${state.byId[id].name}(${id})`:id).join(", ");
-    const d=el("span","dupflag"); d.innerHTML=ico('alert'); d.title=`중복 의심 — 동일 이름/이메일: ${others}`; who.append(d);
+    const d=el("span","dupflag"); d.innerHTML=ico('alert'); d.title=dupTip(p); who.append(d);
   }
   who.addEventListener("dblclick",()=>openCard(p));
   attachLongPress(who,()=>openRowSheet(p,row));          // touch: long-press opens the row action sheet
