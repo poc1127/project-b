@@ -563,6 +563,11 @@
   .card .cfoot button{padding:8px 18px;border-radius:8px;}
   .card .cfoot .cdanger{margin-right:auto;background:#fff;color:var(--danger);border:1px solid #e3b4ae;}
   .card .cfoot .cdanger:hover{background:#fdecea;border-color:#d49a93;}
+  .card .carddup{display:flex;gap:8px;margin:0 0 12px;padding:9px 11px;border-radius:8px;font-size:12px;line-height:1.5;background:#fff6e6;border:1px solid #e7c98a;color:#5f4a1c;}
+  .card .carddup.d{background:#fdecec;border-color:#e3b4ae;color:#7a2018;}   /* email-match duplicate → red */
+  .card .carddup svg{width:15px;height:15px;flex:none;margin-top:1px;}
+  .card .carddup ul{margin:3px 0 4px;padding-left:16px;}
+  .card .carddup .hint{display:block;opacity:.82;font-size:11px;}
   .card .sec{grid-column:1/-1;display:flex;align-items:center;gap:8px;margin:18px 0 4px;padding-bottom:7px;border-bottom:1px solid #edf0f3;font-weight:700;font-size:12.5px;letter-spacing:.02em;color:var(--ink);}
   .card .sec::before{content:"";width:4px;height:14px;border-radius:2px;background:var(--catc,var(--primary));flex:none;}
   .card .cbody>.sec:first-child{margin-top:0;}
@@ -1190,7 +1195,7 @@
 "use strict";
 // ⚑ index.html build version — shown bottom-right on the start screen. BUMP ON EACH DEPLOY.
 //   Format: vYYYY.MM.DD-N  (N = same-day build counter; reset to 1 on a new date).
-const APP_VERSION = "v2026.06.10-18";
+const APP_VERSION = "v2026.06.10-19";
 /* ============================================================
    ICMDA 2026 Room Assignment Dashboard (single file)
    - reads the live master .xlsx (columns mapped by HEADER NAME)
@@ -1566,7 +1571,7 @@ function loadMaster(arrbuf){
     toast(`객실ID가 한 숙소에 고유하지 않습니다 — 방-숙소 연결이 모호합니다: ${list}`,"err",9000);
   }
   // default assignment: respect 배정숙소 pre-locks, then restore any prior 배정 result (배정객실ID, written by 마스터 업데이트)
-  state.assign={}; state.locked={}; state.roomLocked={}; state.tlSel.clear(); state.deletedRows=[]; state.roomOrder={};
+  state.assign={}; state.locked={}; state.roomLocked={}; state.tlSel.clear(); state.deletedRows=[]; state.sessDeletedRows=[]; state.roomOrder={};
   const booyInv = booyIsInv();                                 // 부영호텔 has real 객실 rows → behaves like any inventory hotel (no BOOY lock)
   state.parties.forEach(p=>{
     if(!booyInv && p.pre.indexOf("부영호텔")>=0){ state.assign[p.id]="BOOY"; state.locked[p.id]=true; return; }   // off-inventory NOC pre-booking → locked
@@ -2263,7 +2268,7 @@ function parseSessParticipants(aoa){
     const band=(/^\d{1,2}대$/.test(ageRaw) && ageRaw!=="0대") ? ageRaw : "";              // drop junk 나이대 (0대/Unknown/#VALUE!/#NUM!) → unknown
     const sx=col(row,"성별").toUpperCase();
     const region=(col(row,"지역").split("/")[0]||"").trim();                              // "South Africa/" / "Korea…/Korea…" → "South Africa" / "Korea…"
-    out.push({ _sess:true, id, name:col(row,"참가자 이름")||id, cat:col(row,"참가자 카테고리")||"(분류 없음)",
+    out.push({ _sess:true, _row:r, id, name:col(row,"참가자 이름")||id, cat:col(row,"참가자 카테고리")||"(분류 없음)",   // _row → source row in '세션 참가자' for surgical delete on export
       band, sex:(sx==="M"?"M":sx==="F"?"F":"?"), partySex:(sx==="M"?"M":sx==="F"?"F":"?"),
       region, email:col(row,"이메일"), pay:col(row,"결제여부"), kname:"", aff:"" });
   }
@@ -2565,7 +2570,7 @@ function sessChip(p, fromKey, prog){
   // left pane (pool): duplicate-record warning — same human listed twice. right pane (occupant): time-overlap + duplicate-record across sessions.
   const issue = inPool ? sessPoolDup(p) : sessChipIssues(p, fromKey);
   if(issue) c.classList.add(issue.severity==="danger"?"sessdup":"sessdupw");
-  const nm=el("span","nm",((issue||!elg)?"⚠ ":"")+p.name + (p.kname?` (${p.kname})`:""));
+  const nm=el("span","nm",((issue||!elg)?"⚠️ ":"")+p.name + (p.kname?` (${p.kname})`:""));   // ⚠️ 이모지 — OS가 노랑 삼각형으로 렌더(심각도는 칩 외곽선이 위험=빨강/경고=주황으로 구분)
   nm.title=`${p.name}${p.kname?` (${p.kname})`:""} · ${p.id} · ${p.cat}`+(p.aff?` · ${p.aff}`:"")+(p.event?` · ${p.event}`:"");
   if(inPool){                                          // age-decade pill (참가자 pool only — age matters for session balancing)
     const ab=(p.band!=null)?p.band:ageBand(p.dob);     // 세션 참가자 carries 나이대 directly (p.band); accommodation parties derive from 생년월일
@@ -4092,12 +4097,16 @@ function openCard(p){
     const srows=[["참가자 카테고리",p.cat],["나이대",p.band],["성별",sx],["지역",p.region],["이메일",p.email],["결제여부",p.pay]];
     let sb=""; srows.forEach(([k,v])=>{ if(v==null||v==="") return;
       sb+=`<div class="field"><div class="k">${k}</div><div class="v">${String(v).replace(/&/g,"&amp;").replace(/</g,"&lt;")}</div></div>`; });
+    const dup=sessPoolDup(p);
+    const dupHtml = dup ? `<div class="carddup ${dup.severity==="danger"?"d":"w"}">${ico('alert')}<div><b>중복 의심 레코드</b><ul>${dup.lines.map(l=>`<li>${esc(l.t)}</li>`).join("")}</ul><span class="hint">같은 사람이 중복 등록된 경우, 아래 '기록 삭제'로 이 레코드를 데이터에서 완전히 지울 수 있습니다(다른 레코드는 그대로 유지).</span></div></div>` : "";
     card.innerHTML=
       `<div class="chead" style="background:${ci.c}">
          <div class="htitle"><h2>${p.name||p.id}</h2>
          <div class="sub">${p.id} · ${p.cat||""}</div></div>
          <button class="cx" onclick="closeCard()">×</button>
-       </div><div class="cbody">${sb}</div>`;
+       </div><div class="cbody">${dupHtml}${sb}</div>
+       <div class="cfoot"><button class="cdanger" id="sessDelBtn">기록 삭제</button></div>`;
+    $("#sessDelBtn").onclick=()=>sessDeleteRecord(p);
     $("#modal").style.display="flex"; return;
   }
   const venue=partyVenue(p); const a=state.assign[p.id];
@@ -4264,6 +4273,24 @@ function deleteCard(p){
       state.tlSel.delete(p.id);
       closeCard(); render();
       toast(`'${p.name||p.id}' 기록을 삭제했습니다. (내보내기 시 마스터에 반영)`,"ok",4000);
+    }
+  });
+}
+// 세션 참가자 pool record (_sess) → delete entirely: drop from the pool + every session assignment, and mark the
+// source row so 마스터 업데이트 blanks it in the '세션 참가자' tab (so it's gone from the exported master too).
+function sessDeleteRecord(p){
+  dialog({
+    title:"세션 참가자 기록 삭제",
+    body:`'${p.name||p.id}' (${p.id}) 기록을 세션 참가자 데이터에서 완전히 삭제합니다.\n모든 세션 배정에서 제거되고, 마스터 내보내기 시 '세션 참가자' 탭의 해당 행이 비워집니다. 되돌릴 수 없습니다.`,
+    okText:"삭제", cancelText:"취소", danger:true,
+    onOk:()=>{
+      if(p._row!=null){ state.sessDeletedRows=state.sessDeletedRows||[]; state.sessDeletedRows.push(p._row); }
+      state.sessParticipants=(state.sessParticipants||[]).filter(x=>x.id!==p.id);
+      if(state.sessById) delete state.sessById[p.id];
+      Object.values(state.sessionAssign).forEach(set=>set&&set.delete(p.id));   // pull from every session
+      if(state.sessPicks) state.sessPicks.delete(p.id);
+      closeCard(); renderSession();
+      toast(`'${p.name||p.id}' 세션 참가자 기록을 삭제했습니다. (내보내기 시 마스터에 반영)`,"ok",4000);
     }
   });
 }
@@ -4604,6 +4631,16 @@ async function exportMaster(){
       delCount++; changed++;
     });
   }
+  // deleted 세션 참가자 records → blank their rows in the '세션 참가자' source tab (vanish from the exported master)
+  let sessDelCount=0;
+  if(state.sessDeletedRows && state.sessDeletedRows.length && wb.Sheets["세션 참가자"] && paths["세션 참가자"]){
+    const sp=wb.Sheets["세션 참가자"]; const spR=XLSX.utils.decode_range(sp['!ref']);
+    const SP=writerFor("세션 참가자");
+    [...new Set(state.sessDeletedRows)].forEach(r=>{
+      for(let cc=spR.s.c; cc<=spR.e.c; cc++) SP.set(r,cc,"");
+      sessDelCount++; changed++;
+    });
+  }
   const lastNewCol=addNightCols.length?addNightCols[addNightCols.length-1]:NC.객실ID;
   P.setDim(Math.max(range.e.c,lastNewCol), range.e.r);     // extend the sheet dimension to cover the new columns
   // write edited room capacities back to the '객실' tab (추가인원·총가능인원). Surgical: only changed rooms.
@@ -4666,6 +4703,7 @@ async function exportMaster(){
   let msg=`'${outName}' 저장 완료 — 변경 ${changed}건.\n· 배정동/배정층/배정호실/배정객실ID 열을 추가했습니다.\n· 총인원·도착일·출발일·숙박일수는 수식이라 그대로 두었습니다.`;
   if(capChanged) msg+=`\n· 객실 수용(추가인원·총가능인원) ${capChanged}건을 '객실' 탭에 반영했습니다.`;
   if(delCount) msg+=`\n· 삭제한 기록 ${delCount}건의 행을 '참가자' 탭에서 비웠습니다.`;
+  if(sessDelCount) msg+=`\n· 삭제한 세션 참가자 기록 ${sessDelCount}건의 행을 '세션 참가자' 탭에서 비웠습니다.`;
   if(schedChanged) msg+=`\n· 일정 ${schedChanged}건을 '일정' 탭에 반영했습니다.`;
   if(sessRows) msg+=`\n· 세션 배정(참가자 ${sessRows}명)을 '세션배정' 탭에 저장했습니다.`;
   if(verNoteChanged) msg+=`\n· 요약 시트의 버전 표기를 v${newVer}로 갱신했습니다.`;
