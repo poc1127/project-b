@@ -1129,7 +1129,7 @@
 "use strict";
 // ⚑ index.html build version — shown bottom-right on the start screen. BUMP ON EACH DEPLOY.
 //   Format: vYYYY.MM.DD-N  (N = same-day build counter; reset to 1 on a new date).
-const APP_VERSION = "v2026.06.10-1";
+const APP_VERSION = "v2026.06.10-3";
 /* ============================================================
    ICMDA 2026 Room Assignment Dashboard (single file)
    - reads the live master .xlsx (columns mapped by HEADER NAME)
@@ -1765,13 +1765,15 @@ function inventoryHotels(){
   state.rooms.forEach(r=>{ if(r.hotel && !seen.has(r.hotel)){ seen.add(r.hotel); out.push(r.hotel); } });
   return out;
 }
-// 부영호텔 is treated as real inventory only when the 객실 tab supplies actual rooms for it; otherwise it
-// stays the off-inventory NOC roster (the "BOOY" assign marker). Gates every BOOY-marker code path.
-function booyIsInv(){ return state.rooms.some(r=>r.hotel===VEN.BOOY); }
+// 부영호텔 is treated as real inventory whenever the 객실 tab supplies rooms for it — matched by content
+// ("부영호텔&리조트" etc.), NOT the literal VEN.BOOY, so the venue list stays driven purely by 객실. When true,
+// every off-inventory NOC code path (the synthesized 부영호텔 box, NOC stat chip, "BOOY" marker/lock) is gated off.
+function booyIsInv(){ return state.rooms.some(r=>r.hotel && (r.hotel.indexOf("부영호텔")>=0 || r.hotel.indexOf("리조트")>=0)); }
 const VEN_CLASS={[VEN.BYYTC]:"byytc",[VEN.YOUUS]:"youus",[VEN.BOOY]:"booyoung"};
 const VX_PALETTE=["vx1","vx2","vx3","vx4","vx5"];
 function venueClass(hotel){
   if(VEN_CLASS[hotel]) return VEN_CLASS[hotel];
+  if(hotel && (hotel.indexOf("부영호텔")>=0 || hotel.indexOf("리조트")>=0)) return "booyoung";   // 부영호텔&리조트 (from 객실) → dedicated 부영 accent
   const i=inventoryHotels().filter(h=>!VEN_CLASS[h]).indexOf(hotel);   // stable accent per extra hotel
   return VX_PALETTE[(Math.max(0,i))%VX_PALETTE.length];
 }
@@ -4186,8 +4188,12 @@ async function exportMaster(){
   const ws=wb.Sheets["참가자"]; const H=state.pH; const HR=1;     // header row = 2nd row
   const range=XLSX.utils.decode_range(ws['!ref']);
   const origEndC=range.e.c;                 // last original column (before we append room-detail cols)
-  // add room-detail columns at the right
-  let c=range.e.c+1; const NC={동:c++,층:c++,호실:c++,객실ID:c++};
+  // room-detail columns: REUSE the file's existing 배정동/배정층/배정호실/배정객실ID when present (every prior
+  // 마스터 업데이트 wrote them). Only append when truly absent — so repeated exports never pile up duplicate column sets.
+  let c=range.e.c+1; const NC={}, NCnew=new Set();
+  [["동","배정동"],["층","배정층"],["호실","배정호실"],["객실ID","배정객실ID"]].forEach(([k,h])=>{
+    if(H[h]!=null) NC[k]=H[h]; else { NC[k]=c++; NCnew.add(k); }
+  });
   // app-added nights → save as NEW date columns at the far right (reload detects them as night columns via isDate)
   const addedStart=state.origNightCount ?? state.nightCols.length;
   const addNightCols=[];                    // sheet column per added night, parallel to nightCols[addedStart..]
@@ -4203,7 +4209,8 @@ async function exportMaster(){
   const P=writerFor("참가자");
   const set=(r,cc,v,t)=>P.set(r,cc,v,t);
   const setNC=(r,cc,v)=>P.set(r,cc,v,null,origEndC);     // new columns inherit the same-row last-original-column style
-  setNC(HR,NC.동,"배정동"); setNC(HR,NC.층,"배정층"); setNC(HR,NC.호실,"배정호실"); setNC(HR,NC.객실ID,"배정객실ID");
+  const putRoom=(r,k,v)=> NCnew.has(k) ? P.set(r,NC[k],v,null,origEndC) : P.set(r,NC[k],v);   // appended col → seed style; reused col → keep its own
+  putRoom(HR,"동","배정동"); putRoom(HR,"층","배정층"); putRoom(HR,"호실","배정호실"); putRoom(HR,"객실ID","배정객실ID");
   state.nightCols.slice(addedStart).forEach((lab,j)=>setNC(HR,addNightCols[j],lab));   // date header → counted as a night on reload
   const nrm=v=>v==null?"":String(v).trim();
   const offN=state.nightCols.indexOf("6월29일");
@@ -4221,7 +4228,7 @@ async function exportMaster(){
       let bd="",fl="",rn="",rid="";
       if(a==="BOOY"){ rid="개별예약(부영호텔)"; }
       else if(state.roomById[a]){ const rm=state.roomById[a]; bd=rm.bldg||""; fl=rm.floor||""; rn=rm.rno||rm.id; rid=rm.id; }
-      setNC(r,NC.동,bd); setNC(r,NC.층,fl); setNC(r,NC.호실,rn); setNC(r,NC.객실ID,rid);
+      putRoom(r,"동",bd); putRoom(r,"층",fl); putRoom(r,"호실",rn); putRoom(r,"객실ID",rid);
     }
     // stay → night columns (surgical: only if span changed). 도착일/출발일/숙박일수 are formulas → untouched.
     const os=p._os, ns=p.stay;
