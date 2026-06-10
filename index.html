@@ -1189,7 +1189,7 @@
 "use strict";
 // ⚑ index.html build version — shown bottom-right on the start screen. BUMP ON EACH DEPLOY.
 //   Format: vYYYY.MM.DD-N  (N = same-day build counter; reset to 1 on a new date).
-const APP_VERSION = "v2026.06.10-14";
+const APP_VERSION = "v2026.06.10-16";
 /* ============================================================
    ICMDA 2026 Room Assignment Dashboard (single file)
    - reads the live master .xlsx (columns mapped by HEADER NAME)
@@ -2561,8 +2561,8 @@ function sessChip(p, fromKey, prog){
   sx.title="성별: "+(p.partySex==="MIX"?"혼성":p.partySex==="M"?"남성":p.partySex==="F"?"여성":"미상"); sx.setAttribute("aria-hidden","true");
   const elg = inPool ? true : eligibleForProg(p, prog);
   if(!elg) c.classList.add("badmatch");
-  // overlaps (occupant only): time-overlap (same person, two sessions) + duplicate-record (different IDs, same name/email)
-  const issue = inPool ? null : sessChipIssues(p, fromKey);
+  // left pane (pool): duplicate-record warning — same human listed twice. right pane (occupant): time-overlap + duplicate-record across sessions.
+  const issue = inPool ? sessPoolDup(p) : sessChipIssues(p, fromKey);
   if(issue) c.classList.add(issue.severity==="danger"?"sessdup":"sessdupw");
   const nm=el("span","nm",((issue||!elg)?"⚠ ":"")+p.name + (p.kname?` (${p.kname})`:""));
   nm.title=`${p.name}${p.kname?` (${p.kname})`:""} · ${p.id} · ${p.cat}`+(p.aff?` · ${p.aff}`:"")+(p.event?` · ${p.event}`:"");
@@ -2610,6 +2610,16 @@ function sessChipIssues(p, key){
   if(dm){ dm.forEach(e=>{ const d=(e.rel!=="다른 시간대"); if(d) danger=true; else warn=true;
     lines.push({sev:d?"d":"w", t:`${e.rel}에 동일 인물(${[...e.kinds].join("·")} 중복): ${e.oname} (${e.bpid}) — ${e.label}`}); }); }
   if(!lines.length) return null;
+  return { severity: danger?"danger":"warn", lines };
+}
+// POOL chip (left pane): is this person listed more than once in the participant pool? (same name or email, different IDs)
+// → likely a duplicate source record to reconcile. email-match = danger(red), name-only = warn(amber). Same {severity,lines} shape.
+function sessPoolDup(p){
+  const m=state._sessPoolDup; if(!m) return null;
+  const e=m.get(p.id); if(!e||!e.twins.size) return null;
+  let danger=false;
+  const lines=[...e.twins.values()].map(t=>{ const em=t.kinds.has("이메일"); if(em) danger=true;
+    return {sev:em?"d":"w", t:`풀에 동일 인물 중복(${[...t.kinds].join("·")}): ${t.name} (${t.id})`}; });
   return { severity: danger?"danger":"warn", lines };
 }
 // reuse the timeline's floating box (#duptip): show all overlap reasons for a session chip on hover
@@ -2732,6 +2742,21 @@ function renderSession(){
     sessConflict.dupClash=dupClash; sessConflict.dupByKey=dupByKey;
   }
   state._sessConflict=sessConflict;
+  // (C) POOL DUPLICATES (left pane): the same human listed more than once in the participant pool — same name OR email,
+  //     DIFFERENT IDs. Flagged on the pool chip so the user can reconcile source data. Read by sessPoolDup → sessChip.
+  { const poolDup=new Map();
+    const POOL=(state.sessParticipants&&state.sessParticipants.length)?state.sessParticipants:state.parties;
+    const byName=new Map(), byEmail=new Map();
+    (POOL||[]).forEach(p=>{ const nk=(p.name||"").trim().toUpperCase(), ek=(p.email||"").trim().toLowerCase();
+      if(nk)(byName.get(nk)||byName.set(nk,[]).get(nk)).push(p);
+      if(ek)(byEmail.get(ek)||byEmail.set(ek,[]).get(ek)).push(p); });
+    const link=(rows,kind)=>{ if(rows.length<2) return; rows.forEach(p=>{
+      const e=poolDup.get(p.id)||poolDup.set(p.id,{twins:new Map()}).get(p.id);
+      rows.forEach(o=>{ if(o.id===p.id) return; const t=e.twins.get(o.id)||e.twins.set(o.id,{name:o.name||o.id,id:o.id,kinds:new Set()}).get(o.id); t.kinds.add(kind); }); }); };
+    byName.forEach(rows=>link(rows,"이름"));
+    byEmail.forEach(rows=>link(rows,"이메일"));
+    state._sessPoolDup=poolDup;
+  }
   // selection: a focused day (state.sessDay) + optionally one slot within it (state.sessSlot). sessSlot=null → show
   // the WHOLE day (all its slots); a slot set → focus just that slot. A valid sessSlot implies its day.
   const dayList=[...new Set(slots.map(s=>s.day))];
@@ -2779,9 +2804,9 @@ function renderSession(){
       fillPool(); };
     gbWrap.append(b);
   });
-  phdr.append(gbWrap);
 
-  pool.append(el("div","sess-poolhint","위에서 시간대를 고르면 그 시간대의 병렬 세션이 칼럼으로 나타납니다. 이 시간대에 아직 배정되지 않은 사람만 풀에 보입니다. 클릭해 선택(Shift+클릭: 범위 선택) → 세션 칼럼을 누르거나 끌어서 배정 · 칼럼 간 드래그로 이동 · 풀로 끌면 제외"));
+  pool.append(el("div","sess-poolhint","위에서 시간대를 고르면 그 시간대의 병렬 세션이 칼럼으로 나타납니다. 이 시간대에 아직 배정되지 않은 사람만 풀에 보입니다. 풀은 분류·나이대·성별 중 하나로 묶어 볼 수 있습니다. 클릭해 선택(Shift+클릭: 범위 선택) → 세션 칼럼을 누르거나 끌어서 배정 · 칼럼 간 드래그로 이동 · 풀로 끌면 제외"));
+  pool.append(gbWrap);   // 그룹 보기 토글 — 안내문 바로 아래
 
   const plist=el("div","sesspoollist"); plist.dataset.dropkey="__sesspool__"; plist.setAttribute("role","group"); plist.setAttribute("aria-label","참가자 목록"); pool.append(plist);
   // pool is grouped by 카테고리(분류); each group header has a "세션 불필요" checkbox that exempts (hides) the whole
