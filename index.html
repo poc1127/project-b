@@ -205,10 +205,12 @@
   .sesspoolhdr>*:last-child{margin-bottom:0;}
   .sess-poolhint{font-size:11px;color:var(--text-faint);margin:0 0 6px;line-height:1.4;}
   /* 카테고리별 세션 배정 상황 요약 — pinned atop the pool, collapsible */
-  .sesssum{margin:0 0 7px;border:1px solid var(--line);border-radius:6px;background:var(--card,#fff);overflow:hidden;}
-  .sesssumhdr{display:flex;align-items:center;gap:6px;width:100%;padding:5px 7px;background:transparent;border:0;cursor:pointer;text-align:left;font-size:11.5px;font-weight:700;color:var(--text2);}
+  .sesssum{margin:0 0 7px;border:1px solid var(--line);border-radius:6px;background:var(--surface);overflow:hidden;}
+  /* SOLID light bg (not transparent): the header is a <button>, and the global button rule + the dark app header behind the sticky pool can otherwise bleed dark through, leaving unreadable dark-on-dark text when collapsed */
+  .sesssumhdr{display:flex;align-items:center;gap:6px;width:100%;padding:5px 7px;background:var(--surface);border:0;cursor:pointer;text-align:left;font-size:11.5px;font-weight:700;color:var(--text);}
+  .sesssumhdr:hover{background:var(--bg);}
   .sesssumhdr .t{flex:none;}
-  .sesssumhdr .tot{flex:1;font-size:10.5px;font-weight:600;color:var(--text-faint);font-variant-numeric:tabular-nums;}
+  .sesssumhdr .tot{flex:1;font-size:10.5px;font-weight:600;color:var(--text-muted);font-variant-numeric:tabular-nums;}
   .sesssumhdr .chev{flex:none;font-size:10px;color:var(--text-faint);}
   .sesssumbody{padding:1px 7px 6px;display:flex;flex-direction:column;gap:4px;}
   .sesssum.collapsed .sesssumbody{display:none;}
@@ -225,8 +227,15 @@
   .chip .sessasgn.dup{color:var(--warn);border-color:var(--warn);background:#fde0e0;}   /* …and at least two of those overlap in time */
   .sbslot.hasdup .dupx,.sbdaylab .dupx{color:var(--warn);font-weight:700;margin-left:4px;}   /* ⚠N overlap marker on slot pills / day labels */
   .sesspoollist .chip{user-select:none;}   /* avoid stray text selection on Shift+click range select */
+  /* 풀 그룹 보기 토글: 분류 | 나이대 | 성별 (segmented) */
+  .sessgbtog{display:flex;margin:0 0 7px;border:1px solid var(--line);border-radius:6px;overflow:hidden;background:var(--surface);}
+  .sessgb{flex:1;padding:4px 6px;background:var(--surface);border:0;border-right:1px solid var(--line);border-radius:0;font-size:11px;font-weight:700;color:var(--text-muted);cursor:pointer;}
+  .sessgb:last-child{border-right:0;}
+  .sessgb.on{background:var(--ink);color:#fff;}
+  .sessgb:not(.on):hover{background:var(--bg);}
   /* pool grouped by 카테고리(분류); each group header carries a "세션 불필요" exempt checkbox */
   .sesscatgrp{margin-bottom:7px;}
+  .sesscathdr.nox{cursor:default;}   /* 나이대/성별 그룹 헤더 — 체크박스 없음 */
   .sesscathdr{display:flex;align-items:center;gap:6px;font-size:11px;font-weight:700;color:var(--text2);padding:3px 2px;margin-bottom:3px;cursor:pointer;user-select:none;border-bottom:1px solid var(--line);}
   .sesscathdr input{margin:0;flex:none;cursor:pointer;}
   .sesscatbadge{font-size:10px;font-weight:700;color:#fff;padding:0 6px;border-radius:999px;flex:none;letter-spacing:.2px;}
@@ -312,6 +321,10 @@
   .chip.badmatch{outline:1.5px solid var(--warn);}
   /* 세션 시간 중복: this person is booked into another session whose time overlaps → can't attend both */
   .chip.sessdup{outline:1.5px solid var(--warn);background:#fde0e0;}
+  .chip.sessdupw{outline:1.5px dashed var(--warning-fill);background:#fff6e6;}   /* amber: same person/record overlaps in a DIFFERENT time-slot (lower severity than a same-time clash) */
+  #duptip .dtlist.ovlist{list-style:none;}
+  #duptip .dtlist.ovlist li{display:list-item;list-style:disc;margin-left:16px;padding:0;}
+  #duptip .dtlist.ovlist li.ov-d{color:#7a1f12;} #duptip .dtlist.ovlist li.ov-w{color:#7a4a00;}
   .chip .grp{font-size:9px;color:#a60;}
   /* drag-to-reorder within a room: crisp insertion line above/below the occupant under the pointer */
   .chip.dropmark{position:relative;}
@@ -1176,7 +1189,7 @@
 "use strict";
 // ⚑ index.html build version — shown bottom-right on the start screen. BUMP ON EACH DEPLOY.
 //   Format: vYYYY.MM.DD-N  (N = same-day build counter; reset to 1 on a new date).
-const APP_VERSION = "v2026.06.10-12";
+const APP_VERSION = "v2026.06.10-14";
 /* ============================================================
    ICMDA 2026 Room Assignment Dashboard (single file)
    - reads the live master .xlsx (columns mapped by HEADER NAME)
@@ -1241,6 +1254,7 @@ const state = {
   sessSlot: null,       // 세션 보기 슬롯 보드: focused time-slot key ("day||time"); null → show all slots of sessDay
   sessPoolCollapsed: false, // 세션 보기 pool collapse on tablet/phone (mirrors #pool.collapsed)
   sessSumCollapsed: false, // 세션 보기: 카테고리 배정 상황 요약 박스 접힘 여부
+  sessGroupBy: "cat", // 세션 보기 풀 그룹 기준: "cat"(분류) | "age"(나이대) | "sex"(성별)
   tlFilter: {q:"", venue:"", cat:""},
   orderList: [],   // custom vertical order of party ids (timeline)
   collapsed: {},   // venue -> true (timeline fold)
@@ -2547,10 +2561,10 @@ function sessChip(p, fromKey, prog){
   sx.title="성별: "+(p.partySex==="MIX"?"혼성":p.partySex==="M"?"남성":p.partySex==="F"?"여성":"미상"); sx.setAttribute("aria-hidden","true");
   const elg = inPool ? true : eligibleForProg(p, prog);
   if(!elg) c.classList.add("badmatch");
-  // 시간 중복: occupant booked into another session that overlaps this one in time (read from state._sessConflict)
-  const dup = !inPool && !!(state._sessConflict && state._sessConflict.pidsByKey.get(fromKey) && state._sessConflict.pidsByKey.get(fromKey).has(p.id));
-  if(dup) c.classList.add("sessdup");
-  const nm=el("span","nm",((dup||!elg)?"⚠ ":"")+p.name + (p.kname?` (${p.kname})`:""));
+  // overlaps (occupant only): time-overlap (same person, two sessions) + duplicate-record (different IDs, same name/email)
+  const issue = inPool ? null : sessChipIssues(p, fromKey);
+  if(issue) c.classList.add(issue.severity==="danger"?"sessdup":"sessdupw");
+  const nm=el("span","nm",((issue||!elg)?"⚠ ":"")+p.name + (p.kname?` (${p.kname})`:""));
   nm.title=`${p.name}${p.kname?` (${p.kname})`:""} · ${p.id} · ${p.cat}`+(p.aff?` · ${p.aff}`:"")+(p.event?` · ${p.event}`:"");
   if(inPool){                                          // age-decade pill (참가자 pool only — age matters for session balancing)
     const ab=(p.band!=null)?p.band:ageBand(p.dob);     // 세션 참가자 carries 나이대 directly (p.band); accommodation parties derive from 생년월일
@@ -2576,9 +2590,37 @@ function sessChip(p, fromKey, prog){
     else if(e.key==="F2"){ e.preventDefault(); openCard(p); } });
   c.title=(inPool?"클릭: 선택(여러 명 가능) · Shift+클릭: 범위 선택 · 세션 카드를 누르거나 끌어서 배정 · 더블클릭: 상세"
                 :"끌어서 다른 세션으로 이동 · 풀로 끌면 제외 · 더블클릭: 상세")
-        + (elg?"":"\n⚠ 참가예정행사가 이 세션과 맞지 않을 수 있습니다")
-        + (dup?`\n⚠ 시간 중복 — 같은 시간대 다른 세션에도 배정됨: ${[...(state._sessConflict.clash.get(fromKey+"||"+p.id)||[])].join(", ")}`:"");
+        + (elg?"":"\n⚠ 참가예정행사가 이 세션과 맞지 않을 수 있습니다");
+  if(issue){   // hover anywhere on a flagged chip → rich box explaining every overlap reason (so the user can fix it)
+    c.addEventListener("mouseenter",e=>showSessTip(issue,p,e.clientX,e.clientY));
+    c.addEventListener("mousemove",e=>moveDupTip(e.clientX,e.clientY));
+    c.addEventListener("mouseleave",hideDupTip);
+  }
   return c;
+}
+// collect every overlap reason for one occupant chip (pid in session `key`): time-overlap (same id, two sessions) +
+// duplicate-record (different id, same name/email). Returns {severity:'danger'|'warn', lines:[{sev,t}]} or null.
+function sessChipIssues(p, key){
+  const C=state._sessConflict; if(!C) return null;
+  const ck=key+"||"+p.id, lines=[]; let danger=false, warn=false;
+  const clash=C.clash.get(ck);                          // (A) same person, time-overlapping sessions
+  if(clash && clash.size){ danger=true;
+    lines.push({sev:"d", t:`시간 중복 — 같은 시간대에 이 인원이 다른 세션에도 배정됨: ${[...clash].join(", ")}`}); }
+  const dm=C.dupClash && C.dupClash.get(ck);            // (B) different id, same name/email, both assigned
+  if(dm){ dm.forEach(e=>{ const d=(e.rel!=="다른 시간대"); if(d) danger=true; else warn=true;
+    lines.push({sev:d?"d":"w", t:`${e.rel}에 동일 인물(${[...e.kinds].join("·")} 중복): ${e.oname} (${e.bpid}) — ${e.label}`}); }); }
+  if(!lines.length) return null;
+  return { severity: danger?"danger":"warn", lines };
+}
+// reuse the timeline's floating box (#duptip): show all overlap reasons for a session chip on hover
+function showSessTip(issue, p, x, y){
+  const t=duptipEl();
+  const head = issue.severity==="danger" ? "겹침·중복 감지" : "중복 의심";
+  t.innerHTML = `<div class="dthd">${ico('alert')} ${esc(head)}</div>`
+    + `<div class="dtwho">${esc(p.name||"")} (${esc(p.id)})</div>`
+    + `<ul class="dtlist ovlist">${issue.lines.map(l=>`<li class="ov-${l.sev}">${esc(l.t)}</li>`).join("")}</ul>`
+    + `<div class="dthint">동일인이면 한쪽을 배정 해제하세요. 같은 시간대 이중배정이면 한 세션만 남기세요.</div>`;
+  t.classList.add("show"); moveDupTip(x,y);
 }
 // double-click a session card's count badge → edit its 정원 in place (mirrors editCap)
 function sessEditCap(s, capEl, load){
@@ -2600,6 +2642,7 @@ function sessEditCap(s, capEl, load){
 
 let scrollToSessDay=()=>{};   // set by renderSession (in continuous day mode); lets the day pills jump-scroll
 function renderSession(){
+  hideDupTip();                                 // drop any stale overlap hover box before chips are rebuilt
   const root=$("#session");
   const prevY=window.scrollY, wasBoard=!!root.querySelector("#sessboard");   // preserve scroll across in-view re-renders (assignments)
   if(state._sessScroll){ window.removeEventListener("scroll",state._sessScroll); state._sessScroll=null; }   // drop the stale day-tracker
@@ -2662,6 +2705,32 @@ function renderSession(){
       }
     });
   }
+  // (B) DUPLICATE-RECORD overlap: DIFFERENT participant IDs that share a name or email, BOTH assigned to sessions →
+  //     the same human entered twice. Pass (A) groups by id so it cannot see this. Classify each twin by where it
+  //     sits relative to the chip — same session / same time-slot (overlapping) / a different time — for the hover.
+  { const dupClash=new Map(), dupByKey=new Map();    // ck="key||pid" → Map(targetKey → {oname,bpid,label,rel,kinds}); key → Set(pid)
+    const assigned=[];
+    state.sessionList.forEach(s=>{ const set=state.sessionAssign[s.key]; if(!set||!set.size) return;
+      const iv=ivOf(s.trange||s.time);
+      set.forEach(pid=>{ const pp=sessPartyById(pid); if(!pp) return;
+        assigned.push({ pid, key:s.key, day:s.day, a:iv[0], b:iv[1], label:sLabel(s), oname:pp.name||pid,
+          nk:(pp.name||"").trim().toUpperCase(), ek:(pp.email||"").trim().toLowerCase() }); }); });
+    const groupBy=field=>{ const m=new Map(); assigned.forEach(r=>{ const v=r[field]; if(!v) return; (m.get(v)||m.set(v,[]).get(v)).push(r); }); return m; };
+    const link=(rows,kind)=>{ rows.forEach(A=>rows.forEach(B=>{ if(A.pid===B.pid) return;   // DIFFERENT ids only — same id is handled by pass (A)
+        const ck=A.key+"||"+A.pid, m=dupClash.get(ck)||dupClash.set(ck,new Map()).get(ck), tk=B.pid+"|"+B.key;
+        let e=m.get(tk);
+        if(!e){ const rel = A.key===B.key ? "같은 세션"
+                  : (A.day===B.day && A.a!==9999 && B.a!==9999 && A.a<B.b && B.a<A.b) ? "같은 시간대 다른 세션"
+                  : "다른 시간대";
+          e={oname:B.oname, bpid:B.pid, label:B.label, rel, kinds:new Set()}; m.set(tk,e); }
+        e.kinds.add(kind);
+        (dupByKey.get(A.key)||dupByKey.set(A.key,new Set()).get(A.key)).add(A.pid);
+        (sessConflict.byDay.get(A.day)||sessConflict.byDay.set(A.day,new Set()).get(A.day)).add(A.pid);   // count toward the day's ⚠ badge
+      })); };
+    groupBy("nk").forEach(rows=>{ if(rows.length>1) link(rows,"이름"); });
+    groupBy("ek").forEach(rows=>{ if(rows.length>1) link(rows,"이메일"); });
+    sessConflict.dupClash=dupClash; sessConflict.dupByKey=dupByKey;
+  }
   state._sessConflict=sessConflict;
   // selection: a focused day (state.sessDay) + optionally one slot within it (state.sessSlot). sessSlot=null → show
   // the WHOLE day (all its slots); a slot set → focus just that slot. A valid sessSlot implies its day.
@@ -2700,6 +2769,18 @@ function renderSession(){
   csumHdr.onclick=()=>{ const col=csum.classList.toggle("collapsed"); state.sessSumCollapsed=col; csumHdr.querySelector(".chev").textContent=col?"▸":"▾"; };
   csum.append(csumHdr,csumBody); phdr.append(csum);
 
+  // ----- 풀 그룹 보기 토글: 참가자를 분류 / 나이대 / 성별 중 하나로 묶어 보기 -----
+  const gbWrap=el("div","sessgbtog"); gbWrap.setAttribute("role","group"); gbWrap.setAttribute("aria-label","참가자 그룹 보기 기준");
+  [["cat","분류"],["age","나이대"],["sex","성별"]].forEach(([v,lbl])=>{
+    const b=el("button","sessgb"+((state.sessGroupBy||"cat")===v?" on":"")); b.type="button"; b.textContent=lbl;
+    b.setAttribute("aria-pressed",(state.sessGroupBy||"cat")===v?"true":"false");
+    b.onclick=()=>{ if((state.sessGroupBy||"cat")===v) return; state.sessGroupBy=v;
+      [...gbWrap.children].forEach(x=>{ const on=x===b; x.classList.toggle("on",on); x.setAttribute("aria-pressed",on?"true":"false"); });
+      fillPool(); };
+    gbWrap.append(b);
+  });
+  phdr.append(gbWrap);
+
   pool.append(el("div","sess-poolhint","위에서 시간대를 고르면 그 시간대의 병렬 세션이 칼럼으로 나타납니다. 이 시간대에 아직 배정되지 않은 사람만 풀에 보입니다. 클릭해 선택(Shift+클릭: 범위 선택) → 세션 칼럼을 누르거나 끌어서 배정 · 칼럼 간 드래그로 이동 · 풀로 끌면 제외"));
 
   const plist=el("div","sesspoollist"); plist.dataset.dropkey="__sesspool__"; plist.setAttribute("role","group"); plist.setAttribute("aria-label","참가자 목록"); pool.append(plist);
@@ -2712,6 +2793,16 @@ function renderSession(){
     const inScope=new Set(); scopeKeysNow().forEach(k=>{ const st=state.sessionAssign[k]; if(st) st.forEach(id=>inScope.add(id)); });
     const asgCount={}; Object.values(state.sessionAssign).forEach(set=>set&&set.forEach(id=>{ asgCount[id]=(asgCount[id]||0)+1; }));
     const match=p=>!inScope.has(p.id)&&(!q||p.name.toLowerCase().includes(q)||p.id.toLowerCase().includes(q)||(p.kname||"").toLowerCase().includes(q)||(p.aff||"").toLowerCase().includes(q)||(p.region||"").toLowerCase().includes(q));
+    const GB=state.sessGroupBy||"cat";   // 풀 그룹 기준: 분류 / 나이대 / 성별
+    // append a pool chip (with its 다중배정 badge) to a group container — shared by every grouping mode
+    const addChip=(grp,p)=>{
+      const ch=sessChip(p,null,null);
+      if(asgCount[p.id]){ const conf=!!(state._sessConflict && state._sessConflict.pids.has(p.id));
+        const ab=el("span","sessasgn"+(conf?" dup":""),(conf?"⚠ ":"")+asgCount[p.id]+"개");
+        ab.title=conf?`⚠ 시간 중복 — ${asgCount[p.id]}개 세션 중 둘 이상이 같은 시간대에 겹칩니다`:`다른 시간대 포함 ${asgCount[p.id]}개 세션에 배정됨`;
+        ab.setAttribute("aria-hidden","true"); ch.append(ab); }
+      grp.append(ch);
+    };
     const groups=new Map();
     const POOL=(state.sessParticipants&&state.sessParticipants.length)?state.sessParticipants:state.parties;   // 세션 참가자 tab drives this pool; fall back to 참가자 for masters without the tab
     POOL.forEach(p=>{ const c=p.cat||"(분류 없음)"; (groups.get(c)||groups.set(c,[]).get(c)).push(p); });
@@ -2721,31 +2812,50 @@ function renderSession(){
     plist.innerHTML="";
     if(state.sessPicks.size) plist.append(sessPickHint());
     let any=false;
-    catKeys.forEach(c=>{
-      const exempt=state.sessExempt.has(c);
-      const ppl=groups.get(c).slice().sort((a,b)=>a.name.localeCompare(b.name));
-      const vis=exempt?[]:ppl.filter(match);
-      if(q && (exempt || !vis.length)) return;   // while searching, show only non-exempt groups that have a match
-      any=true;
-      const grp=el("div","sesscatgrp"+(exempt?" exempt":""));
-      const hdr=el("label","sesscathdr"); hdr.title=exempt?"체크 해제하면 이 분류를 다시 풀에 표시합니다":"체크하면 이 분류는 세션 배정에서 제외(풀에서 숨김)됩니다";
-      const cb=el("input"); cb.type="checkbox"; cb.checked=exempt; cb.setAttribute("aria-label",c+" — 세션 불필요");
-      cb.onchange=()=>{ if(cb.checked){ state.sessExempt.add(c); groups.get(c).forEach(p=>state.sessPicks.delete(p.id)); } else state.sessExempt.delete(c); fillPool(); };
-      const ci=catInfo(c);
-      const badge=el("span","sesscatbadge",(ci.ab||"-").slice(0,1)); badge.style.background=ci.c; badge.setAttribute("aria-hidden","true");
-      const nm=el("span","sesscatname",c);
-      const ct=el("span","sesscatcount", exempt?`세션 불필요 · ${ppl.length}명`:`${vis.length}명`);
-      hdr.append(cb,badge,nm,ct); grp.append(hdr);
-      vis.forEach(p=>{
-        const ch=sessChip(p,null,null);
-        if(asgCount[p.id]){ const conf=!!(state._sessConflict && state._sessConflict.pids.has(p.id));
-          const ab=el("span","sessasgn"+(conf?" dup":""),(conf?"⚠ ":"")+asgCount[p.id]+"개");
-          ab.title=conf?`⚠ 시간 중복 — ${asgCount[p.id]}개 세션 중 둘 이상이 같은 시간대에 겹칩니다`:`다른 시간대 포함 ${asgCount[p.id]}개 세션에 배정됨`;
-          ab.setAttribute("aria-hidden","true"); ch.append(ab); }
-        grp.append(ch);
+    if(GB==="cat"){
+      catKeys.forEach(c=>{
+        const exempt=state.sessExempt.has(c);
+        const ppl=groups.get(c).slice().sort((a,b)=>a.name.localeCompare(b.name));
+        const vis=exempt?[]:ppl.filter(match);
+        if(q && (exempt || !vis.length)) return;   // while searching, show only non-exempt groups that have a match
+        any=true;
+        const grp=el("div","sesscatgrp"+(exempt?" exempt":""));
+        const hdr=el("label","sesscathdr"); hdr.title=exempt?"체크 해제하면 이 분류를 다시 풀에 표시합니다":"체크하면 이 분류는 세션 배정에서 제외(풀에서 숨김)됩니다";
+        const cb=el("input"); cb.type="checkbox"; cb.checked=exempt; cb.setAttribute("aria-label",c+" — 세션 불필요");
+        cb.onchange=()=>{ if(cb.checked){ state.sessExempt.add(c); groups.get(c).forEach(p=>state.sessPicks.delete(p.id)); } else state.sessExempt.delete(c); fillPool(); };
+        const ci=catInfo(c);
+        const badge=el("span","sesscatbadge",(ci.ab||"-").slice(0,1)); badge.style.background=ci.c; badge.setAttribute("aria-hidden","true");
+        const nm=el("span","sesscatname",c);
+        const ct=el("span","sesscatcount", exempt?`세션 불필요 · ${ppl.length}명`:`${vis.length}명`);
+        hdr.append(cb,badge,nm,ct); grp.append(hdr);
+        vis.forEach(p=>addChip(grp,p));
+        plist.append(grp);
       });
-      plist.append(grp);
-    });
+    } else {
+      // ----- 나이대 / 성별 그룹 보기: 분류 exempt(세션 불필요)는 그대로 숨기되, 나머지를 선택한 기준으로 묶음 (체크박스 없음) -----
+      const ageKeyOf=p=>{ const ab=(p.band!=null&&p.band!=="")?p.band:ageBand(p.dob); return ab||"나이대 미상"; };
+      const sexKeyOf=p=>p.partySex==="M"?"남성":p.partySex==="F"?"여성":p.partySex==="MIX"?"혼성":"성별 미상";
+      const AGE_ORDER=["10세 미만","10대","20대","30대","40대","50대","60대","70대","80대","90대","나이대 미상"];
+      const SEX_ORDER=["남성","여성","혼성","성별 미상"];
+      const keyOf=GB==="age"?ageKeyOf:sexKeyOf, ORDER=GB==="age"?AGE_ORDER:SEX_ORDER;
+      const sexBadge=k=>k==="남성"?{c:"#3f7fbf",t:"남"}:k==="여성"?{c:"#c85d8e",t:"여"}:k==="혼성"?{c:"#8a6fc0",t:"혼"}:{c:"#9aa6b2",t:"?"};
+      const g2=new Map();
+      POOL.forEach(p=>{ if(state.sessExempt.has(p.cat||"(분류 없음)")) return; const k=keyOf(p); (g2.get(k)||g2.set(k,[]).get(k)).push(p); });
+      const keys=[...g2.keys()].sort((a,b)=>{ let ia=ORDER.indexOf(a), ib=ORDER.indexOf(b); if(ia<0)ia=99; if(ib<0)ib=99; return ia-ib || a.localeCompare(b); });
+      keys.forEach(k=>{
+        const vis=g2.get(k).slice().sort((a,b)=>a.name.localeCompare(b.name)).filter(match);
+        if(!vis.length) return;   // hide empty bands (and, while searching, groups with no match)
+        any=true;
+        const grp=el("div","sesscatgrp");
+        const hdr=el("div","sesscathdr nox");
+        if(GB==="sex"){ const sb=sexBadge(k); const badge=el("span","sesscatbadge",sb.t); badge.style.background=sb.c; badge.setAttribute("aria-hidden","true"); hdr.append(badge); }
+        const nm=el("span","sesscatname",k);
+        const ct=el("span","sesscatcount",`${vis.length}명`);
+        hdr.append(nm,ct); grp.append(hdr);
+        vis.forEach(p=>addChip(grp,p));
+        plist.append(grp);
+      });
+    }
     if(!any){ const eh=el("div","empty-hint"); eh.textContent=q?`'${search.value}' 검색 결과가 없습니다`:(dayMode?"이 날 배정할 인원이 없습니다":"이 시간대에 배정할 인원이 없습니다"); plist.append(eh); }
     const v=$("#sessright"); if(v) v.classList.toggle("picking", !!state.sessPicks.size);
     // --- 배정 상황 요약: per category, how many are booked in ≥1 session across the WHOLE program (scope-independent) ---
@@ -2792,7 +2902,7 @@ function renderSession(){
     const dayDup=(state._sessConflict.byDay.get(day)||{size:0}).size||0;
     const lab=el("span","sbdaylab"+(dayActive&&dayMode?" on":"")+(dayActive&&!dayMode?" dim":"")); lab.dataset.day=day;
     lab.innerHTML=esc(dayWD(day))+(dayDup?`<span class="dupx" aria-hidden="true">⚠${dayDup}</span>`:"");
-    lab.setAttribute("role","button"); lab.tabIndex=0; lab.title=`${dayWD(day)} — 이 날로 이동`+(dayDup?` · ⚠ 시간 중복 ${dayDup}명`:"");
+    lab.setAttribute("role","button"); lab.tabIndex=0; lab.title=`${dayWD(day)} — 이 날로 이동`+(dayDup?` · ⚠ 겹침/중복 ${dayDup}명`:"");
     const pickDay=()=>{ state.sessPicks.clear();
       if(!dayMode){ state.sessSlot=null; state.sessDay=day; saveUI(); renderSession(); requestAnimationFrame(()=>scrollToSessDay(day)); return; }   // leaving slot-focus → rebuild then jump
       state.sessDay=day; saveUI(); scrollToSessDay(day);                                                                                          // continuous: just scroll
@@ -2804,13 +2914,14 @@ function renderSession(){
       const keys=sl.sessions.map(s=>s.key);
       const ppl=keys.reduce((q,k)=>q+cnt(k),0);
       const allLk=keys.length && keys.every(k=>state.sessionLocked[k]);
-      const dupSet=new Set(); keys.forEach(k=>{ const st=state._sessConflict.pidsByKey.get(k); if(st) st.forEach(id=>dupSet.add(id)); });
+      const dupSet=new Set(); keys.forEach(k=>{ const st=state._sessConflict.pidsByKey.get(k); if(st) st.forEach(id=>dupSet.add(id));
+        const dt=state._sessConflict.dupByKey&&state._sessConflict.dupByKey.get(k); if(dt) dt.forEach(id=>dupSet.add(id)); });   // include duplicate-record overlaps
       const on=sl.key===state.sessSlot;                       // highlighted only in single-slot mode
       const inDay=dayMode && sl.day===state.sessDay;           // shown (but not "on") when the whole day is open
       const b=el("button","sbslot"+(on?" on":"")+(inDay?" inday":"")+(allLk?" alllocked":"")+(dupSet.size?" hasdup":"")); b.type="button"; b.dataset.day=sl.day; b.dataset.slot=sl.key;
       const tlab=slotTimeLabel(sl);
       b.innerHTML=`${esc(tlab)}<span class="n">${sl.sessions.length}개·${ppl}명</span>`+(allLk?" 🔒":"")+(dupSet.size?`<span class="dupx" aria-hidden="true">⚠${dupSet.size}</span>`:"");
-      b.title=`${dayWD(day)} ${tlab} — 세션 ${sl.sessions.length}개 · ${ppl}명 배정 (이 시간대만 보기)`+(allLk?" · 잠김":"")+(dupSet.size?` · ⚠ 시간 중복 ${dupSet.size}명`:"");
+      b.title=`${dayWD(day)} ${tlab} — 세션 ${sl.sessions.length}개 · ${ppl}명 배정 (이 시간대만 보기)`+(allLk?" · 잠김":"")+(dupSet.size?` · ⚠ 겹침/중복 ${dupSet.size}명`:"");
       b.setAttribute("aria-pressed", on?"true":"false");
       b.onclick=()=>{ if(sl.key===state.sessSlot) return; state.sessSlot=sl.key; state.sessDay=sl.day; state.sessPicks.clear(); saveUI(); renderSession(); };
       row.append(b);
