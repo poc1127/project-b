@@ -196,14 +196,14 @@
   #sessslotbar .glk.locked,.slotsechd .glk.locked,.sessdayhd .glk.locked{background:#fff7df;border-color:#e6cf8a;color:#b8860b;}
   #sessslotbar .glk.hempty:hover,.slotsechd .glk.hempty:hover,.sessdayhd .glk.hempty:hover{color:var(--warn);background:rgba(207,70,49,.12);}
   .sess-drophint{font-size:11px;color:var(--text-faint);text-align:center;padding:16px 4px;}
-  #sesspool{width:260px;flex:none;background:var(--pool);border:1px solid var(--line);border-radius:8px;padding:8px;position:sticky;top:calc(var(--headerh,52px) + 6px);max-height:calc(100vh - var(--headerh,52px) - 16px);overflow:auto;}
+  #sesspool{width:260px;flex:none;background:var(--pool);border:1px solid var(--line);border-radius:8px;padding:8px;position:sticky;top:calc(var(--headerh,52px) + 6px);max-height:calc(100vh - var(--headerh,52px) - 16px);overflow:hidden;display:flex;flex-direction:column;}
   #sesspool h2{font-size:13px;margin:2px 0 6px;display:flex;align-items:center;gap:6px;}
   #sesspool input.search{width:100%;padding:5px;margin-bottom:6px;border:1px solid var(--line);border-radius:4px;}
   #sesspool .searchwrap{margin-bottom:6px;}
   /* 풀 상단 고정: 제목+검색+세션 배정 상황 요약을 한 묶음으로 스크롤 컨테이너 최상단에 핀 (목록만 스크롤). top:-8px → 컨테이너 8px 패딩만큼 끌어올려 그 위로 칩이 비치지 않게 함 */
-  .sesspoolhdr{position:sticky;top:-8px;z-index:3;background:var(--pool);padding-top:8px;margin-top:-8px;box-shadow:0 6px 5px -4px var(--pool);}
+  .sesspoolhdr{flex:none;position:sticky;top:-8px;z-index:3;background:var(--pool);padding-top:8px;margin-top:-8px;box-shadow:0 6px 5px -4px var(--pool);}
   .sesspoolhdr>*:last-child{margin-bottom:0;}
-  .sess-poolhint{font-size:11px;color:var(--text-faint);margin:0 0 6px;line-height:1.4;}
+  .sess-poolhint{flex:none;font-size:11px;color:var(--text-faint);margin:0 0 6px;line-height:1.4;}
   /* 카테고리별 세션 배정 상황 요약 — pinned atop the pool, collapsible */
   .sesssum{margin:0 0 7px;border:1px solid var(--line);border-radius:6px;background:var(--surface);overflow:hidden;}
   /* SOLID light bg (not transparent): the header is a <button>, and the global button rule + the dark app header behind the sticky pool can otherwise bleed dark through, leaving unreadable dark-on-dark text when collapsed */
@@ -227,9 +227,10 @@
   .chip .sessasgn{flex:none;font-size:9px;font-weight:700;color:var(--primary);background:#fff;border:1px solid var(--primary);border-radius:999px;padding:0 5px;}  /* load badge: # of OTHER time-slots this person is already booked in */
   .chip .sessasgn.dup{color:var(--warn);border-color:var(--warn);background:#fde0e0;}   /* …and at least two of those overlap in time */
   .sbslot.hasdup .dupx,.sbdaylab .dupx{color:var(--warn);font-weight:700;margin-left:4px;}   /* ⚠N overlap marker on slot pills / day labels */
+  .sesspoollist{flex:1 1 auto;min-height:0;overflow-y:auto;overflow-x:hidden;margin:0 -4px;padding:0 4px;}   /* 풀 목록만 스크롤 — 검색·요약·안내문·토글은 위에 고정, 스크롤바는 토글 아래(목록)부터 시작 */
   .sesspoollist .chip{user-select:none;}   /* avoid stray text selection on Shift+click range select */
   /* 풀 그룹 보기 토글: 분류 | 나이대 | 성별 (segmented) */
-  .sessgbtog{display:flex;margin:0 0 7px;border:1px solid var(--line);border-radius:6px;overflow:hidden;background:var(--surface);}
+  .sessgbtog{flex:none;display:flex;margin:0 0 7px;border:1px solid var(--line);border-radius:6px;overflow:hidden;background:var(--surface);}
   .sessgb{flex:1;padding:4px 6px;background:var(--surface);border:0;border-right:1px solid var(--line);border-radius:0;font-size:11px;font-weight:700;color:var(--text-muted);cursor:pointer;}
   .sessgb:last-child{border-right:0;}
   .sessgb.on{background:var(--ink);color:#fff;}
@@ -563,10 +564,12 @@
   .card .cfoot button{padding:8px 18px;border-radius:8px;}
   .card .cfoot .cdanger{margin-right:auto;background:#fff;color:var(--danger);border:1px solid #e3b4ae;}
   .card .cfoot .cdanger:hover{background:#fdecea;border-color:#d49a93;}
-  .card .carddup{display:flex;gap:8px;margin:0 0 12px;padding:9px 11px;border-radius:8px;font-size:12px;line-height:1.5;background:#fff6e6;border:1px solid #e7c98a;color:#5f4a1c;}
+  .card .carddup{margin:14px 22px 2px;display:flex;gap:8px;padding:9px 11px;border-radius:8px;font-size:12px;line-height:1.5;background:#fff6e6;border:1px solid #e7c98a;color:#5f4a1c;}   /* normal full-width block between header and body (NOT a grid child) → grid track sizing can never stretch it past the card edge */
   .card .carddup.d{background:#fdecec;border-color:#e3b4ae;color:#7a2018;}   /* email-match duplicate → red */
+  .card .carddup>div{min-width:0;}   /* let the text column shrink + wrap instead of overflowing the modal */
   .card .carddup svg{width:15px;height:15px;flex:none;margin-top:1px;}
   .card .carddup ul{margin:3px 0 4px;padding-left:16px;}
+  .card .carddup li{word-break:break-word;}
   .card .carddup .hint{display:block;opacity:.82;font-size:11px;}
   .card .sec{grid-column:1/-1;display:flex;align-items:center;gap:8px;margin:18px 0 4px;padding-bottom:7px;border-bottom:1px solid #edf0f3;font-weight:700;font-size:12.5px;letter-spacing:.02em;color:var(--ink);}
   .card .sec::before{content:"";width:4px;height:14px;border-radius:2px;background:var(--catc,var(--primary));flex:none;}
@@ -1195,7 +1198,7 @@
 "use strict";
 // ⚑ index.html build version — shown bottom-right on the start screen. BUMP ON EACH DEPLOY.
 //   Format: vYYYY.MM.DD-N  (N = same-day build counter; reset to 1 on a new date).
-const APP_VERSION = "v2026.06.10-19";
+const APP_VERSION = "v2026.06.10-22";
 /* ============================================================
    ICMDA 2026 Room Assignment Dashboard (single file)
    - reads the live master .xlsx (columns mapped by HEADER NAME)
@@ -4104,7 +4107,7 @@ function openCard(p){
          <div class="htitle"><h2>${p.name||p.id}</h2>
          <div class="sub">${p.id} · ${p.cat||""}</div></div>
          <button class="cx" onclick="closeCard()">×</button>
-       </div><div class="cbody">${dupHtml}${sb}</div>
+       </div>${dupHtml}<div class="cbody">${sb}</div>
        <div class="cfoot"><button class="cdanger" id="sessDelBtn">기록 삭제</button></div>`;
     $("#sessDelBtn").onclick=()=>sessDeleteRecord(p);
     $("#modal").style.display="flex"; return;
@@ -4279,9 +4282,25 @@ function deleteCard(p){
 // 세션 참가자 pool record (_sess) → delete entirely: drop from the pool + every session assignment, and mark the
 // source row so 마스터 업데이트 blanks it in the '세션 참가자' tab (so it's gone from the exported master too).
 function sessDeleteRecord(p){
+  const assignedCount=Object.values(state.sessionAssign).filter(s=>s&&s.has(p.id)).length;
+  const dup=sessPoolDup(p);
+  const twinTxt=dup?`\n\n· 중복으로 표시된 다른 레코드(${dup.lines.map(l=>l.t.replace(/^.*?: /,"")).join(", ")})는 영향을 받지 않고 그대로 남습니다.`:"";
+  const body=
+    `'${p.name||p.id}' (ID ${p.id}${p.email?` · ${p.email}`:""}) 레코드를 세션 참가자 데이터에서 완전히 삭제합니다.\n\n`+
+    `[확인하면 실행되는 작업]\n`+
+    `· 왼쪽 참가자 풀에서 이 사람이 사라집니다.\n`+
+    `· 현재 배정되어 있는 모든 세션(${assignedCount}개)에서 자동으로 빠집니다.\n`+
+    `· '마스터 업데이트'로 내보낼 때, '세션 참가자' 탭에서 이 레코드가 있던 행의 모든 칸 내용이 지워집니다.\n\n`+
+    `[마스터 파일에 적용되는 방식]\n`+
+    `· 행 자체를 삭제하거나 아래 행을 끌어올리지 않습니다 — 해당 행의 셀 값만 비우고 빈 행으로 남깁니다. 따라서 다른 사람들의 행 위치·번호는 그대로 유지되고, 셀 서식·수식 등 나머지 시트 내용도 보존됩니다.\n`+
+    `· 빈 행은 마스터를 다시 불러올 때 자동으로 무시됩니다(유효한 참가자ID가 없는 행이라서). 화면·집계·다른 탭(세션배정 등)에는 이 사람이 빠진 상태로 나타납니다.\n\n`+
+    `[영향 범위]\n`+
+    `· 세션 배정에 쓰이는 '세션 참가자' 데이터에만 적용됩니다. 숙소 배정과 '참가자(숙소)' 명단은 전혀 바뀌지 않습니다.`+
+    twinTxt+
+    `\n\n되돌릴 수 없습니다. (아직 마스터를 내보내기 전이라면, 원본 파일을 다시 열어 처음 상태로 되돌릴 수 있습니다.)`;
   dialog({
     title:"세션 참가자 기록 삭제",
-    body:`'${p.name||p.id}' (${p.id}) 기록을 세션 참가자 데이터에서 완전히 삭제합니다.\n모든 세션 배정에서 제거되고, 마스터 내보내기 시 '세션 참가자' 탭의 해당 행이 비워집니다. 되돌릴 수 없습니다.`,
+    body,
     okText:"삭제", cancelText:"취소", danger:true,
     onOk:()=>{
       if(p._row!=null){ state.sessDeletedRows=state.sessDeletedRows||[]; state.sessDeletedRows.push(p._row); }
