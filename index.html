@@ -150,7 +150,7 @@
   #sessright{flex:1;min-width:0;}
   /* slot picker (chips grouped by day) */
   /* days stack vertically; each day = label on the left + its time-slot chips wrapping to the right (no horizontal scroll) */
-  #sesspicker{position:sticky;top:var(--headerh,52px);z-index:6;background:var(--bg);display:flex;flex-direction:column;gap:3px;padding:5px 2px 6px;margin-bottom:8px;border-bottom:1px solid var(--line);}   /* sticky day/slot nav: flush under the header (no see-through gap) — jump + tracks the day you scroll into */
+  #sesspicker{position:sticky;top:var(--headerh,52px);z-index:6;background:var(--bg);display:flex;flex-direction:column;gap:3px;padding:5px 2px 6px;margin-bottom:8px;border-bottom:1px solid var(--line);max-height:calc(100dvh - var(--headerh,52px) - 8px);overflow:auto;}   /* sticky day/slot nav: flush under the header (no see-through gap) — jump + tracks the day you scroll into. max-height+overflow so a tall multi-day grid can still pin (it scrolls internally instead of being too tall to stick). */
   .sbtools{display:flex;justify-content:flex-end;gap:6px;}
   .sbtool{font-size:11px;font-weight:600;color:var(--text2);background:#fff;border:1px solid var(--border);border-radius:6px;padding:2px 9px;cursor:pointer;white-space:nowrap;}
   .sbtool:hover{border-color:var(--primary);color:var(--primary);background:#fdecea;}
@@ -198,6 +198,11 @@
   .sess-drophint{font-size:11px;color:var(--text-faint);text-align:center;padding:16px 4px;}
   #sesspool{width:260px;flex:none;background:var(--pool);border:1px solid var(--line);border-radius:8px;padding:8px;position:sticky;top:calc(var(--headerh,52px) + 6px);max-height:calc(100vh - var(--headerh,52px) - 16px);overflow:hidden;display:flex;flex-direction:column;}
   #sesspool h2{font-size:13px;margin:2px 0 6px;display:flex;align-items:center;gap:6px;}
+  /* 풀 너비 드래그 핸들: 풀과 세션 보드 사이(#sessboard gap)에 위치 → 풀 내부 스크롤바와 겹치지 않음 */
+  .poolresize{flex:none;align-self:stretch;width:8px;margin:0 -4px;cursor:col-resize;border-radius:4px;background:transparent;position:relative;}
+  .poolresize::before{content:"";position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:2px;height:40px;border-radius:2px;background:var(--line);}
+  .poolresize:hover::before,.poolresize.drag::before{background:var(--primary);}
+  body.poolresizing,body.poolresizing *{cursor:col-resize!important;user-select:none!important;}
   #sesspool input.search{width:100%;padding:5px;margin-bottom:6px;border:1px solid var(--line);border-radius:4px;}
   #sesspool .searchwrap{margin-bottom:6px;}
   /* 풀 상단 고정: 제목+검색+세션 배정 상황 요약을 한 묶음으로 스크롤 컨테이너 최상단에 핀 (목록만 스크롤). top:-8px → 컨테이너 8px 패딩만큼 끌어올려 그 위로 칩이 비치지 않게 함 */
@@ -230,9 +235,9 @@
   .sbslot.hasdup .dupx,.sbdaylab .dupx{color:var(--warn);font-weight:700;margin-left:4px;}   /* ⚠N overlap marker on slot pills / day labels */
   .sesspoollist{flex:1 1 auto;min-height:0;overflow-y:auto;overflow-x:hidden;margin:0 -4px;padding:0 4px;}   /* 풀 목록만 스크롤 — 검색·요약·안내문·토글은 위에 고정, 스크롤바는 토글 아래(목록)부터 시작 */
   .sesspoollist .chip{user-select:none;}   /* avoid stray text selection on Shift+click range select */
-  /* 풀 그룹 보기 토글: 분류 | 나이대 | 성별 (segmented) */
+  /* 풀 그룹 보기 토글: 분류 | 나이대 | 성별 | 확인필요 | 국가 (segmented) */
   .sessgbtog{flex:none;display:flex;margin:0 0 7px;border:1px solid var(--line);border-radius:6px;overflow:hidden;background:var(--surface);}
-  .sessgb{flex:1;padding:4px 6px;background:var(--surface);border:0;border-right:1px solid var(--line);border-radius:0;font-size:11px;font-weight:700;color:var(--text-muted);cursor:pointer;}
+  .sessgb{flex:1;min-width:0;padding:4px 3px;background:var(--surface);border:0;border-right:1px solid var(--line);border-radius:0;font-size:10.5px;font-weight:700;color:var(--text-muted);cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .sessgb:last-child{border-right:0;}
   .sessgb.on{background:var(--ink);color:#fff;}
   .sessgb:not(.on):hover{background:var(--bg);}
@@ -283,9 +288,10 @@
   }
   @media (max-width:860px){
     #sessboard{flex-direction:column;align-items:stretch;}
-    #sesspool{width:auto;position:static;max-height:42vh;top:auto;}
+    #sesspool{width:auto!important;position:static;max-height:42vh;top:auto;}   /* !important beats the JS inline width (드래그 조절값) so mobile stays full-width */
     #sesspool.collapsed{max-height:none;}
     #sesspool.collapsed .sesspoollist{display:none;}
+    .poolresize{display:none;}   /* 풀이 전체폭(세로 스택)일 땐 너비 조절 핸들 숨김 */
   }
   @media (max-width:640px){
     #session{padding:8px;gap:8px;}
@@ -1200,7 +1206,7 @@
 "use strict";
 // ⚑ index.html build version — shown bottom-right on the start screen. BUMP ON EACH DEPLOY.
 //   Format: vYYYY.MM.DD-N  (N = same-day build counter; reset to 1 on a new date).
-const APP_VERSION = "v2026.06.10-24";
+const APP_VERSION = "v2026.06.10-25";
 /* ============================================================
    ICMDA 2026 Room Assignment Dashboard (single file)
    - reads the live master .xlsx (columns mapped by HEADER NAME)
@@ -1265,7 +1271,8 @@ const state = {
   sessSlot: null,       // 세션 보기 슬롯 보드: focused time-slot key ("day||time"); null → show all slots of sessDay
   sessPoolCollapsed: false, // 세션 보기 pool collapse on tablet/phone (mirrors #pool.collapsed)
   sessSumCollapsed: false, // 세션 보기: 카테고리 배정 상황 요약 박스 접힘 여부
-  sessGroupBy: "cat", // 세션 보기 풀 그룹 기준: "cat"(분류) | "age"(나이대) | "sex"(성별)
+  sessGroupBy: "cat", // 세션 보기 풀 그룹 기준: "cat"(분류) | "age"(나이대) | "sex"(성별) | "warn"(확인필요) | "country"(국가)
+  sessPoolW: null, // 세션 보기 참가자 풀 패널 너비(px) — 드래그 조절, 저장됨 (null=기본 260)
   tlFilter: {q:"", venue:"", cat:""},
   orderList: [],   // custom vertical order of party ids (timeline)
   collapsed: {},   // venue -> true (timeline fold)
@@ -2780,6 +2787,7 @@ function renderSession(){
 
   // ----- left: participant pool — scoped to the current slot (who's still unassigned THIS slot) -----
   const pool=el("div"); pool.id="sesspool"; if(state.sessPoolCollapsed) pool.classList.add("collapsed");
+  if(state.sessPoolW) pool.style.width=state.sessPoolW+"px";   // 저장된 사용자 지정 너비 적용 (없으면 CSS 기본 260px)
   const h2=el("h2"); h2.innerHTML=`참가자 <span id="sesspoolcount"></span>`;
   const ptog=el("button","poolToggle"); ptog.id="sessPoolToggle"; ptog.type="button";
   ptog.setAttribute("aria-expanded", state.sessPoolCollapsed?"false":"true"); ptog.title="참가자 목록 접기/펼치기";
@@ -2805,9 +2813,9 @@ function renderSession(){
   csumHdr.onclick=()=>{ const col=csum.classList.toggle("collapsed"); state.sessSumCollapsed=col; csumHdr.querySelector(".chev").textContent=col?"▸":"▾"; };
   csum.append(csumHdr,csumBody); phdr.append(csum);
 
-  // ----- 풀 그룹 보기 토글: 참가자를 분류 / 나이대 / 성별 중 하나로 묶어 보기 -----
+  // ----- 풀 그룹 보기 토글: 참가자를 분류 / 나이대 / 성별 / 확인필요 / 국가 중 하나로 묶어 보기 -----
   const gbWrap=el("div","sessgbtog"); gbWrap.setAttribute("role","group"); gbWrap.setAttribute("aria-label","참가자 그룹 보기 기준");
-  [["cat","분류"],["age","나이대"],["sex","성별"],["warn","확인필요"]].forEach(([v,lbl])=>{
+  [["cat","분류"],["age","나이대"],["sex","성별"],["warn","확인필요"],["country","국가"]].forEach(([v,lbl])=>{
     const b=el("button","sessgb"+((state.sessGroupBy||"cat")===v?" on":"")); b.type="button"; b.textContent=lbl;
     b.setAttribute("aria-pressed",(state.sessGroupBy||"cat")===v?"true":"false");
     b.onclick=()=>{ if((state.sessGroupBy||"cat")===v) return; state.sessGroupBy=v;
@@ -2816,7 +2824,7 @@ function renderSession(){
     gbWrap.append(b);
   });
 
-  pool.append(el("div","sess-poolhint","위에서 시간대를 고르면 그 시간대의 병렬 세션이 칼럼으로 나타납니다. 이 시간대에 아직 배정되지 않은 사람만 풀에 보입니다. 풀은 분류·나이대·성별 중 하나로 묶어 볼 수 있습니다. 클릭해 선택(Shift+클릭: 범위 선택) → 세션 칼럼을 누르거나 끌어서 배정 · 칼럼 간 드래그로 이동 · 풀로 끌면 제외"));
+  pool.append(el("div","sess-poolhint","위에서 시간대를 고르면 그 시간대의 병렬 세션이 칼럼으로 나타납니다. 이 시간대에 아직 배정되지 않은 사람만 풀에 보입니다. 풀은 분류·나이대·성별·국가 또는 확인필요 기준으로 묶어 볼 수 있습니다. 클릭해 선택(Shift+클릭: 범위 선택) → 세션 칼럼을 누르거나 끌어서 배정 · 칼럼 간 드래그로 이동 · 풀로 끌면 제외"));
   pool.append(gbWrap);   // 그룹 보기 토글 — 안내문 바로 아래
 
   const plist=el("div","sesspoollist"); plist.dataset.dropkey="__sesspool__"; plist.setAttribute("role","group"); plist.setAttribute("aria-label","참가자 목록"); pool.append(plist);
@@ -2868,20 +2876,23 @@ function renderSession(){
         plist.append(grp);
       });
     } else {
-      // ----- 나이대 / 성별 / 확인필요 그룹 보기: 분류 exempt(세션 불필요)는 그대로 숨기되, 나머지를 선택한 기준으로 묶음 (체크박스 없음) -----
+      // ----- 나이대 / 성별 / 확인필요 / 국가 그룹 보기: 분류 exempt(세션 불필요)는 그대로 숨기되, 나머지를 선택한 기준으로 묶음 (체크박스 없음) -----
       const ageKeyOf=p=>{ const ab=(p.band!=null&&p.band!=="")?p.band:ageBand(p.dob); return ab||"나이대 미상"; };
       const sexKeyOf=p=>p.partySex==="M"?"남성":p.partySex==="F"?"여성":p.partySex==="MIX"?"혼성":"성별 미상";
       // 확인필요: 칩에 빨간/주황 ⚠ 경고가 붙는 사람만 묶음 — 시간 중복 배정 > 이메일 중복 레코드 > 이름 중복 레코드 (한 명은 가장 심각한 한 그룹에만). 경고 없으면 null → 제외.
       const warnKeyOf=p=>{ if(state._sessConflict && state._sessConflict.pids.has(p.id)) return "시간 중복 배정"; const d=sessPoolDup(p); if(d) return d.severity==="danger"?"중복 레코드(이메일)":"중복 레코드(이름)"; return null; };
+      // 국가: 지역(이미 "Country/…"의 앞 국가명으로 정제됨)으로 묶음, 빈 값은 "Unknown". 소스가 이미 표준 국가명이라 별도 정규화 불필요.
+      const countryKeyOf=p=>{ const c=(p.region||"").trim(); return c||"Unknown"; };
       const AGE_ORDER=["10세 미만","10대","20대","30대","40대","50대","60대","70대","80대","90대","나이대 미상"];
       const SEX_ORDER=["남성","여성","혼성","성별 미상"];
       const WARN_ORDER=["시간 중복 배정","중복 레코드(이메일)","중복 레코드(이름)"];
-      const keyOf=GB==="age"?ageKeyOf:GB==="sex"?sexKeyOf:warnKeyOf, ORDER=GB==="age"?AGE_ORDER:GB==="sex"?SEX_ORDER:WARN_ORDER;
+      const keyOf=GB==="age"?ageKeyOf:GB==="sex"?sexKeyOf:GB==="country"?countryKeyOf:warnKeyOf, ORDER=GB==="age"?AGE_ORDER:GB==="sex"?SEX_ORDER:GB==="country"?[]:WARN_ORDER;
       const sexBadge=k=>k==="남성"?{c:"#3f7fbf",t:"남"}:k==="여성"?{c:"#c85d8e",t:"여"}:k==="혼성"?{c:"#8a6fc0",t:"혼"}:{c:"#9aa6b2",t:"?"};
       const warnBadge=k=>k==="중복 레코드(이름)"?{c:"var(--warning-fill)",t:"⚠"}:{c:"var(--warn)",t:"⚠"};   // 이름 중복만 주황, 나머지(시간중복·이메일중복) 빨강
       const g2=new Map();
       POOL.forEach(p=>{ if(state.sessExempt.has(p.cat||"(분류 없음)")) return; const k=keyOf(p); if(k==null) return; (g2.get(k)||g2.set(k,[]).get(k)).push(p); });
-      const keys=[...g2.keys()].sort((a,b)=>{ let ia=ORDER.indexOf(a), ib=ORDER.indexOf(b); if(ia<0)ia=99; if(ib<0)ib=99; return ia-ib || a.localeCompare(b); });
+      const keys=[...g2.keys()].sort((a,b)=>{ if(GB==="country"){ const au=a==="Unknown",bu=b==="Unknown"; if(au!==bu) return au?1:-1; return a.localeCompare(b); }   // 국가: 알파벳순, Unknown은 맨 뒤
+        let ia=ORDER.indexOf(a), ib=ORDER.indexOf(b); if(ia<0)ia=99; if(ib<0)ib=99; return ia-ib || a.localeCompare(b); });
       keys.forEach(k=>{
         const vis=g2.get(k).slice().sort((a,b)=>a.name.localeCompare(b.name)).filter(match);
         if(!vis.length) return;   // hide empty bands (and, while searching, groups with no match)
@@ -3071,7 +3082,16 @@ function renderSession(){
     });
   }
 
-  const board=el("div"); board.id="sessboard"; board.append(pool, right);
+  const board=el("div"); board.id="sessboard";
+  // 풀 너비 드래그 핸들 (풀과 세션 보드 사이). 데스크톱 전용 — 모바일(≤860px)은 풀이 전체폭이라 CSS로 숨김.
+  const rz=el("div","poolresize"); rz.title="드래그하여 참가자 풀 너비 조절 · 더블클릭하여 초기화"; rz.setAttribute("role","separator"); rz.setAttribute("aria-label","참가자 풀 너비 조절");
+  rz.addEventListener("pointerdown",e=>{ e.preventDefault(); const startX=e.clientX, startW=pool.getBoundingClientRect().width;
+    rz.classList.add("drag"); document.body.classList.add("poolresizing"); rz.setPointerCapture(e.pointerId);
+    const move=ev=>{ const w=Math.max(220,Math.min(520,Math.round(startW+(ev.clientX-startX)))); pool.style.width=w+"px"; state.sessPoolW=w; };
+    const up=()=>{ rz.classList.remove("drag"); document.body.classList.remove("poolresizing"); rz.removeEventListener("pointermove",move); rz.removeEventListener("pointerup",up); rz.removeEventListener("pointercancel",up); saveUI(); };
+    rz.addEventListener("pointermove",move); rz.addEventListener("pointerup",up); rz.addEventListener("pointercancel",up); });
+  rz.addEventListener("dblclick",()=>{ state.sessPoolW=null; pool.style.width=""; saveUI(); });   // 더블클릭 → 기본 너비로 초기화
+  board.append(pool, rz, right);
   fillPool();
   root.append(board);
 
@@ -3717,7 +3737,7 @@ function syncTop(){                                   // keep panels sized to th
   applyColW();   // re-evaluate the night-track floor for the new width
 }
 const UIKEY="icmda_ui";
-function saveUI(){ try{ localStorage.setItem(UIKEY, JSON.stringify({colW:state.colW, collapsedRooms:state.collapsedRooms, sessFolded:state.sessFolded, sessSlot:state.sessSlot, sessDay:state.sessDay, view:state.view, sessSeriesNoPrompt:state.sessSeriesNoPrompt})); }catch(e){} }   // timeline 'collapsed' is intentionally NOT persisted → 숙소 타임라인 always defaults to fully expanded
+function saveUI(){ try{ localStorage.setItem(UIKEY, JSON.stringify({colW:state.colW, collapsedRooms:state.collapsedRooms, sessFolded:state.sessFolded, sessSlot:state.sessSlot, sessDay:state.sessDay, view:state.view, sessSeriesNoPrompt:state.sessSeriesNoPrompt, sessPoolW:state.sessPoolW})); }catch(e){} }   // timeline 'collapsed' is intentionally NOT persisted → 숙소 타임라인 always defaults to fully expanded
 function loadUI(){ try{
   const s=JSON.parse(localStorage.getItem(UIKEY)||"{}");
   if(Array.isArray(s.colW) && s.colW.length===state.colW.length) state.colW=s.colW.map(Number);
@@ -3728,6 +3748,7 @@ function loadUI(){ try{
   if(typeof s.sessDay==="string") state.sessDay=s.sessDay;
   if(s.view==="rooms"||s.view==="timeline"||s.view==="schedule"||s.view==="session") state.view=s.view;
   if(s.sessSeriesNoPrompt) state.sessSeriesNoPrompt=true;
+  if(typeof s.sessPoolW==="number" && s.sessPoolW>=220 && s.sessPoolW<=520) state.sessPoolW=s.sessPoolW;
 }catch(e){} }
 function makeColGrip(ci){
   const g=el("div","colgrip");
