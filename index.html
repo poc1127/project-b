@@ -154,6 +154,8 @@
   .sbtools{display:flex;justify-content:flex-end;gap:6px;}
   .sbtool{font-size:11px;font-weight:600;color:var(--text2);background:#fff;border:1px solid var(--border);border-radius:6px;padding:2px 9px;cursor:pointer;white-space:nowrap;}
   .sbtool:hover{border-color:var(--primary);color:var(--primary);background:#fdecea;}
+  .sbtool.danger{color:var(--warn);}   /* 모두 비우기: destructive — clears every (unlocked) session assignment */
+  .sbtool.danger:hover{border-color:var(--warn);color:var(--warn);background:rgba(207,70,49,.12);}
   .sbday{display:flex;gap:10px;align-items:flex-start;}
   .sbdaylab{flex:none;width:112px;text-align:center;font-size:11px;font-weight:700;color:var(--text2);background:#fff;border:1px solid var(--border);border-radius:7px;padding:2px 10px;cursor:pointer;user-select:none;white-space:nowrap;}
   .sbdaylab:hover{color:var(--primary);border-color:var(--primary);background:#fdecea;}
@@ -198,6 +200,9 @@
   #sesspool h2{font-size:13px;margin:2px 0 6px;display:flex;align-items:center;gap:6px;}
   #sesspool input.search{width:100%;padding:5px;margin-bottom:6px;border:1px solid var(--line);border-radius:4px;}
   #sesspool .searchwrap{margin-bottom:6px;}
+  /* 풀 상단 고정: 제목+검색+세션 배정 상황 요약을 한 묶음으로 스크롤 컨테이너 최상단에 핀 (목록만 스크롤). top:-8px → 컨테이너 8px 패딩만큼 끌어올려 그 위로 칩이 비치지 않게 함 */
+  .sesspoolhdr{position:sticky;top:-8px;z-index:3;background:var(--pool);padding-top:8px;margin-top:-8px;box-shadow:0 6px 5px -4px var(--pool);}
+  .sesspoolhdr>*:last-child{margin-bottom:0;}
   .sess-poolhint{font-size:11px;color:var(--text-faint);margin:0 0 6px;line-height:1.4;}
   /* 카테고리별 세션 배정 상황 요약 — pinned atop the pool, collapsible */
   .sesssum{margin:0 0 7px;border:1px solid var(--line);border-radius:6px;background:var(--card,#fff);overflow:hidden;}
@@ -233,8 +238,8 @@
      row instead of leaving phantom empty tracks; chips wrap inside each card so wide cards use their width. */
   .sesscols{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:10px;align-items:stretch;min-width:0;}   /* auto-FILL → uniform card width (orphans in the last row don't balloon to fill it) */
   .sesscols .room{display:flex;flex-direction:column;min-height:165px;border-left:3px solid #c2c8cf;user-select:none;-webkit-user-select:none;}   /* program-color accent (mirrors the 일정 보기 legend); flex column + min-height → every empty box is the same height regardless of title/speaker line count, the drop body fills the slack; user-select:none → click/drag-to-assign never selects the card text */
-  .sesscols .room .roomchips{flex:1 1 auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:5px;align-content:flex-start;}   /* grows to fill the card's min-height; fixed column tracks: auto-fill keeps the empty track, so a lone chip sits in half a wide box (next drop fills the other half) */
-  .sesscols .room .roomchips .chip{min-width:0;}   /* let long names ellipsis inside their track */
+  .sesscols .room .roomchips{flex:1 1 auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:3px;align-content:flex-start;}   /* grows to fill the card's min-height; fixed column tracks: auto-fill keeps the empty track, so a lone chip sits in half a wide box (next drop fills the other half) */
+  .sesscols .room .roomchips .chip{min-width:0;margin:0;}   /* let long names ellipsis inside their track; margin:0 → grid gap alone controls spacing (mirrors 숙소 배정's tight rhythm, not gap+margin) */
   .sesscols .room .roomchips.empty{align-content:center;}   /* lone hint sits in the vertical middle of the empty drop area */
   .sesscols .room .sess-drophint{grid-column:1/-1;}   /* span all tracks so the empty-box hint stays centered across the full width */
   #sessright.picking .room{outline:1px dashed #79b27c;cursor:pointer;}
@@ -1171,7 +1176,7 @@
 "use strict";
 // ⚑ index.html build version — shown bottom-right on the start screen. BUMP ON EACH DEPLOY.
 //   Format: vYYYY.MM.DD-N  (N = same-day build counter; reset to 1 on a new date).
-const APP_VERSION = "v2026.06.10-10";
+const APP_VERSION = "v2026.06.10-12";
 /* ============================================================
    ICMDA 2026 Room Assignment Dashboard (single file)
    - reads the live master .xlsx (columns mapped by HEADER NAME)
@@ -2676,12 +2681,14 @@ function renderSession(){
   ptog.textContent=state.sessPoolCollapsed?"▸":"▾";
   ptog.onclick=()=>{ const col=pool.classList.toggle("collapsed"); state.sessPoolCollapsed=col;
     ptog.setAttribute("aria-expanded", col?"false":"true"); ptog.textContent=col?"▸":"▾"; };
-  h2.append(ptog); pool.append(h2);
+  h2.append(ptog);
+  // 상단 고정(sticky) 헤더 묶음: 제목 + 검색 + 세션 배정 상황 요약 → 목록 위에 핀
+  const phdr=el("div","sesspoolhdr"); phdr.append(h2); pool.append(phdr);
 
   const sw=el("div","searchwrap");
   const search=el("input","search"); search.id="sesssearch"; search.placeholder=(state.sessParticipants&&state.sessParticipants.length)?"이름/ID/지역 검색…":"이름/ID/소속 검색…"; search.setAttribute("autocomplete","off"); search.value=state.sessFilter.q||"";
   const clr=el("button","clr"); clr.type="button"; clr.textContent="×"; clr.title="지우기"; clr.setAttribute("aria-label","검색어 지우기");
-  sw.append(search,clr); pool.append(sw);
+  sw.append(search,clr); phdr.append(sw);
 
   // ----- 카테고리별 세션 배정 상황 요약 (collapsible): per-category 배정됨(≥1 세션)/전체 -----
   const csum=el("div","sesssum"+(state.sessSumCollapsed?" collapsed":"")); csum.id="sesscatsum";
@@ -2691,7 +2698,7 @@ function renderSession(){
   const csumTot=csumHdr.querySelector(".tot");
   const csumBody=el("div","sesssumbody");
   csumHdr.onclick=()=>{ const col=csum.classList.toggle("collapsed"); state.sessSumCollapsed=col; csumHdr.querySelector(".chev").textContent=col?"▸":"▾"; };
-  csum.append(csumHdr,csumBody); pool.append(csum);
+  csum.append(csumHdr,csumBody); phdr.append(csum);
 
   pool.append(el("div","sess-poolhint","위에서 시간대를 고르면 그 시간대의 병렬 세션이 칼럼으로 나타납니다. 이 시간대에 아직 배정되지 않은 사람만 풀에 보입니다. 클릭해 선택(Shift+클릭: 범위 선택) → 세션 칼럼을 누르거나 끌어서 배정 · 칼럼 간 드래그로 이동 · 풀로 끌면 제외"));
 
@@ -2772,9 +2779,11 @@ function renderSession(){
     const tb=el("div","sbtools");
     const exp=el("button","sbtool"); exp.type="button"; exp.textContent="모두 펼치기";
     const col=el("button","sbtool"); col.type="button"; col.textContent="모두 접기";
+    const clr=el("button","sbtool danger"); clr.type="button"; clr.textContent="모두 비우기"; clr.title="모든 세션의 배정을 해제합니다 (잠긴 세션은 제외)";
     exp.onclick=()=>{ state.sessFolded={}; saveUI(); renderSession(); };
     col.onclick=()=>{ const f={}; [...new Set(slots.map(s=>s.day))].forEach(d=>f["day:"+d]=true); state.sessFolded=f; saveUI(); renderSession(); };
-    tb.append(exp,col); picker.append(tb);
+    clr.onclick=()=>sessConfirmEmpty(state.sessionList.map(s=>s.key),"전체 세션");
+    tb.append(exp,col,clr); picker.append(tb);
   }
   [...new Set(slots.map(s=>s.day))].forEach(day=>{
     const g=el("div","sbday");
