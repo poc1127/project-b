@@ -202,8 +202,14 @@
   .poolresize{flex:none;align-self:stretch;width:10px;margin:0 -3px;cursor:col-resize;position:relative;display:flex;align-items:center;justify-content:center;}
   .poolresize::before{content:"";position:absolute;top:0;bottom:0;left:50%;transform:translateX(-50%);width:2px;background:var(--line);}   /* 항상 보이는 세로 구분선 (전체 높이) */
   .poolresize::after{content:"⋮";display:flex;align-items:center;justify-content:center;position:relative;width:12px;height:42px;border-radius:6px;background:var(--primary);color:#fff;font-size:13px;line-height:1;letter-spacing:-1px;box-shadow:0 1px 4px rgba(0,0,0,.28);}   /* 항상 보이는 그립 (어디를 끌어야 하는지 명확히) */
-  .poolresize:hover::after,.poolresize.drag::after{background:var(--primary-strong,#1d4ed8);transform:scaleY(1.12);}
+  .poolresize:hover::after,.poolresize.drag::after{background:var(--primary-hover);transform:scaleY(1.12);}
   body.poolresizing,body.poolresizing *{cursor:col-resize!important;user-select:none!important;}
+  /* 1회성 코치마크: 풀 너비 조절 핸들을 처음 안내 (×나 드래그 시 닫히고 localStorage로 다시 안 뜸) */
+  .poolcoach{position:absolute;left:16px;top:6px;z-index:20;background:var(--ink);color:#fff;font-size:11.5px;line-height:1.45;padding:8px 22px 8px 11px;border-radius:8px;width:184px;box-shadow:0 4px 14px rgba(0,0,0,.28);}
+  .poolcoach b{font-weight:700;}
+  .poolcoach .x{position:absolute;top:3px;right:4px;background:none;border:0;color:#cbd3dc;font-size:14px;line-height:1;padding:2px 4px;cursor:pointer;}
+  .poolcoach .x:hover{color:#fff;background:none;}
+  .poolcoach::before{content:"";position:absolute;left:-7px;top:14px;border:7px solid transparent;border-right-color:var(--ink);border-left:0;}
   #sesspool input.search{width:100%;padding:5px;margin-bottom:6px;border:1px solid var(--line);border-radius:4px;}
   #sesspool .searchwrap{margin-bottom:6px;}
   /* 풀 상단 고정: 제목+검색+세션 배정 상황 요약을 한 묶음으로 스크롤 컨테이너 최상단에 핀 (목록만 스크롤). top:-8px → 컨테이너 8px 패딩만큼 끌어올려 그 위로 칩이 비치지 않게 함 */
@@ -1211,7 +1217,7 @@
 "use strict";
 // ⚑ index.html build version — shown bottom-right on the start screen. BUMP ON EACH DEPLOY.
 //   Format: vYYYY.MM.DD-N  (N = same-day build counter; reset to 1 on a new date).
-const APP_VERSION = "v2026.06.10-28";
+const APP_VERSION = "v2026.06.10-29";
 /* ============================================================
    ICMDA 2026 Room Assignment Dashboard (single file)
    - reads the live master .xlsx (columns mapped by HEADER NAME)
@@ -3090,7 +3096,15 @@ function renderSession(){
   const board=el("div"); board.id="sessboard";
   // 풀 너비 드래그 핸들 (풀과 세션 보드 사이). 데스크톱 전용 — 모바일(≤860px)은 풀이 전체폭이라 CSS로 숨김.
   const rz=el("div","poolresize"); rz.title="드래그하여 참가자 풀 너비 조절 · 더블클릭하여 초기화"; rz.setAttribute("role","separator"); rz.setAttribute("aria-label","참가자 풀 너비 조절");
-  rz.addEventListener("pointerdown",e=>{ e.preventDefault(); const startX=e.clientX, startW=pool.getBoundingClientRect().width;
+  // 1회성 코치마크: 핸들 존재를 처음 안내 (×나 첫 드래그 시 닫고 다시 안 뜸)
+  const COACHKEY="icmdaPoolResizeCoachV1";
+  const dismissCoach=()=>{ const c=rz.querySelector(".poolcoach"); if(c) c.remove(); try{localStorage.setItem(COACHKEY,"1");}catch(e){} };
+  let coachSeen=false; try{ coachSeen=!!localStorage.getItem(COACHKEY); }catch(e){}
+  if(!coachSeen){ const coach=el("div","poolcoach");
+    coach.innerHTML='<button class="x" type="button" aria-label="닫기">×</button><b>↔ 풀 너비 조절</b><br>이 손잡이를 좌우로 끌면 왼쪽 참가자 칸의 너비를 바꿀 수 있어요.';
+    coach.querySelector(".x").onclick=e=>{ e.stopPropagation(); dismissCoach(); };
+    rz.append(coach); }
+  rz.addEventListener("pointerdown",e=>{ e.preventDefault(); dismissCoach(); const startX=e.clientX, startW=pool.getBoundingClientRect().width;
     rz.classList.add("drag"); document.body.classList.add("poolresizing"); rz.setPointerCapture(e.pointerId);
     const move=ev=>{ const w=Math.max(220,Math.min(760,Math.round(startW+(ev.clientX-startX)))); pool.style.width=w+"px"; state.sessPoolW=w; };
     const up=()=>{ rz.classList.remove("drag"); document.body.classList.remove("poolresizing"); rz.removeEventListener("pointermove",move); rz.removeEventListener("pointerup",up); rz.removeEventListener("pointercancel",up); saveUI(); };
