@@ -32,7 +32,8 @@
   *{box-sizing:border-box;}
   body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Pretendard","Apple SD Gothic Neo","Noto Sans KR","Malgun Gothic",sans-serif;margin:0;background:var(--bg);color:var(--text);font-size:13px;-webkit-text-size-adjust:100%;}
   header{background:var(--ink);color:#fff;padding:10px 16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;position:sticky;top:0;z-index:50;}
-  header h1{font-size:16px;margin:0 12px 0 0;font-weight:600;}
+  header h1{font-size:16px;margin:0 12px 0 0;font-weight:600;cursor:pointer;user-select:none;}
+  header h1:hover{opacity:.85;}
   header .spacer{flex:1;}
   button,label.btn{background:var(--primary);color:#fff;border:1px solid transparent;border-radius:5px;padding:6px 11px;font-size:12px;cursor:pointer;}
   button:hover,label.btn:hover{background:#2c597f;}
@@ -329,7 +330,7 @@
   .viewtabs.disabled .vtab.active{background:rgba(255,255,255,.4);color:#cdd9e4;box-shadow:none;}
   /* import / start screen (shown until a master loads) */
   #startscreen{display:flex;align-items:center;justify-content:center;box-sizing:border-box;position:relative;
-    min-height:calc(100vh - var(--headerh,56px));padding:32px 24px;}
+    min-height:calc(100vh - var(--headerh,56px));padding:32px 24px;user-select:none;}
   #startscreen[hidden]{display:none;}
   .ss-version{position:absolute;right:16px;bottom:13px;font-size:11px;color:var(--text-faint);letter-spacing:.02em;font-variant-numeric:tabular-nums;}
   .ss-hero{display:grid;grid-template-columns:1.05fr .95fr;width:100%;max-width:840px;
@@ -962,7 +963,7 @@
 </head>
 <body>
 <header>
-  <h1>ICMDA 2026 숙소배정</h1>
+  <h1 id="appTitle" role="button" tabindex="0" title="처음 화면(파일 열기)으로 돌아갑니다">ICMDA 2026 숙소배정</h1>
   <div class="toolbtns">
     <!-- ① data input -->
     <span class="tgroup" role="group" aria-label="1단계 데이터 입력">
@@ -1128,7 +1129,7 @@
 "use strict";
 // ⚑ index.html build version — shown bottom-right on the start screen. BUMP ON EACH DEPLOY.
 //   Format: vYYYY.MM.DD-N  (N = same-day build counter; reset to 1 on a new date).
-const APP_VERSION = "v2026.06.10-7";
+const APP_VERSION = "v2026.06.10-8";
 /* ============================================================
    ICMDA 2026 Room Assignment Dashboard (single file)
    - reads the live master .xlsx (columns mapped by HEADER NAME)
@@ -4618,6 +4619,16 @@ $("#jumpsel").addEventListener("change",e=>{
   renderVenues();
   requestAnimationFrame(()=>{ const n=document.getElementById(id); if(n) n.scrollIntoView({behavior:"smooth",block:"start"}); });
 });
+
+// title = home: back to the import/start (load) screen. Guarded with a confirm when a master is
+// loaded, since returning to the load page discards unsaved in-memory edits (a fresh reload).
+function goHome(){
+  if(!state.masterBuf){ return; }                   // already at the load screen — nothing to do
+  if(!confirm("처음 화면(파일 열기)으로 돌아가시겠습니까?\n저장하지 않은 변경 사항은 사라집니다.")) return;
+  location.reload();
+}
+$("#appTitle").onclick=goHome;
+$("#appTitle").addEventListener("keydown",e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); goHome(); } });
 
 // view tabs + timeline filters + modal
 $("#tabRooms").onclick=()=>setView("rooms");        // works at the empty state too (pre-selects the landing view)
