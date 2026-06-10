@@ -1129,7 +1129,7 @@
 "use strict";
 // ⚑ index.html build version — shown bottom-right on the start screen. BUMP ON EACH DEPLOY.
 //   Format: vYYYY.MM.DD-N  (N = same-day build counter; reset to 1 on a new date).
-const APP_VERSION = "v2026.06.09-22";
+const APP_VERSION = "v2026.06.10-1";
 /* ============================================================
    ICMDA 2026 Room Assignment Dashboard (single file)
    - reads the live master .xlsx (columns mapped by HEADER NAME)
@@ -1152,6 +1152,13 @@ const CAT = {
   "자원봉사팀":{c:"#e08a1e", ab:"자원봉사"},
   "미디어팀":{c:"#2a9d8f", ab:"미디어"},
   "찬양팀":{c:"#7e57c2", ab:"찬양"},
+  // 세션 참가자 tab categories — drive the 세션 배정 보기 pool grouping (don't occur in 숙소 배정 data)
+  "Seniors":{c:"#2f6fa8", ab:"Sr"},
+  "Students":{c:"#2f7d57", ab:"St"},
+  "Junior":{c:"#e08a1e", ab:"Jr"},
+  "Accompanies":{c:"#9c6ade", ab:"Ac"},
+  "Children":{c:"#d4699a", ab:"Ch"},
+  "Booth Staff":{c:"#6b7280", ab:"Bo"},
 };
 const catInfo = cat => CAT[cat] || {c:"var(--text-muted)", ab:(cat||"-").slice(0,3)};
 const state = {
@@ -1477,6 +1484,9 @@ function loadMaster(arrbuf){
   state.sessCatalog = catSheet ? parseSessCatalog(XLSX.utils.sheet_to_json(catSheet,{header:1,raw:false,defval:""})) : null;
   const locSheet = wb.Sheets["세션 장소 세부"];     // room-detail lookup: 세션 배정 col F (장소 code e.g. L101) → readable 숙소/동/호실
   state.locDetail = locSheet ? parseLocDetail(XLSX.utils.sheet_to_json(locSheet,{header:1,raw:false,defval:""})) : {};
+  const spSheet = wb.Sheets["세션 참가자"];         // 세션 배정 보기 pool source (separate population from 참가자/숙소); falls back to 참가자 when absent
+  state.sessParticipants = spSheet ? parseSessParticipants(XLSX.utils.sheet_to_json(spSheet,{header:1,raw:false,defval:""})) : null;
+  state.sessById={}; (state.sessParticipants||[]).forEach(p=>state.sessById[p.id]=p);
   buildSpeakerIndex();
   state.scheduleDirty = new Set();              // fresh master → no pending 일정 edits
   state.dbDirty = new Map(); state.spkDirty = new Map();   // fresh master → no pending session-modal edits
@@ -2170,6 +2180,30 @@ function progForLine(line, base){
 //   Stream Session N → the 10 streams, PER-SLOT (key "<slot>::PS_n") · slots with no catalog stay slot-level.
 // parse the explicit '세션 배정' catalog tab → one record per assignable session (rows that carry a 세션 코드).
 // Bible Exposition / Plenary rows have no code (whole-congress, not assignable) and are skipped.
+// '세션 참가자' tab → the participant POOL for 세션 배정 보기 ONLY (kept fully separate from the 참가자/숙소 data).
+// Headers on the row carrying "참가자ID" (row 4); dashboard cols = 참가자ID·참가자 이름·참가자 카테고리·나이대·성별·지역·이메일·결제여부.
+// Cols A-B (counter/notes) and the raw-source cols from "ID" onward are ignored (we read strictly by header name).
+function parseSessParticipants(aoa){
+  if(!aoa||!aoa.length) return null;
+  const nz=s=>(s==null?"":String(s)).trim();
+  let hi=aoa.findIndex(r=>r&&r.some(c=>nz(c)==="참가자ID")); if(hi<0) return null;
+  const H={}; (aoa[hi]||[]).forEach((h,i)=>{ const k=nz(h); if(k&&H[k]==null) H[k]=i; });   // first occurrence wins (dashboard cols precede the raw 'ID' col)
+  const col=(row,name)=> H[name]!=null ? nz(row[H[name]]) : "";
+  const out=[];
+  for(let r=hi+1;r<aoa.length;r++){
+    const row=aoa[r]||[]; const id=col(row,"참가자ID"); if(!/^\d+$/.test(id)) continue;   // valid rows carry a numeric 참가자ID
+    const ageRaw=col(row,"나이대");
+    const band=(/^\d{1,2}대$/.test(ageRaw) && ageRaw!=="0대") ? ageRaw : "";              // drop junk 나이대 (0대/Unknown/#VALUE!/#NUM!) → unknown
+    const sx=col(row,"성별").toUpperCase();
+    const region=(col(row,"지역").split("/")[0]||"").trim();                              // "South Africa/" / "Korea…/Korea…" → "South Africa" / "Korea…"
+    out.push({ _sess:true, id, name:col(row,"참가자 이름")||id, cat:col(row,"참가자 카테고리")||"(분류 없음)",
+      band, sex:(sx==="M"?"M":sx==="F"?"F":"?"), partySex:(sx==="M"?"M":sx==="F"?"F":"?"),
+      region, email:col(row,"이메일"), pay:col(row,"결제여부"), kname:"", aff:"" });
+  }
+  return out.length?out:null;
+}
+// resolve a participant id to its object — session pool first (this view's source), then the accommodation roster (fallback masters)
+function sessPartyById(id){ return (state.sessById && state.sessById[id]) || state.byId[id] || null; }
 function parseSessCatalog(aoa){
   if(!aoa||!aoa.length) return null;
   const nz=s=>(s==null?"":String(s)).trim();
@@ -2440,7 +2474,7 @@ function sessChip(p, fromKey, prog){
   const nm=el("span","nm",(elg?"":"⚠ ")+p.name + (p.kname?` (${p.kname})`:""));
   nm.title=`${p.name}${p.kname?` (${p.kname})`:""} · ${p.id} · ${p.cat}`+(p.aff?` · ${p.aff}`:"")+(p.event?` · ${p.event}`:"");
   if(inPool){                                          // age-decade pill (참가자 pool only — age matters for session balancing)
-    const ab=ageBand(p.dob);
+    const ab=(p.band!=null)?p.band:ageBand(p.dob);     // 세션 참가자 carries 나이대 directly (p.band); accommodation parties derive from 생년월일
     const age=el("span","agepill"+(ab?"":" unk"), ab||"?");
     age.title=ab?`연령대: ${ab}${p.dob?` (${p.dob})`:""}`:"생년월일 미상"; age.setAttribute("aria-hidden","true");
     c.append(grip,cat,sx,age,nm);
@@ -2545,7 +2579,7 @@ function renderSession(){
   h2.append(ptog); pool.append(h2);
 
   const sw=el("div","searchwrap");
-  const search=el("input","search"); search.id="sesssearch"; search.placeholder="이름/ID/소속 검색…"; search.setAttribute("autocomplete","off"); search.value=state.sessFilter.q||"";
+  const search=el("input","search"); search.id="sesssearch"; search.placeholder=(state.sessParticipants&&state.sessParticipants.length)?"이름/ID/지역 검색…":"이름/ID/소속 검색…"; search.setAttribute("autocomplete","off"); search.value=state.sessFilter.q||"";
   const clr=el("button","clr"); clr.type="button"; clr.textContent="×"; clr.title="지우기"; clr.setAttribute("aria-label","검색어 지우기");
   sw.append(search,clr); pool.append(sw);
 
@@ -2560,9 +2594,10 @@ function renderSession(){
     // Plus a per-person total-session count, to badge people already booked elsewhere (still available here).
     const inScope=new Set(); scopeKeysNow().forEach(k=>{ const st=state.sessionAssign[k]; if(st) st.forEach(id=>inScope.add(id)); });
     const asgCount={}; Object.values(state.sessionAssign).forEach(set=>set&&set.forEach(id=>{ asgCount[id]=(asgCount[id]||0)+1; }));
-    const match=p=>!inScope.has(p.id)&&(!q||p.name.toLowerCase().includes(q)||p.id.toLowerCase().includes(q)||(p.kname||"").toLowerCase().includes(q)||(p.aff||"").toLowerCase().includes(q));
+    const match=p=>!inScope.has(p.id)&&(!q||p.name.toLowerCase().includes(q)||p.id.toLowerCase().includes(q)||(p.kname||"").toLowerCase().includes(q)||(p.aff||"").toLowerCase().includes(q)||(p.region||"").toLowerCase().includes(q));
     const groups=new Map();
-    state.parties.forEach(p=>{ const c=p.cat||"(분류 없음)"; (groups.get(c)||groups.set(c,[]).get(c)).push(p); });
+    const POOL=(state.sessParticipants&&state.sessParticipants.length)?state.sessParticipants:state.parties;   // 세션 참가자 tab drives this pool; fall back to 참가자 for masters without the tab
+    POOL.forEach(p=>{ const c=p.cat||"(분류 없음)"; (groups.get(c)||groups.set(c,[]).get(c)).push(p); });
     const catKeys=[...groups.keys()].sort((a,b)=>a.localeCompare(b));
     let shown=0; catKeys.forEach(c=>{ if(!state.sessExempt.has(c)) shown+=groups.get(c).filter(match).length; });
     const cn=$("#sesspoolcount"); if(cn) cn.textContent=dayMode?`(이 날 미배정 ${shown}명)`:`(이 시간대 미배정 ${shown}명)`;
@@ -2805,7 +2840,7 @@ function sessionCard(s,showParent){
   card.append(hdr);
   const body=el("div","roomchips");   // flex-wrap container so chips fill a wide card's width instead of stacking
   if(!set.size){ body.classList.add("empty"); body.append(el("div","sess-drophint","비어 있음 · 선택 후 클릭/드래그")); }
-  [...set].map(pid=>state.byId[pid]).filter(Boolean).sort((a,b)=>a.name.localeCompare(b.name)).forEach(p=>body.append(sessChip(p,s.key,s.prog)));
+  [...set].map(pid=>sessPartyById(pid)).filter(Boolean).sort((a,b)=>a.name.localeCompare(b.name)).forEach(p=>body.append(sessChip(p,s.key,s.prog)));
   card.append(body);
   // tap the card body = assign the current pool selection to this session (chips/badge stop propagation)
   const assign=()=>{ if(state.sessPicks.size) sessAddPicks(s.key); };
@@ -3717,6 +3752,19 @@ function enableBarDrag(p,bar,hl,hr,track,n,place){
 /* ---------- ⑤ detail card ---------- */
 function openCard(p){
   const card=$("#card"); card.className="card"; const ci=catInfo(p.cat); card.style.setProperty("--catc",ci.c);
+  if(p._sess){                                         // 세션 참가자 pool member → session-relevant fields only (no 숙소 data, no 수정 — it has no 참가자-tab row)
+    const sx={M:"남",F:"여","?":"미상"}[p.sex]||p.sex;
+    const srows=[["참가자 카테고리",p.cat],["나이대",p.band],["성별",sx],["지역",p.region],["이메일",p.email],["결제여부",p.pay]];
+    let sb=""; srows.forEach(([k,v])=>{ if(v==null||v==="") return;
+      sb+=`<div class="field"><div class="k">${k}</div><div class="v">${String(v).replace(/&/g,"&amp;").replace(/</g,"&lt;")}</div></div>`; });
+    card.innerHTML=
+      `<div class="chead" style="background:${ci.c}">
+         <div class="htitle"><h2>${p.name||p.id}</h2>
+         <div class="sub">${p.id} · ${p.cat||""}</div></div>
+         <button class="cx" onclick="closeCard()">×</button>
+       </div><div class="cbody">${sb}</div>`;
+    $("#modal").style.display="flex"; return;
+  }
   const venue=partyVenue(p); const a=state.assign[p.id];
   let roomTxt=venue;
   if(a && a!=="BOOY"){ const rm=state.roomById[a]; if(rm) roomTxt=`${rm.hotel} · ${rm.bldg?rm.bldg+"동 ":""}${rm.floor?rm.floor+" ":""}${rm.rno||rm.id} (${rm.type||""})`; }
@@ -4100,7 +4148,7 @@ function sessionSheetAoa(){
   const lockRows=Object.keys(state.sessionLocked).filter(k=>keySet.has(k)&&state.sessionLocked[k]).map(k=>["(잠금)",k,"✓"]);   // ✓ = session locked
   const picks={};
   Object.keys(state.sessionAssign).forEach(k=>{ if(!keySet.has(k)) return; (state.sessionAssign[k]||new Set()).forEach(pid=>{ (picks[pid]=picks[pid]||[]).push(k); }); });
-  const rows=Object.keys(picks).map(pid=>state.byId[pid]).filter(Boolean).sort((a,b)=>a.name.localeCompare(b.name))
+  const rows=Object.keys(picks).map(pid=>sessPartyById(pid)||{id:pid,name:pid}).sort((a,b)=>a.name.localeCompare(b.name))
     .map(p=>[p.id,p.name,picks[p.id].sort().join("; ")]);
   return [hdr,...exemptRows,...capRows,...lockRows,...rows];
 }
