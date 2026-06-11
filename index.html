@@ -31,8 +31,8 @@
   }
   *{box-sizing:border-box;}
   body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Pretendard","Apple SD Gothic Neo","Noto Sans KR","Malgun Gothic",sans-serif;margin:0;background:var(--bg);color:var(--text);font-size:13px;-webkit-text-size-adjust:100%;}
-  header{background:var(--ink);color:#fff;padding:10px 16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;position:sticky;top:0;z-index:50;}
-  header h1{font-size:16px;margin:0 12px 0 0;font-weight:600;cursor:pointer;user-select:none;}
+  header{background:var(--ink);color:#fff;padding:10px 16px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;position:sticky;top:0;z-index:50;}
+  header h1{font-size:15px;margin:0 8px 0 0;font-weight:600;cursor:pointer;user-select:none;white-space:nowrap;}
   header h1:hover{opacity:.85;}
   header .spacer{flex:1;}
   button,label.btn{background:var(--primary);color:#fff;border:1px solid transparent;border-radius:5px;padding:6px 11px;font-size:12px;cursor:pointer;}
@@ -386,8 +386,9 @@
   .chip .agepill.unk{color:var(--text-faint);font-weight:600;}
   .chip{border-left-width:4px;}
   /* view tabs — segmented control */
-  .viewtabs{display:inline-flex;gap:0;background:rgba(255,255,255,.13);border-radius:10px;padding:3px;margin-left:auto;margin-right:10px;}
-  .vtab{background:transparent;color:rgba(255,255,255,.82);border:none;border-radius:8px;font-weight:600;padding:6px 15px;font-size:12px;transition:background .12s,color .12s,box-shadow .12s;}
+  .viewtabs{display:inline-flex;gap:0;background:rgba(255,255,255,.13);border-radius:10px;padding:3px;margin-left:auto;margin-right:8px;}
+  /* fluid padding/font → the 5-tab control shrinks to stay on one line across desktop/laptop widths before it must drop to its own row */
+  .vtab{background:transparent;color:rgba(255,255,255,.82);border:none;border-radius:8px;font-weight:600;padding:6px clamp(7px,0.9vw,15px);font-size:clamp(11px,0.82vw,12px);white-space:nowrap;transition:background .12s,color .12s,box-shadow .12s;}
   .vtab:hover{color:#fff;}
   .vtab.active{background:#fff;color:var(--ink);font-weight:700;box-shadow:0 1px 3px rgba(0,0,0,.18);}
   .viewtabs.disabled{opacity:.55;}                                    /* empty state: tabs visible but inert */
@@ -726,8 +727,9 @@
   /* ===== toolbar grouping (DESIGN-1): cluster actions by function ===== */
   .toolbtns{align-items:center;gap:6px;}
   .tgroup{display:inline-flex;align-items:center;gap:6px;}
-  .tgroup+.tgroup{border-left:1px solid rgba(255,255,255,.18);padding-left:12px;}   /* thin divider between ①/②/③ groups */
-  .tglabel{font-size:9px;font-weight:700;letter-spacing:.4px;color:rgba(255,255,255,.55);white-space:nowrap;}
+  .tgroup+.tgroup{border-left:1px solid rgba(255,255,255,.18);padding-left:8px;}   /* thin divider between ①/②/③ groups */
+  .tglabel{display:none;}   /* ①②③ group sublabels hidden — compact one-row header (the ①/② numbers still live on the buttons themselves; the group dividers keep the visual grouping) */
+  header .toolbtns button,header .toolbtns label.btn{padding:5px clamp(7px,0.7vw,11px);font-size:clamp(11px,0.78vw,12px);}   /* fluid-shrink like the view tabs so the whole header stays on one line on wide screens, wrapping only when the window is truly narrow */
   /* toolbar buttons: coral primary, green "go", ghost utilities; recede when disabled */
   .toolbtns button:not(:disabled):hover,.toolbtns label.btn:hover{background:var(--primary-hover);}
   .toolbtns .go:not(:disabled):hover{background:#266a47;}
@@ -769,9 +771,9 @@
 
   /* below ~1300px the title + labelled toolbar + view tabs + filename stop fitting on one row; drop the
      tabs to their own full-width segmented row BEFORE they can wrap into an awkward half-empty right-aligned row */
-  @media (max-width:1300px){
+  @media (max-width:1480px){
     .viewtabs{width:100%;order:3;margin:8px 0 0;}
-    .viewtabs .vtab{flex:1;}
+    .viewtabs .vtab{flex:1 1 0;min-width:0;overflow:hidden;text-overflow:ellipsis;}   /* share the row evenly; shrink + ellipsis instead of wrapping to a 2nd line */
   }
 
   /* tablet landscape & small laptop — tighten chrome, keep two-pane layout */
@@ -1283,7 +1285,7 @@
 "use strict";
 // ⚑ index.html build version — shown bottom-right on the start screen. BUMP ON EACH DEPLOY.
 //   Format: vYYYY.MM.DD-N  (N = same-day build counter; reset to 1 on a new date).
-const APP_VERSION = "v2026.06.11-5";
+const APP_VERSION = "v2026.06.11-7";
 /* ============================================================
    ICMDA 2026 Room Assignment Dashboard (single file)
    - reads the live master .xlsx (columns mapped by HEADER NAME)
@@ -2009,15 +2011,23 @@ function ckToggleCheckin(pid){
   if(state._ckCur) ckShowCard(state._ckCur);            // re-render the banner (and time)
   toast(was?`체크인을 해제했습니다.`:`체크인 완료 — ${state.checkedIn[pid]}`,"ok");
 }
-// unified people list: every 숙소 party + every 세션 참가자, joined by email (1 entry per person where emails match)
+// unified people list: every 숙소 party + every 세션 참가자, joined by email (1 entry per person where emails overlap).
+// An email CELL may list several addresses ("a@x b@y") — we split each cell and merge two records if they share ANY
+// address, so a 숙소 record with a multi-email cell still matches a 세션 record carrying only one of those addresses.
 function checkinPeople(){
-  const map=new Map(), extra=[]; const ek=e=>(e||"").trim().toLowerCase();
-  (state.parties||[]).forEach(p=>{ const k=ek(p.email); const e={name:p.name||p.id,email:p.email||"",cat:p.cat||"",acc:p,sess:null};
-    if(k) map.set(k,e); else extra.push(e); });
-  (state.sessParticipants||[]).forEach(p=>{ const k=ek(p.email);
-    if(k && map.has(k)){ const e=map.get(k); e.sess=p; if(!e.cat) e.cat=p.cat||""; }
-    else { const e={name:p.name||p.id,email:p.email||"",cat:p.cat||"",acc:null,sess:p}; if(k) map.set(k,e); else extra.push(e); } });
-  return [...map.values(),...extra];
+  const map=new Map(), entries=[];
+  const emails=s=>String(s||"").toLowerCase().split(/[\s,;]+/).map(x=>x.trim()).filter(Boolean);
+  const attach=(p,slot)=>{                                   // slot: "acc" (숙소) | "sess" (세션 참가자)
+    const es=emails(p.email);
+    let e=null; for(const k of es){ if(map.has(k)){ e=map.get(k); break; } }   // existing person sharing ANY address → merge
+    if(!e){ e={name:p.name||p.id,email:p.email||"",cat:p.cat||"",acc:null,sess:null}; entries.push(e); }
+    if(!e[slot]) e[slot]=p;                                  // first 숙소/세션 record fills its slot
+    if(!e.cat) e.cat=p.cat||"";
+    es.forEach(k=>{ if(!map.has(k)) map.set(k,e); });        // index this person under each of the record's addresses
+  };
+  (state.parties||[]).forEach(p=>attach(p,"acc"));
+  (state.sessParticipants||[]).forEach(p=>attach(p,"sess"));
+  return entries;
 }
 // sessions a person is assigned to, sorted by day then start time. Assignments may be keyed by EITHER the
 // session-pool numeric id OR the accommodation P-code (older masters assigned against the 숙소 roster when the
