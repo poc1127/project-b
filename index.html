@@ -59,6 +59,12 @@
   #pool h2{font-size:13px;margin:2px 0 6px;display:flex;align-items:center;gap:6px;}
   .poolToggle{display:none;margin-left:auto;background:none;border:1px solid var(--line);color:#555;border-radius:6px;font-size:12px;line-height:1;padding:3px 8px;cursor:pointer;}
   .poolToggle:hover{background:#eef2f6;}
+  /* 미배정 패널 접기 핸들 — 세션 보기의 풀 너비 핸들(.poolresize)과 같은 모양(세로 막대 + 알약 그립)이되, 좌우 삼각형으로 '숨기기/보이기'를 표시. 데스크톱 전용(모바일은 풀이 세로 스택이라 .poolToggle 사용). */
+  .poolhide{flex:none;align-self:flex-start;position:sticky;top:calc(var(--topoff,92px) + 6px);height:calc(100vh - var(--topoff,92px) - 16px);width:14px;margin:0 -3px;padding:0;border:0;background:none;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:5;}
+  .poolhide::before{content:"";position:absolute;top:0;bottom:0;left:50%;transform:translateX(-50%);width:2px;background:var(--border-strong);}
+  .poolhide .ph-tri{position:relative;display:flex;align-items:center;justify-content:center;width:14px;height:46px;border-radius:6px;background:var(--primary);color:#fff;font-size:10px;line-height:1;box-shadow:0 1px 4px rgba(0,0,0,.28);}
+  .poolhide:hover .ph-tri{background:var(--primary-hover);transform:scaleY(1.1);}
+  #main.poolhidden #pool{display:none;}
   #pool input.search{width:100%;padding:5px;margin-bottom:6px;border:1px solid var(--line);border-radius:4px;}
   #venues{flex:1;display:flex;flex-direction:column;gap:18px;min-width:0;}
   .venue{border:1px solid var(--line);border-radius:8px;background:#fff;}
@@ -419,12 +425,15 @@
   .ckcard .ckhead{padding:15px 20px;color:#fff;}
   .ckcard .ckhead h3{margin:0;font-size:18px;font-weight:700;}
   .ckcard .ckhead .cksub{font-size:12.5px;opacity:.93;margin-top:4px;}
+  .ckcard .ckhead .ckids{font-size:11px;opacity:.62;margin-top:3px;font-variant-numeric:tabular-nums;letter-spacing:.01em;}
   .cksec{padding:14px 20px;border-top:1px solid #eef0f3;}
   .cksec h4{margin:0 0 11px;font-size:12.5px;font-weight:700;letter-spacing:.02em;color:var(--ink);display:flex;align-items:center;gap:7px;}
   .cksec h4::before{content:"";width:4px;height:14px;border-radius:2px;background:var(--catc,var(--primary));}
-  .ckgrid{display:grid;grid-template-columns:max-content 1fr;gap:8px 18px;font-size:13px;align-items:baseline;}
-  .ckgrid .k{color:var(--text-muted);font-size:12px;white-space:nowrap;}
-  .ckgrid .v{color:#26323f;font-weight:500;word-break:break-word;}
+  .ckgrid{display:grid;grid-template-columns:1fr 1fr;gap:7px 26px;}
+  .ckpair{display:grid;grid-template-columns:max-content 1fr;gap:2px 12px;align-items:baseline;min-width:0;}
+  .ckpair.wide{grid-column:1 / -1;}
+  .ckpair .k{color:var(--text-muted);font-size:12px;white-space:nowrap;}
+  .ckpair .v{color:#26323f;font-weight:500;font-size:13px;word-break:break-word;min-width:0;}
   .cknone{color:var(--text-muted);font-size:12.5px;font-style:italic;}
   .cksesslist{display:flex;flex-direction:column;gap:6px;}
   .cksessitem{display:flex;align-items:baseline;gap:10px;padding:7px 11px;border:1px solid #eef0f3;border-radius:8px;background:#fafbfc;}
@@ -432,15 +441,22 @@
   .cksessitem .what{font-weight:600;color:#26323f;font-size:13px;word-break:break-word;}
   .cksessitem .code{font-size:11px;color:var(--text-faint);margin-left:auto;flex:none;white-space:nowrap;}
   /* 현장 체크인 banner inside the card */
-  .ckcheck{display:flex;align-items:center;gap:12px;padding:12px 20px;background:#fbfdff;border-top:1px solid #eef0f3;border-bottom:1px solid #eef0f3;}
+  .ckcheck{display:flex;align-items:center;gap:14px;padding:15px 20px;background:#fbfdff;border-top:1px solid #eef0f3;border-bottom:1px solid #eef0f3;}
   .ckcheck.on{background:#eef9f1;}
   .ckcheck.na{color:var(--text-muted);font-size:12.5px;font-style:italic;}
-  .ckcheckstat{display:flex;align-items:center;gap:7px;font-size:13.5px;color:#26323f;}
+  .ckcheckmain{flex:1;min-width:0;display:flex;flex-direction:column;gap:5px;}
+  .ckcheckstat{display:flex;align-items:center;gap:8px;font-size:16px;color:#26323f;}
+  .ckcheckstat b{font-weight:700;}
   .ckcheck.on .ckcheckstat{color:#1d7a45;}
-  .ckcheckstat svg{width:16px;height:16px;}
-  .ckcheckstat .cktime{color:var(--text-muted);font-size:12px;font-variant-numeric:tabular-nums;font-weight:600;}
-  .ckcheckstat .ckdot{width:9px;height:9px;border-radius:50%;background:#cbd2da;flex:none;}
-  .ckbtn{margin-left:auto;flex:none;font:inherit;font-size:13px;font-weight:700;padding:8px 16px;border-radius:8px;border:1px solid;cursor:pointer;}
+  .ckcheckstat svg{width:19px;height:19px;}
+  .ckcheckstat .cktime{color:var(--text-muted);font-size:12.5px;font-variant-numeric:tabular-nums;font-weight:600;}
+  .ckcheckstat .cksubtxt{font-size:12.5px;color:var(--text-muted);font-weight:400;}
+  .ckcheckstat .ckdot{width:11px;height:11px;border-radius:50%;background:#e0a23a;flex:none;}
+  .ckroom{font-size:13px;color:#3a4654;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .ckroom .ckroomk{color:var(--text-muted);font-size:11.5px;margin-right:2px;}
+  .ckroom .ckroomv{font-weight:700;color:#26323f;}
+  .ckroom .ckarr{color:var(--text-muted);}
+  .ckbtn{flex:none;font:inherit;font-size:14px;font-weight:700;padding:11px 22px;border-radius:9px;border:1px solid;cursor:pointer;}
   .ckbtn.go{background:#2c9d5f;border-color:#2c9d5f;color:#fff;}
   .ckbtn.go:hover{background:#258a52;}
   .ckbtn.undo{background:#fff;border-color:#d9b3ad;color:#9c3b2c;}
@@ -449,7 +465,7 @@
   .chip.checkedin{background:#eafaf1;border-left-color:#2c9d5f !important;}
   .chip .chk{flex:none;display:inline-flex;align-items:center;justify-content:center;width:15px;height:15px;border-radius:50%;background:#2c9d5f;color:#fff;}
   .chip .chk svg{width:11px;height:11px;}
-  @media(max-width:640px){ .ckgrid{grid-template-columns:1fr;gap:2px 0;} .ckgrid .k{margin-top:7px;} .cksessitem{flex-direction:column;gap:2px;} .cksessitem .code{margin-left:0;} .ckcheck{flex-wrap:wrap;} .ckbtn{margin-left:0;} }
+  @media(max-width:640px){ .ckgrid{grid-template-columns:1fr;gap:6px 0;} .cksessitem{flex-direction:column;gap:2px;} .cksessitem .code{margin-left:0;} .ckcheck{flex-wrap:wrap;} .ckbtn{width:100%;} }
   /* import / start screen (shown until a master loads) */
   #startscreen{display:flex;align-items:center;justify-content:center;box-sizing:border-box;position:relative;
     min-height:calc(100vh - var(--headerh,56px));padding:32px 24px;user-select:none;}
@@ -789,6 +805,7 @@
   @media (max-width:860px){
     #main{flex-direction:column;align-items:stretch;}   /* stretch panes to full width when stacked */
     #pool{width:auto;position:static;max-height:42vh;top:auto;}
+    .poolhide{display:none;}   /* 세로 스택에선 좌측 접기 핸들 대신 .poolToggle 사용 */
     header h1{font-size:15px;}
     /* fewer, wider cards when stacked (item 8): comfortable 2-3 per row, not 4 tight ones */
     .rooms{grid-template-columns:repeat(auto-fill,minmax(220px,1fr));}
@@ -1142,7 +1159,7 @@
     <button id="tabTimeline" class="vtab" title="참가자 단위 보기 — 숙박 기간과 배정 현황을 한눈에 보고 막대로 조정합니다.">숙소 타임라인 보기</button>
     <button id="tabSchedule" class="vtab" title="업로드한 엑셀 '일정' 탭의 2026 ICMDA 프로그램 일정표를 봅니다.">일정 보기</button>
     <button id="tabSession" class="vtab" title="브레이크아웃·스트림 세션에 참가자를 배정합니다. (정원 관리)">세션 배정 보기</button>
-    <button id="tabCheckin" class="vtab" title="체크인 — (세부 기능은 추후 추가)">체크인</button>
+    <button id="tabCheckin" class="vtab" title="체크인 — (세부 기능은 추후 추가)">행사 현장 체크인</button>
   </span>
   <span id="srcname" style="font-size:11px;opacity:.8;"></span>
 </header>
@@ -1193,6 +1210,7 @@
     </details>
     <div id="poollist" role="group" aria-label="미배정 인원 목록"></div>
   </div>
+  <button id="poolhide" type="button" class="poolhide" aria-expanded="true" aria-controls="pool" title="미배정 패널 접기/펼치기"><span class="ph-tri">◀</span></button>
   <div id="jumpbar" aria-label="객실 그룹으로 이동">
     <select id="jumpsel" aria-label="숙소·층으로 이동"><option value="">숙소·층으로 이동…</option></select>
   </div>
@@ -1285,7 +1303,7 @@
 "use strict";
 // ⚑ index.html build version — shown bottom-right on the start screen. BUMP ON EACH DEPLOY.
 //   Format: vYYYY.MM.DD-N  (N = same-day build counter; reset to 1 on a new date).
-const APP_VERSION = "v2026.06.11-7";
+const APP_VERSION = "v2026.06.11-8";
 /* ============================================================
    ICMDA 2026 Room Assignment Dashboard (single file)
    - reads the live master .xlsx (columns mapped by HEADER NAME)
@@ -1354,6 +1372,7 @@ const state = {
   sessSumCollapsed: false, // 세션 보기: 카테고리 배정 상황 요약 박스 접힘 여부
   sessGroupBy: "cat", // 세션 보기 풀 그룹 기준: "cat"(분류) | "age"(나이대) | "sex"(성별) | "warn"(확인필요) | "country"(국가)
   sessPoolW: null, // 세션 보기 참가자 풀 패널 너비(px) — 드래그 조절, 저장됨 (null=기본 260)
+  poolHidden: false, // 숙소 배정 보기: 미배정 패널 접힘 여부(좌측 핸들 토글), 저장됨
   tlFilter: {q:"", venue:"", cat:""},
   orderList: [],   // custom vertical order of party ids (timeline)
   collapsed: {},   // venue -> true (timeline fold)
@@ -2075,19 +2094,22 @@ function ckHl(drop,hl){
 // build the merged detail card for one person
 function ckCard(entry){
   const acc=entry.acc, sess=entry.sess, ci=catInfo(entry.cat);
-  const grid=rows=>{ const inner=rows.filter(([,v])=>v!=null&&v!=="")
-      .map(([k,v])=>`<div class="k">${esc(k)}</div><div class="v">${esc(String(v)).replace(/\n/g,"<br>")}</div>`).join("");
-    return inner?`<div class="ckgrid">${inner}</div>`:`<div class="cknone">정보 없음</div>`; };
+  const WIDEK=new Set(["현재 배정","비고","동반자요약","사전 배정(원본)","소속"]);   // long values span both columns
+  const grid=rows=>{ const items=rows.filter(([,v])=>v!=null&&v!=="");
+    if(!items.length) return `<div class="cknone">정보 없음</div>`;
+    const inner=items.map(([k,v])=>`<div class="ckpair${WIDEK.has(k)?" wide":""}"><span class="k">${esc(k)}</span><span class="v">${esc(String(v)).replace(/\n/g,"<br>")}</span></div>`).join("");
+    return `<div class="ckgrid">${inner}</div>`; };
   // 등록 정보 — richer from the 숙소 party; fall back to the 세션 record's fields
   const regRows = acc
     ? [["참가행사",acc.event],["성별",CK_SEXK[acc.sex]||acc.sex],["생년월일",acc.dob],["국적",acc.nat],
        ["소속",acc.aff],["직책",acc.title],["WB등급",acc.wb],["결제상태",acc.pay]]
     : [["나이대",sess.band],["성별",CK_SEXK[sess.sex]||sess.sex],["지역",sess.region],["결제여부",sess.pay]];
-  // 숙소 배정
-  let accHtml;
+  // 숙소 배정 — room summary lifted up so the hero banner (#2) can show it
+  let accHtml, roomLine="", arrLine="";
   if(acc){
     const venue=partyVenue(acc), a=state.assign[acc.id]; let roomTxt=venue||"미배정";
     if(a && a!=="BOOY"){ const rm=state.roomById[a]; if(rm) roomTxt=`${rm.hotel} · ${rm.bldg?rm.bldg+"동 ":""}${rm.floor?rm.floor+" ":""}${rm.rno||rm.id} (${rm.type||""})`; }
+    roomLine=roomTxt; arrLine=acc.arr||"";
     accHtml=grid([["현재 배정",roomTxt],["도착일",acc.arr],["출발일(체크아웃)",acc.dep],
       ["숙박",acc.stay?`${stayNights(acc)}박`:"없음"],["방 필요",acc.need],["사전 배정(원본)",acc.pre],
       ["총인원",acc.hc!=null?`${acc.hc}명`:""],["동반자요약",acc.companions],["비고",acc.note]]);
@@ -2103,18 +2125,21 @@ function ckCard(entry){
       return `<div class="cksessitem"><span class="when">${when||"시간 미정"}</span><span class="what">${esc(s.name||s.key)}</span>${code?`<span class="code">${code}</span>`:""}</div>`;
     }).join("")+`</div>`; }
   const title=esc(acc&&acc.name||sess&&sess.name||entry.name||"(이름 없음)")+(acc&&acc.kname?` <span style="font-weight:400">(${esc(acc.kname)})</span>`:"");
-  const ids=[acc?`숙소 ID ${esc(acc.id)}`:"",sess?`세션 ID ${esc(sess.id)}`:""].filter(Boolean).join(" · ");
-  const sub=`${entry.email?esc(entry.email):"이메일 없음"}${entry.cat?" · "+esc(entry.cat):""}${ids?" · "+ids:""}`;
+  const ids=[acc?`숙소 ${esc(acc.id)}`:"",sess?`세션 ${esc(sess.id)}`:""].filter(Boolean).join(" · ");   // #4 demoted to faint line
+  const sub=`${entry.email?esc(entry.email):"이메일 없음"}${entry.cat?" · "+esc(entry.cat):""}`;
   // 현장 체크인 — by 숙소 person (P-code). Only 숙소 roster members are check-in targets.
   let ckHtml;
   if(acc){ const t=state.checkedIn&&state.checkedIn[acc.id];
     ckHtml=`<div class="ckcheck ${t?'on':''}">
-      <div class="ckcheckstat">${t?`${ico('check')} <b>체크인 완료</b>${t!=='✓'?` <span class="cktime">${esc(t)}</span>`:""}`:`<span class="ckdot"></span>미체크인 (현장 미도착)`}</div>
+      <div class="ckcheckmain">
+        <div class="ckcheckstat">${t?`${ico('check')} <b>체크인 완료</b>${t!=='✓'?` <span class="cktime">${esc(t)}</span>`:""}`:`<span class="ckdot"></span><b>미체크인</b> <span class="cksubtxt">현장 미도착</span>`}</div>
+        <div class="ckroom"><span class="ckroomk">배정 숙소</span> <span class="ckroomv">${esc(roomLine||"미배정")}</span>${arrLine?` <span class="ckarr">· 도착 ${esc(arrLine)}</span>`:""}</div>
+      </div>
       <button class="ckbtn ${t?'undo':'go'}" data-pid="${esc(acc.id)}">${t?"체크인 취소":"체크인 완료"}</button>
     </div>`;
   } else ckHtml=`<div class="ckcheck na">숙소 명단에 없어 체크인 대상이 아닙니다. (세션 참가자 전용 레코드)</div>`;
   return `<div class="ckcard" style="--catc:${ci.c}">
-    <div class="ckhead" style="background:${ci.c}"><h3>${title}</h3><div class="cksub">${sub}</div></div>
+    <div class="ckhead" style="background:${ci.c}"><h3>${title}</h3><div class="cksub">${sub}</div>${ids?`<div class="ckids">${ids}</div>`:""}</div>
     ${ckHtml}
     <div class="cksec"><h4>등록 정보</h4>${grid(regRows)}</div>
     <div class="cksec"><h4>숙소 배정</h4>${accHtml}</div>
@@ -4086,7 +4111,7 @@ window.addEventListener("beforeunload", e=>{
   e.preventDefault(); e.returnValue="";                  // unsaved changes → native "이 페이지를 떠나시겠습니까?" prompt
 });
 const UIKEY="icmda_ui";
-function saveUI(){ try{ localStorage.setItem(UIKEY, JSON.stringify({colW:state.colW, collapsedRooms:state.collapsedRooms, sessFolded:state.sessFolded, sessSlot:state.sessSlot, sessDay:state.sessDay, view:state.view, sessSeriesNoPrompt:state.sessSeriesNoPrompt, sessPoolW:state.sessPoolW})); }catch(e){} }   // timeline 'collapsed' is intentionally NOT persisted → 숙소 타임라인 always defaults to fully expanded
+function saveUI(){ try{ localStorage.setItem(UIKEY, JSON.stringify({colW:state.colW, collapsedRooms:state.collapsedRooms, sessFolded:state.sessFolded, sessSlot:state.sessSlot, sessDay:state.sessDay, view:state.view, sessSeriesNoPrompt:state.sessSeriesNoPrompt, sessPoolW:state.sessPoolW, poolHidden:state.poolHidden})); }catch(e){} }   // timeline 'collapsed' is intentionally NOT persisted → 숙소 타임라인 always defaults to fully expanded
 function loadUI(){ try{
   const s=JSON.parse(localStorage.getItem(UIKEY)||"{}");
   if(Array.isArray(s.colW) && s.colW.length===state.colW.length) state.colW=s.colW.map(Number);
@@ -4098,6 +4123,7 @@ function loadUI(){ try{
   if(s.view==="rooms"||s.view==="timeline"||s.view==="schedule"||s.view==="session"||s.view==="checkin") state.view=s.view;
   if(s.sessSeriesNoPrompt) state.sessSeriesNoPrompt=true;
   if(typeof s.sessPoolW==="number" && s.sessPoolW>=220 && s.sessPoolW<=760) state.sessPoolW=s.sessPoolW;
+  if(typeof s.poolHidden==="boolean") state.poolHidden=s.poolHidden;
 }catch(e){} }
 function makeColGrip(ci){
   const g=el("div","colgrip");
@@ -5393,6 +5419,17 @@ $("#poolToggle").addEventListener("click",()=>{
   t.setAttribute("aria-expanded", collapsed?"false":"true");
   t.textContent=collapsed?"▸":"▾";
 });
+
+// 데스크톱(숙소 배정 보기): 좌측 핸들로 미배정 패널 전체를 숨기기/보이기 — 삼각형이 방향을 표시(◀ 숨김, ▶ 펼침)
+function applyPoolHidden(){
+  const hid=!!state.poolHidden, btn=$("#poolhide");
+  $("#main").classList.toggle("poolhidden", hid);
+  if(btn){ btn.setAttribute("aria-expanded", hid?"false":"true");
+    btn.title = hid?"미배정 패널 펼치기":"미배정 패널 접기";
+    const tri=btn.querySelector(".ph-tri"); if(tri) tri.textContent = hid?"▶":"◀"; }
+}
+$("#poolhide").addEventListener("click",()=>{ state.poolHidden=!state.poolHidden; applyPoolHidden(); saveUI(); });
+applyPoolHidden();
 wireSearchClear("#tlsearch","#tlsearchclr",()=>{ state.tlFilter.q=$("#tlsearch").value; renderTimeline(); });
 
 // mobile jump-to-floor: expand the target accordion, then smooth-scroll to it
@@ -5488,6 +5525,7 @@ $("#statsbar").addEventListener("scroll",updateStatsFades,{passive:true});
 document.querySelectorAll("[data-ico]").forEach(n=>{ n.innerHTML=ico(n.dataset.ico); });   // inject SVG icons into static toolbar buttons
 $("#ssVersion").textContent = APP_VERSION;   // stamp the start-screen build version
 loadUI();   // restore column widths, collapsed groups, and last view
+applyPoolHidden();   // 저장된 미배정 패널 접힘 상태 반영 (loadUI 이후)
 buildLegend();   // static category key (DESIGN-4)
 if(!state.masterBuf) setEmpty(true);   // show the import/start screen until a master is loaded
 let _rsT=null, _rzRAF=null;
