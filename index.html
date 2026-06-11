@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#2a3645">
-<title>ICMDA 2026 숙소배정 대시보드</title>
+<title>ICMDA 2026 운영 대시보드</title>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%23006699'/><g fill='%23fff'><rect x='10.5' y='8.8' width='11' height='3.4' rx='1'/><rect x='14.2' y='8.8' width='3.6' height='14.4' rx='.5'/><rect x='10.5' y='19.8' width='11' height='3.4' rx='1'/></g></svg>">
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/fflate@0.8.2/umd/index.js"></script><!-- tiny zip (unzipSync/zipSync) — lets 마스터 업데이트 edit the original .xlsx in place, preserving styles SheetJS drops on write -->
@@ -370,10 +370,24 @@
   #venues.picking .room{outline:1px dashed #79b27c;cursor:pointer;}
   #venues.picking .room:hover{outline:2px solid var(--ok);background:#f1f8f1;}
   .pickhint{background:#e9f6ea;border:1px solid #b6e0b8;color:#256a2a;font-size:11px;font-weight:600;padding:5px 8px;border-radius:6px;margin-bottom:6px;line-height:1.35;}
+  /* 데이터 출처 푸터 — 모든 보기 하단에 동일한 레이아웃으로 표시 */
+  #srcfoot{padding:9px 16px;background:#f7f9fc;border-top:1px solid #e8ebf2;color:#7a879c;font-size:11.5px;line-height:1.6;display:flex;align-items:flex-start;gap:8px;flex-wrap:wrap;}
+  #srcfoot .sfic{flex:none;width:14px;height:14px;margin-top:2px;opacity:.7;}
+  #srcfoot b{color:#5a6678;font-weight:700;margin-right:2px;}
+  #srcfoot .sftab{color:#3a4658;font-weight:600;background:#eef2f8;border:1px solid #e1e7f0;border-radius:5px;padding:1px 6px;white-space:nowrap;}
+  #srcfoot .sfsep{opacity:.45;}
   #warnpanel{padding:6px 16px;background:#fff8f8;border-top:1px solid #f0d0d0;font-size:12px;max-height:130px;overflow:auto;}
   #warnpanel h3{margin:0 0 4px;font-size:12px;color:var(--warn);position:sticky;top:0;background:#fff8f8;padding:4px 0;display:flex;gap:6px;align-items:center;z-index:1;cursor:pointer;}
   #warnpanel .warnnote{color:#777;font-size:11px;margin:0 0 4px;}
   #warnpanel li{margin:1px 0;line-height:1.45;}
+  #warnpanel li.warnrow{display:flex;align-items:flex-start;gap:8px;}
+  #warnpanel li.warnrow .wtext{flex:1;min-width:0;}
+  #warnpanel .warnoverride{flex:none;border:1px solid #e0b4ae;background:#fff;color:#b3503f;border-radius:6px;font-size:11px;line-height:1;padding:3px 8px;cursor:pointer;white-space:nowrap;}
+  #warnpanel .warnoverride:hover{background:#fbeae7;}
+  #warnpanel .pill.muted{background:#eef0f3;color:#6b7787;}
+  #warnpanel .warnrestore{display:flex;align-items:center;gap:8px;margin-top:6px;padding-top:5px;border-top:1px dashed #e8d2cf;color:#777;font-size:11px;}
+  #warnpanel .warnrestorebtn{border:1px solid #e8ebf2;background:#fff;border-radius:6px;font-size:11px;padding:3px 9px;cursor:pointer;color:#3a4658;}
+  #warnpanel .warnrestorebtn:hover{background:#f6f7fb;}
   /* 점검 panel collapses to just its summary bar (badges + chevron) at ALL widths; starts collapsed — click the bottom bar to expand the detail */
   .warnchev{display:inline-block;margin-left:auto;color:var(--warn);font-size:12px;line-height:1;}
   #warnpanel.collapsed{max-height:none;overflow:visible;}
@@ -1116,7 +1130,7 @@
   /* print: render the paginated preview pages themselves (each .ppage = one A4 page) so the PDF matches the
      preview exactly. MUST stay after the base #printprev rules so these overrides win on source order. */
   @media print{
-    header,#statsbar,#main,#warnpanel,#modal,#dlgbg{display:none !important;}
+    header,#statsbar,#main,#warnpanel,#srcfoot,#modal,#dlgbg{display:none !important;}
     #printprev{position:static;display:block !important;background:none;padding:0;}
     #printprev .pp-box{box-shadow:none;border-radius:0;max-width:none;max-height:none;overflow:visible;}
     #printprev .pp-head,#printprev .pp-foot,#printprev .pp-num{display:none !important;}
@@ -1161,6 +1175,9 @@
   @media print{ #sidenav{display:none!important;} body{padding-left:0!important;} }
   /* soften cards toward the new radius */
   .venue,#pool,.legend,#sesspool{border-radius:14px;}
+  /* 마스터 업데이트(v+1) — 무거운 내보내기 액션이라 모든 보기·상태에서 빨강으로 강조(데스크톱 툴바 + 모바일 더보기 시트). 비활성 상태는 기존 회색 유지. */
+  #btnMaster:not(:disabled),#sheet #shMaster:not(:disabled){background:var(--danger);border-color:var(--danger);color:#fff;}
+  #btnMaster:not(:disabled):hover,#sheet #shMaster:not(:disabled):hover{background:#8c1822;border-color:#8c1822;}
   /* ===== 체크인 보기 — 새 디자인 대시보드 (#checkin 범위로 격리; 기존 클래스와 충돌 없음) ===== */
   #checkin{padding:18px 26px 42px;background:var(--bg);}
   #checkin .ck2stats{display:grid;grid-template-columns:repeat(4,1fr);gap:18px;margin-bottom:22px;}
@@ -1402,7 +1419,7 @@
 <aside id="sidenav" aria-label="화면 전환">
   <div class="brand">
     <div class="logo"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
-    <div><b>ICMDA 2026</b><span>숙소·체크인 매니저</span></div>
+    <div><b>ICMDA 2026</b><span>운영 대시보드</span></div>
   </div>
   <nav class="nav">
     <a data-view="rooms" role="button" tabindex="0"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 4v16"/><path d="M2 8h18a2 2 0 0 1 2 2v10"/><path d="M2 17h20"/><path d="M6 8v4"/></svg> 숙소 배정</a>
@@ -1411,10 +1428,10 @@
     <a data-view="session" role="button" tabindex="0"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg> 세션 배정</a>
     <a data-view="checkin" role="button" tabindex="0"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 11 12 14 20 6"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg> 현장 체크인</a>
   </nav>
-  <div class="snote"><b>ICMDA 2026 숙소배정</b><br>숙소 · 일정 · 세션 · 체크인 통합 대시보드<span class="ver" id="snVer"></span></div>
+  <div class="snote"><b>ICMDA 2026 운영 대시보드</b><br>숙소 · 일정 · 세션 · 체크인 통합 관리<span class="ver" id="snVer"></span></div>
 </aside>
 <header>
-  <h1 id="appTitle" role="button" tabindex="0" title="처음 화면(파일 열기)으로 돌아갑니다">ICMDA <span class="yr">2026</span> 숙소배정</h1>
+  <h1 id="appTitle" role="button" tabindex="0" title="처음 화면(파일 열기)으로 돌아갑니다">ICMDA <span class="yr">2026</span> 운영 대시보드</h1>
   <div class="toolbtns">
     <!-- ① data input -->
     <span class="tgroup" role="group" aria-label="1단계 데이터 입력">
@@ -1535,6 +1552,9 @@
 <!-- 체크인 보기: placeholder — 세부 기능은 추후 추가 (built in renderCheckin) -->
 <div id="checkin" style="display:none;"></div>
 
+<!-- 데이터 출처 푸터: 현재 보기가 어떤 마스터 탭에서 데이터를 읽는지 명시 (보기별로 텍스트 갱신) -->
+<div id="srcfoot" hidden></div>
+
 <div id="warnpanel"></div>
 <div id="printarea"></div>
 <!-- print preview: shown when 인쇄/PDF is clicked; 인쇄 진행 → window.print() -->
@@ -1585,9 +1605,9 @@
 "use strict";
 // ⚑ index.html build version — shown bottom-right on the start screen. BUMP ON EACH DEPLOY.
 //   Format: vYYYY.MM.DD-N  (N = same-day build counter; reset to 1 on a new date).
-const APP_VERSION = "v2026.06.11-13";
+const APP_VERSION = "v2026.06.11-15";
 /* ============================================================
-   ICMDA 2026 Room Assignment Dashboard (single file)
+   ICMDA 2026 Operations Dashboard (single file)
    - reads the live master .xlsx (columns mapped by HEADER NAME)
    - greedy auto-assign + manual drag/lock
    - export updated Excel + resume JSON; print one layout per hotel
@@ -1669,6 +1689,7 @@ const state = {
   roomOrder: {},   // roomKey -> [pid,...] manual occupant order inside a room (drag-to-reorder); absent = sort by name
   ck2: {q:"", f:"all", page:1, per:50},   // 새 디자인 체크인 대시보드 UI 상태 (검색·필터·페이지·페이지당 인원); per=0 → 전체
   warnOpen: false, // 점검 panel: collapsed to its summary line by default on mobile (desktop CSS always shows it full)
+  dismissedWarns: new Set(),  // 점검 결과에서 '무시'(override)한 경고 문구들 — localStorage에 저장돼 다음 로드에도 안 보임
 };
 
 /* ---------- helpers ---------- */
@@ -2256,7 +2277,8 @@ function render(){
   setEmpty(false);                 // a master is loaded → leave the import screen, reveal the dashboard
   _occ=buildOcc();                 // one occupancy pass shared by stats/venues/warnings this render
   try{
-    const issues = state.rooms.length ? computeIssues() : [];   // compute once; shared by the stats badge + warning panel
+    const allIssues = state.rooms.length ? computeIssues() : [];   // compute once; shared by the stats badge + warning panel
+    const issues = allIssues.filter(t=>!state.dismissedWarns.has(t));   // '무시'한 경고는 배지·패널에서 제외
     renderStats(issues);
     const v = state.view, tl = v==="timeline", sc = v==="schedule", se = v==="session", ck = v==="checkin";
     $("#main").style.display = v==="rooms"?"flex":"none";
@@ -2276,7 +2298,8 @@ function render(){
     else if(se) renderSession();
     else if(ck) renderCheckin();
     else { renderPool(); renderVenues(); }
-    renderWarnings(issues);                            // populates #warnpanel (hidden in 일정 view)
+    renderWarnings(issues, allIssues);                 // populates #warnpanel (hidden in 일정 view)
+    renderSrcFoot();                                   // 데이터 출처 푸터를 현재 보기에 맞게 갱신
     $("#venues").classList.toggle("picking", v==="rooms" && !!state.picks.size);
     syncTop();
   } finally { _occ=null; }         // snapshot is valid only for this synchronous pass
@@ -2304,7 +2327,7 @@ const START_COPY = {
     steps:[["마스터 파일 열기","참가자 · 일정 탭이 있는 .xlsx"],["세션 배정","정원에 맞춰 참가자를 세션에 배치"],["마스터 업데이트","배정 결과를 새 버전으로 저장"]] },
   checkin:  { title:"현장 체크인",
     sub:"이름이나 이메일로 참가자를 검색해 숙소 · 세션 · 등록 정보를 확인하고, 현장 도착을 체크인한 뒤 마스터 파일에 저장합니다.",
-    steps:[["마스터 파일 열기","참가자 탭이 있는 .xlsx"],["검색 · 체크인","이름 · 이메일로 찾아 도착 확인"],["마스터 업데이트","체크인 결과를 새 버전으로 저장"]] },
+    steps:[["마스터 파일 열기","세션 참가자 탭이 있는 .xlsx"],["검색 · 체크인","이름 · 이메일로 찾아 도착 확인"],["마스터 업데이트","체크인 결과를 새 버전으로 저장"]] },
 };
 function applyStartCopy(){
   const c = START_COPY[state.view==="timeline"?"rooms":state.view] || START_COPY.rooms;
@@ -2319,7 +2342,7 @@ function setView(v){ state.view=v; state.picks.clear(); saveUI(); if(state.maste
 // person's 숙소(accommodation) record, 세션 배정, and registration details. The two rosters (숙소 참가자 vs
 // 세션 참가자) are SEPARATE populations matched by lowercased email; the card merges whatever exists.
 const CK_SEXK={M:"남",F:"여","?":"미상"};
-// '체크인' tab → restore arrival check-in: {P-code: 시각문자열}. Only ids still in the 숙소 roster are kept.
+// '체크인' tab → restore arrival check-in: {세션 참가자ID(또는 옛 P-code): 시각문자열}. Only ids still in a roster are kept.
 function parseCheckin(aoa){
   const out={}; if(!aoa||!aoa.length) return out;
   const nz=s=>(s==null?"":String(s)).trim();
@@ -2327,7 +2350,7 @@ function parseCheckin(aoa){
   const H={}; (aoa[hi]||[]).forEach((h,i)=>{ const k=nz(h); if(k&&H[k]==null) H[k]=i; });
   if(H["참가자ID"]==null) return out;
   for(let r=hi+1;r<aoa.length;r++){ const row=aoa[r]||[]; const id=nz(row[H["참가자ID"]]); if(!id) continue;
-    if(state.byId && !state.byId[id]) continue;            // drop check-ins for people no longer in the roster
+    if(!((state.sessById&&state.sessById[id]) || (state.byId&&state.byId[id]))) continue;   // drop check-ins for ids no longer in the 세션/숙소 roster
     out[id]=(H["체크인시각"]!=null?nz(row[H["체크인시각"]]):"")||"✓"; }
   return out;
 }
@@ -2344,23 +2367,43 @@ function ckToggleCheckin(pid){
   if(state.view==="checkin") ck2Refresh();               // 대시보드 통계·표·도넛 갱신
   toast(was?`체크인을 해제했습니다.`:`체크인 완료 — ${state.checkedIn[pid]}`,"ok");
 }
-// unified people list: every 숙소 party + every 세션 참가자, joined by email (1 entry per person where emails overlap).
-// An email CELL may list several addresses ("a@x b@y") — we split each cell and merge two records if they share ANY
-// address, so a 숙소 record with a multi-email cell still matches a 세션 record carrying only one of those addresses.
-function checkinPeople(){
-  const map=new Map(), entries=[];
-  const emails=s=>String(s||"").toLowerCase().split(/[\s,;]+/).map(x=>x.trim()).filter(Boolean);
-  const attach=(p,slot)=>{                                   // slot: "acc" (숙소) | "sess" (세션 참가자)
-    const es=emails(p.email);
-    let e=null; for(const k of es){ if(map.has(k)){ e=map.get(k); break; } }   // existing person sharing ANY address → merge
-    if(!e){ e={name:p.name||p.id,email:p.email||"",cat:p.cat||"",acc:null,sess:null}; entries.push(e); }
-    if(!e[slot]) e[slot]=p;                                  // first 숙소/세션 record fills its slot
-    if(!e.cat) e.cat=p.cat||"";
-    es.forEach(k=>{ if(!map.has(k)) map.set(k,e); });        // index this person under each of the record's addresses
-  };
-  (state.parties||[]).forEach(p=>attach(p,"acc"));
-  (state.sessParticipants||[]).forEach(p=>attach(p,"sess"));
-  return entries;
+// 현장 체크인 명단 = '세션 참가자' 탭 — 1행 = 1명 = 1 체크인 단위 (키 = 세션 참가자ID).
+// '참가자'(숙소) 탭은 숙소 전용이므로, 세션 참가자에 이메일로 연결해 숙소 정보(.acc)만 표시용으로 붙인다.
+// '세션 참가자' 탭이 없는 옛 마스터는 숙소 명단으로 폴백(키 = P-code)해 기존 동작을 유지.
+const ckEmails=s=>String(s||"").toLowerCase().split(/[\s,;]+/).map(x=>x.trim()).filter(Boolean);
+function ckMatchByEmail(email,map){ for(const k of ckEmails(email)){ if(map.has(k)) return map.get(k); } return null; }
+function ckRoster(){
+  if(!state.sessParticipants || !state.sessParticipants.length){
+    return (state.parties||[]).map(p=>({sess:null, acc:p, id:p.id, name:p.name||p.id, email:p.email||"", cat:p.cat||"", kname:p.kname||""}));
+  }
+  const accByEmail=ckAccByEmail();
+  return state.sessParticipants.map(sp=>{
+    const acc=ckMatchByEmail(sp.email,accByEmail);
+    return {sess:sp, acc, id:sp.id, name:sp.name||sp.id,
+      email:sp.email||(acc&&acc.email)||"", cat:sp.cat||(acc&&acc.cat)||"", kname:(acc&&acc.kname)||""};
+  });
+}
+// 이메일 → 숙소(참가자) 레코드 — 세션 참가자 카드에 숙소 정보를 붙이는 용도 (parties 식별자 기준 메모이즈)
+function ckAccByEmail(){
+  if(state._ckAccByEmail && state._ckAccByEmailSrc===state.parties) return state._ckAccByEmail;
+  const m=new Map();
+  (state.parties||[]).forEach(p=>ckEmails(p.email).forEach(k=>{ if(!m.has(k)) m.set(k,p); }));
+  state._ckAccByEmail=m; state._ckAccByEmailSrc=state.parties; return m;
+}
+// 이메일 → 세션 참가자 레코드 — 숙소 배정 보기의 체크인 칩이 P-code 사람을 세션ID 체크인 상태로 연결 (메모이즈)
+function ckSessByEmail(){
+  if(state._ckSessByEmail && state._ckSessByEmailSrc===state.sessParticipants) return state._ckSessByEmail;
+  const m=new Map();
+  (state.sessParticipants||[]).forEach(sp=>ckEmails(sp.email).forEach(k=>{ if(!m.has(k)) m.set(k,sp); }));
+  state._ckSessByEmail=m; state._ckSessByEmailSrc=state.sessParticipants; return m;
+}
+// 숙소 party의 현장 체크인 시각 — 체크인은 세션 참가자ID 기준이라 이메일로 연결해 조회. P-code 직접 키(폴백)도 인정.
+function ckPartyCheckin(p){
+  const ci=state.checkedIn; if(!ci) return null;
+  if(ci[p.id]) return ci[p.id];
+  const m=ckSessByEmail();
+  for(const k of ckEmails(p.email)){ const sp=m.get(k); if(sp && ci[sp.id]) return ci[sp.id]; }
+  return null;
 }
 // sessions a person is assigned to, sorted by day then start time. Assignments may be keyed by EITHER the
 // session-pool numeric id OR the accommodation P-code (older masters assigned against the 숙소 roster when the
@@ -2425,17 +2468,18 @@ function ckCard(entry){
   const title=esc(acc&&acc.name||sess&&sess.name||entry.name||"(이름 없음)")+(acc&&acc.kname?` <span style="font-weight:400">(${esc(acc.kname)})</span>`:"");
   const ids=[acc?`숙소 ${esc(acc.id)}`:"",sess?`세션 ${esc(sess.id)}`:""].filter(Boolean).join(" · ");   // #4 demoted to faint line
   const sub=`${entry.email?esc(entry.email):"이메일 없음"}${entry.cat?" · "+esc(entry.cat):""}`;
-  // 현장 체크인 — by 숙소 person (P-code). Only 숙소 roster members are check-in targets.
+  // 현장 체크인 — 세션 참가자ID 기준(모든 세션 참가자가 체크인 대상). 옛 마스터(세션 탭 없음)는 P-code 폴백.
   let ckHtml;
-  if(acc){ const t=state.checkedIn&&state.checkedIn[acc.id];
+  const ckId = sess ? sess.id : (acc ? acc.id : null);
+  if(ckId){ const t=state.checkedIn&&state.checkedIn[ckId];
     ckHtml=`<div class="ckcheck ${t?'on':''}">
       <div class="ckcheckmain">
         <div class="ckcheckstat">${t?`${ico('check')} <b>체크인 완료</b>${t!=='✓'?` <span class="cktime">${esc(t)}</span>`:""}`:`<span class="ckdot"></span><b>미체크인</b> <span class="cksubtxt">현장 미도착</span>`}</div>
         <div class="ckroom"><span class="ckroomk">배정 숙소</span> <span class="ckroomv">${esc(roomLine||"미배정")}</span>${arrLine?` <span class="ckarr">· 도착 ${esc(arrLine)}</span>`:""}</div>
       </div>
-      <button class="ckbtn ${t?'undo':'go'}" data-pid="${esc(acc.id)}">${t?"체크인 취소":"체크인 완료"}</button>
+      <button class="ckbtn ${t?'undo':'go'}" data-pid="${esc(ckId)}">${t?"체크인 취소":"체크인 완료"}</button>
     </div>`;
-  } else ckHtml=`<div class="ckcheck na">숙소 명단에 없어 체크인 대상이 아닙니다. (세션 참가자 전용 레코드)</div>`;
+  } else ckHtml=`<div class="ckcheck na">체크인 식별자가 없습니다.</div>`;
   return `<div class="ckcard" style="--catc:${ci.c}">
     <div class="ckhead" style="background:${ci.c}"><h3>${title}</h3><div class="cksub">${sub}</div>${ids?`<div class="ckids">${ids}</div>`:""}</div>
     ${ckHtml}
@@ -2509,11 +2553,11 @@ function renderCheckin(){
 }
 function ck2Refresh(){
   const wrap=$("#checkin"); if(!wrap||!wrap.dataset.built) return;
-  const ui=state.ck2, ci=state.checkedIn||{}, roster=state.parties||[];
+  const ui=state.ck2, ci=state.checkedIn||{}, roster=ckRoster();   // 명단 = '세션 참가자' (1행=1명), 키 = 세션 참가자ID
   const total=roster.length;
-  const inN=roster.filter(p=>ci[p.id]).length, outN=total-inN;
+  const inN=roster.filter(e=>ci[e.id]).length, outN=total-inN;
   const today=ck2TodayKey();
-  const todayN=roster.filter(p=>typeof ci[p.id]==="string" && ci[p.id].slice(0,10)===today).length;
+  const todayN=roster.filter(e=>typeof ci[e.id]==="string" && ci[e.id].slice(0,10)===today).length;
   const frac=total?inN/total:0;
   const pctS=(frac*100).toFixed(1).replace(/\.0$/,"")+"%", outS=((1-frac)*100).toFixed(1).replace(/\.0$/,"")+"%";
   $("#ck2Total").textContent=total; $("#ck2In").textContent=inN; $("#ck2Out").textContent=outN; $("#ck2Today").textContent=todayN;
@@ -2525,25 +2569,22 @@ function ck2Refresh(){
   const chip=$("#ck2Chip");
   if(ui.f!=="all"){ chip.style.display=""; chip.textContent=({in:"체크인 완료만",out:"미체크인만",today:"오늘 체크인만"})[ui.f]+"  ✕ 해제"; }
   else chip.style.display="none";
-  // 행 = 숙소 명단 + (이메일 병합) 세션 전용 레코드 — 기존 체크인 보기와 같은 검색 범위 (checkinPeople)
+  // 행 = '세션 참가자' 1명 (체크인 단위). 숙소 정보는 이메일로 연결해 카드에서만 사용.
   const q=(ui.q||"").trim().toLowerCase();
-  const rows=checkinPeople().filter(e=>{
-    if(q){ const acc=e.acc;
-      const hay=[e.name, acc&&acc.kname, e.email, acc&&acc.id, e.sess&&e.sess.id].filter(Boolean).join(" ").toLowerCase();
+  const rows=roster.filter(e=>{
+    if(q){ const hay=[e.name, e.kname, e.email, e.id].filter(Boolean).join(" ").toLowerCase();
       if(!hay.includes(q)) return false; }
-    const t=e.acc?ci[e.acc.id]:null;
+    const t=ci[e.id];
     if(ui.f==="in") return !!t;
-    if(ui.f==="out") return !!e.acc && !t;
+    if(ui.f==="out") return !t;
     if(ui.f==="today") return !!t && String(t).slice(0,10)===today;
     return true;
   });
   rows.sort((a,b)=>{
-    const ta=a.acc?(ci[a.acc.id]||""):"", tb=b.acc?(ci[b.acc.id]||""):"";
+    const ta=ci[a.id]||"", tb=ci[b.id]||"";
     if(!!ta!==!!tb) return ta?-1:1;                       // 체크인 완료 먼저
     if(ta&&tb&&ta!==tb) return ta<tb?1:-1;                // 최근 체크인 순
-    if(!!a.acc!==!!b.acc) return a.acc?-1:1;              // 세션 전용 레코드는 뒤로
-    if(a.acc&&b.acc) return a.acc._row-b.acc._row;        // 명단(시트) 순
-    return String(a.name||"").localeCompare(String(b.name||""));
+    return ((a.sess?a.sess._row:0)-(b.sess?b.sess._row:0)) || String(a.name||"").localeCompare(String(b.name||""));   // 시트 순
   });
   const per=ui.per>0?ui.per:(rows.length||1), npg=Math.max(1,Math.ceil(rows.length/per));
   if(ui.page>npg) ui.page=npg; if(ui.page<1) ui.page=1;
@@ -2552,21 +2593,19 @@ function ck2Refresh(){
   $("#ck2NoRes").style.display=rows.length?"none":"";
   const circ='<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/></svg>';
   page.forEach(e=>{
-    const acc=e.acc, pid=acc?acc.id:(e.sess?e.sess.id:""), t=acc?ci[acc.id]:null, ft=ck2Time(t||"");
-    const cat=e.cat?(catInfo(e.cat).ab||e.cat):"—";
+    const t=ci[e.id], ft=ck2Time(t||"");
+    const cat=e.cat||"—";   // 세션 카테고리(Seniors/Students/…)는 짧으므로 약어 없이 그대로 표시
     const tr=el("tr");
     tr.innerHTML=
-      `<td><div class="att"><span class="av" style="background:${ck2Color(pid||e.name)}">${esc(ck2Init(e.name))}</span>`+
-      `<span class="who2"><span class="nm">${esc(e.name||"(이름 없음)")}${acc&&acc.kname?`<span class="kn">${esc(acc.kname)}</span>`:""}</span>`+
+      `<td><div class="att"><span class="av" style="background:${ck2Color(e.id||e.name)}">${esc(ck2Init(e.name))}</span>`+
+      `<span class="who2"><span class="nm">${esc(e.name||"(이름 없음)")}${e.kname?`<span class="kn">${esc(e.kname)}</span>`:""}</span>`+
       `<span class="em${e.email?"":" none"}">${e.email?esc(e.email):"이메일 미등록"}</span></span></div></td>`+
-      `<td>${esc(cat)}</td><td class="tid">${esc(pid)}</td>`+
-      (acc
-        ? `<td><button type="button" class="ckpill ${t?"in":"out"}" data-pid="${esc(acc.id)}" title="${t?"클릭: 체크인 취소":"클릭: 체크인 완료"}">${t?ico('check')+" 체크인 완료":circ+" 미체크인"}</button></td>`
-        : `<td><span class="ckpill sessonly" title="숙소 명단에 없는 세션 참가자 — 체크인 대상 아님">세션 전용</span></td>`)+
+      `<td>${esc(cat)}</td><td class="tid">${esc(e.id)}</td>`+
+      `<td><button type="button" class="ckpill ${t?"in":"out"}" data-pid="${esc(e.id)}" title="${t?"클릭: 체크인 취소":"클릭: 체크인 완료"}">${t?ico('check')+" 체크인 완료":circ+" 미체크인"}</button></td>`+
       `<td class="${t?"citime":"none"}">${t?`${esc(ft.t)}<small>${esc(ft.d)}</small>`:"—"}</td>`;
     tr.addEventListener("click",ev=>{ if(ev.target.closest(".ckpill[data-pid]")) return; ckShowCard(e); });
     const pill=tr.querySelector(".ckpill[data-pid]");
-    if(pill) pill.addEventListener("click",ev=>{ ev.stopPropagation(); ckToggleCheckin(acc.id); });
+    if(pill) pill.addEventListener("click",ev=>{ ev.stopPropagation(); ckToggleCheckin(e.id); });
     tb.append(tr);
   });
   $("#ck2Info").textContent=rows.length?`${rows.length}명 중 ${at+1}–${Math.min(at+per,rows.length)}명 표시`:"";
@@ -2584,13 +2623,13 @@ function ck2Refresh(){
   mkb("›",false,ui.page>=npg,()=>{ ui.page++; ck2Refresh(); });
   // 최근 체크인 (최근 5명, 시각 역순)
   const rec=$("#ck2Recent"); rec.innerHTML="";
-  const recents=roster.filter(p=>ci[p.id]).sort((x,y)=>(ci[x.id]<ci[y.id]?1:-1)).slice(0,5);
+  const recents=roster.filter(e=>ci[e.id]).sort((x,y)=>(ci[x.id]<ci[y.id]?1:-1)).slice(0,5);
   if(!recents.length) rec.append(el("div","noneyet","아직 체크인 기록이 없습니다"));
-  recents.forEach(p=>{
-    const ft=ck2Time(ci[p.id]);
+  recents.forEach(e=>{
+    const ft=ck2Time(ci[e.id]);
     const d=el("div","ri");
-    d.innerHTML=`<span class="av" style="background:${ck2Color(p.id)}">${esc(ck2Init(p.name))}</span><span class="nm">${esc(p.name)}</span><span class="tm">${esc(ft.t||"✓")}</span>`;
-    d.onclick=()=>{ const ent=checkinPeople().find(x=>x.acc&&x.acc.id===p.id); if(ent) ckShowCard(ent); };
+    d.innerHTML=`<span class="av" style="background:${ck2Color(e.id)}">${esc(ck2Init(e.name))}</span><span class="nm">${esc(e.name)}</span><span class="tm">${esc(ft.t||"✓")}</span>`;
+    d.onclick=()=>ckShowCard(e);
     rec.append(d);
   });
 }
@@ -3953,7 +3992,7 @@ function chip(p){
   c.setAttribute("aria-pressed", state.picks.has(p.id)?"true":"false");
   c.setAttribute("aria-label", ariaForChip(p));
   if(state.locked[p.id]) c.classList.add("locked");
-  const ckTime = state.checkedIn && state.checkedIn[p.id];   // 현장 체크인 완료 → green chip (B.6)
+  const ckTime = ckPartyCheckin(p);   // 현장 체크인 완료 → green chip (B.6) — 체크인은 세션 참가자ID 기준, 이메일로 연결
   if(ckTime) c.classList.add("checkedin");
   const room = state.assign[p.id] && state.assign[p.id]!=="BOOY" ? state.roomById[state.assign[p.id]] : null;
   const bm = room ? matchIssue(room,p) : null;
@@ -4147,6 +4186,7 @@ function setEmpty(isEmpty){
   $("#warnpanel").style.display    = isEmpty ? "none" : "";
   $("#main").style.display         = isEmpty ? "none" : "";   // render() sets the proper per-view display when loaded
   $("#timeline").style.display     = isEmpty ? "none" : "";
+  if(isEmpty){ const f=$("#srcfoot"); if(f) f.hidden=true; }   // 출처 푸터: 시작 화면에선 숨김 (render()가 로드 후 보기별로 표시)
   updateViewTabs();                                           // tabs stay enabled + correctly highlighted at the empty state, so the landing view can be pre-picked
 }
 function renderVenues(){
@@ -4383,24 +4423,60 @@ function jumpToWarnings(){
     w.classList.add("flash"); setTimeout(()=>w.classList.remove("flash"),1200);
   });
 }
-function renderWarnings(issues){
+function renderWarnings(issues, allIssues){
   const wp=$("#warnpanel"); wp.innerHTML="";
   if(issues===undefined) issues=computeIssues();
+  if(allIssues===undefined) allIssues=issues;
+  const overridden=allIssues.filter(t=>state.dismissedWarns.has(t));   // 지금도 해당되지만 '무시'한 경고만 카운트(해소된 건 제외)
   const un=state.parties.filter(p=>p.need!=="No"&&!state.assign[p.id]).reduce((s,p)=>s+p.hc,0);
   wp.classList.toggle("collapsed", !state.warnOpen);   // all widths: show only the summary bar until clicked (default collapsed)
   const wh=el("h3");
   wh.append(el("span","pill "+(issues.length?"warn":"ok"),`경고 ${issues.length}건`));
   if(un) wh.append(el("span","pill warn",`미배정 ${un}명`));
+  if(overridden.length) wh.append(el("span","pill muted",`무시 ${overridden.length}건`));
   const chev=el("span","warnchev",state.warnOpen?"▾":"▴");   // bottom-docked bar: ▴ = click to expand upward, ▾ = collapse
   wh.append(chev); wh.title="점검 결과 펼치기 / 접기";
   wh.addEventListener("click",()=>{ state.warnOpen=!state.warnOpen;
     wp.classList.toggle("collapsed",!state.warnOpen); chev.textContent=state.warnOpen?"▾":"▴"; syncTop(); });
   wp.append(wh);
-  wp.append(el("div","warnnote","아래는 배정 점검 결과입니다 — 정원 초과, 성별/조건 불일치, 그리고 같은 묶음(그룹)이 여러 방에 흩어진 경우를 안내합니다."));
-  if(!issues.length){ const d=el("div"); d.innerHTML=un?"용량/성별 충돌 없음. 미배정 인원을 수동 배치하세요.":`문제 없음 ${ico('check')}`; wp.append(d); return; }
-  const ul=el("ul"); ul.style.margin="2px 0"; issues.slice(0,40).forEach(t=>ul.append(el("li",null,t)));
-  if(issues.length>40) ul.append(el("li",null,`… 외 ${issues.length-40}건`));
-  wp.append(ul);
+  wp.append(el("div","warnnote","아래는 배정 점검 결과입니다 — 정원 초과, 성별/조건 불일치, 그리고 같은 묶음(그룹)이 여러 방에 흩어진 경우를 안내합니다. ‘무시’를 누르면 그 경고는 다음에 다시 열어도 표시되지 않습니다."));
+  if(issues.length){
+    const ul=el("ul"); ul.style.margin="2px 0";
+    issues.slice(0,40).forEach(t=>{
+      const li=el("li","warnrow"); li.append(el("span","wtext",t));
+      const b=el("button","warnoverride"); b.type="button"; b.textContent="무시"; b.title="이 경고를 숨깁니다 — 다음에 다시 열어도 표시되지 않습니다";
+      b.addEventListener("click",()=>{ state.dismissedWarns.add(t); saveDismissedWarns(); render(); });
+      li.append(b); ul.append(li);
+    });
+    if(issues.length>40) ul.append(el("li",null,`… 외 ${issues.length-40}건`));
+    wp.append(ul);
+  } else {
+    const d=el("div"); d.innerHTML=un?"용량/성별 충돌 없음. 미배정 인원을 수동 배치하세요.":`문제 없음 ${ico('check')}`; wp.append(d);
+  }
+  if(overridden.length){
+    const rb=el("div","warnrestore");
+    rb.append(el("span",null,`무시한 경고 ${overridden.length}건이 숨겨져 있습니다.`));
+    const rest=el("button","warnrestorebtn"); rest.type="button"; rest.textContent="모두 복원"; rest.title="무시한 경고를 다시 표시합니다";
+    rest.addEventListener("click",()=>{ overridden.forEach(t=>state.dismissedWarns.delete(t)); saveDismissedWarns(); render(); });
+    rb.append(rest); wp.append(rb);
+  }
+}
+// 데이터 출처 푸터 — 현재 보기가 어떤 마스터 탭에서 데이터를 읽는지 명시. [탭이름, 설명] 쌍.
+const SOURCE_NOTE={
+  rooms:    [["객실","객실 목록·정원"],["참가자","참가자 정보·숙소 배정"]],
+  timeline: [["객실","객실 목록·정원"],["참가자","참가자 정보·숙소 배정"]],
+  schedule: [["일정","ICMDA 프로그램 시간표"]],
+  session:  [["세션 참가자","세션 참가자 풀"],["세션 배정","세션 목록·정원"],["세션 장소 세부","세션 장소"],["세션배정","저장된 세션 배정"]],
+  checkin:  [["세션 참가자","체크인 명단(전체 등록자)"],["참가자","숙소 정보 연결(이메일)"],["체크인","체크인 기록"]],
+};
+function renderSrcFoot(){
+  const f=$("#srcfoot"); if(!f) return;
+  const note=SOURCE_NOTE[state.view];
+  if(!note || !state.masterBuf){ f.hidden=true; return; }
+  f.hidden=false;
+  const icoSvg='<svg class="sfic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/></svg>';
+  const chips=note.map(([tab,what])=>`<span class="sftab">${esc(tab)}</span> ${esc(what)}`).join('<span class="sfsep"> · </span>');
+  f.innerHTML=`${icoSvg}<span><b>데이터 출처</b> · 마스터 파일의 다음 탭에서 읽어옵니다: ${chips}</span>`;
 }
 
 /* ---------- ②③ timeline view ---------- */
@@ -4544,6 +4620,9 @@ function loadUI(){ try{
   if(typeof s.sessPoolW==="number" && s.sessPoolW>=220 && s.sessPoolW<=760) state.sessPoolW=s.sessPoolW;
   if(typeof s.poolHidden==="boolean") state.poolHidden=s.poolHidden;
 }catch(e){} }
+const WARNKEY="icmda_warn_dismiss";   // 무시한 경고 문구 목록 (별도 키 — 경고 텍스트 기준이라 마스터 버전과 무관)
+function saveDismissedWarns(){ try{ localStorage.setItem(WARNKEY, JSON.stringify([...state.dismissedWarns])); }catch(e){} }
+function loadDismissedWarns(){ try{ const a=JSON.parse(localStorage.getItem(WARNKEY)||"[]"); if(Array.isArray(a)) state.dismissedWarns=new Set(a.map(String)); }catch(e){} }
 function makeColGrip(ci){
   const g=el("div","colgrip");
   g.title="끌어서 열 너비 조정 · 더블클릭하여 초기화";
@@ -5532,9 +5611,9 @@ async function exportMaster(){
   // 체크인 보기 → write/refresh the app-managed '체크인' tab (full rewrite). header: 참가자ID·이름·체크인시각
   let checkinRows=0;
   { const ci=state.checkedIn||{};
-    const ids=Object.keys(ci).sort((a,b)=>String((state.byId[a]||{}).name||a).localeCompare(String((state.byId[b]||{}).name||b)));
+    const ids=Object.keys(ci).sort((a,b)=>String((sessPartyById(a)||{}).name||a).localeCompare(String((sessPartyById(b)||{}).name||b)));
     if(ids.length || xlsxSheetPaths(files)["체크인"]){   // write if there are check-ins OR a prior '체크인' tab needs refreshing (e.g. all cleared)
-      const aoa=[["참가자ID","이름","체크인시각"], ...ids.map(id=>[id,(state.byId[id]||{}).name||"",ci[id]==="✓"?"":ci[id]])];
+      const aoa=[["참가자ID","이름","체크인시각"], ...ids.map(id=>[id,(sessPartyById(id)||{}).name||"",ci[id]==="✓"?"":ci[id]])];
       writeManagedSheet(files,"체크인",aoa); checkinRows=ids.length;
     }
   }
@@ -5952,6 +6031,7 @@ $("#statsbar").addEventListener("scroll",updateStatsFades,{passive:true});
 document.querySelectorAll("[data-ico]").forEach(n=>{ n.innerHTML=ico(n.dataset.ico); });   // inject SVG icons into static toolbar buttons
 const _snv=document.getElementById("snVer"); if(_snv) _snv.textContent=APP_VERSION;   // stamp the sidebar build version
 loadUI();   // restore column widths, collapsed groups, and last view
+loadDismissedWarns();   // restore overridden(무시) 경고 so they stay hidden across loads
 applyPoolHidden();   // 저장된 미배정 패널 접힘 상태 반영 (loadUI 이후)
 buildLegend();   // static category key (DESIGN-4)
 if(!state.masterBuf) setEmpty(true);   // show the import/start screen until a master is loaded
