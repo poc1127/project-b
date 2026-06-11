@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#2a3645">
 <title>ICMDA 2026 숙소배정 대시보드</title>
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%23cf4631'/><g fill='%23fff'><rect x='10.5' y='8.8' width='11' height='3.4' rx='1'/><rect x='14.2' y='8.8' width='3.6' height='14.4' rx='.5'/><rect x='10.5' y='19.8' width='11' height='3.4' rx='1'/></g></svg>">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%23006699'/><g fill='%23fff'><rect x='10.5' y='8.8' width='11' height='3.4' rx='1'/><rect x='14.2' y='8.8' width='3.6' height='14.4' rx='.5'/><rect x='10.5' y='19.8' width='11' height='3.4' rx='1'/></g></svg>">
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/fflate@0.8.2/umd/index.js"></script><!-- tiny zip (unzipSync/zipSync) — lets 마스터 업데이트 edit the original .xlsx in place, preserving styles SheetJS drops on write -->
 <style>
@@ -36,9 +36,11 @@
   header h1:hover{opacity:.85;}
   header .spacer{flex:1;}
   button,label.btn{background:var(--primary);color:#fff;border:1px solid transparent;border-radius:5px;padding:6px 11px;font-size:12px;cursor:pointer;}
-  button:hover,label.btn:hover{background:#2c597f;}
+  button:hover,label.btn:hover{background:var(--primary-hover);}
   button.alt{background:#5a6b7b;}
+  button.alt:hover{background:#4c5b6a;}
   button.go{background:var(--success);}
+  button.go:hover{background:#266a47;}
   button:disabled{background:#9aa6b1;cursor:not-allowed;}
   :focus-visible{outline:2px solid #8fc0ff;outline-offset:1px;}
   header .tbdiv{width:1px;align-self:stretch;background:rgba(255,255,255,.25);margin:2px 4px;}
@@ -336,7 +338,7 @@
   .tag.ondol{background:#fff0c8;border-color:#d4a;}
   .tag.staff{background:#eee;}
   .capbadge{font-weight:700;margin-left:auto;}   /* keep occupancy badge pinned to the right edge of .rhdr */
-  .capbadge.over{color:var(--warn);} .capbadge.full{color:var(--warning-fill);} .capbadge.ok{color:var(--ok);}
+  .capbadge.over{color:var(--warn);} .capbadge.full{color:var(--ok);} .capbadge.ok{color:var(--ok);}   /* full = goal state → positive green; red stays for over-capacity only */
   .capedit{width:46px;font-size:11px;font-weight:600;padding:0 3px;border:1px solid #88a;border-radius:3px;}
   .chip{display:flex;align-items:center;gap:4px;font-size:11px;padding:2px 5px;margin:2px 0;border-radius:4px;background:#eef2f6;border:1px solid #d6dee6;cursor:grab;
         user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;}   /* chips are buttons — clicking/long-press must not select their text */
@@ -470,7 +472,6 @@
   #startscreen{display:flex;align-items:center;justify-content:center;box-sizing:border-box;position:relative;
     min-height:calc(100vh - var(--headerh,56px));padding:32px 24px;user-select:none;}
   #startscreen[hidden]{display:none;}
-  .ss-version{position:absolute;right:16px;bottom:13px;font-size:11px;color:var(--text-faint);letter-spacing:.02em;font-variant-numeric:tabular-nums;}
   .ss-hero{display:grid;grid-template-columns:1.05fr .95fr;width:100%;max-width:840px;
     background:var(--surface);border:1px solid var(--border);border-radius:18px;
     box-shadow:0 14px 40px rgba(20,30,45,.08);overflow:hidden;}
@@ -838,7 +839,6 @@
     .ss-hero{grid-template-columns:1fr;}
     .ss-import{order:1;padding:22px 18px 6px;}
     .ss-intro{order:2;border-right:none;border-top:1px solid var(--border);padding:26px 22px;}
-    .ss-version{display:none;}   /* version stamp is desktop-only */
     .ss-title{font-size:21px;}
     /* single horizontal scroll lane — fixed order, never reflows; .hscroll-wrap edge-fade hints "more →" (updateStatsFades runs after render + on resize) */
     #statsbarwrap{position:static;}   /* phones: stat bar scrolls with the page (bottom action bar handles fixed chrome) */
@@ -1128,11 +1128,293 @@
     #printprev .ppbody{padding:0;}                /* @page margin supplies the page margin */
     @page{size:A4 portrait;margin:12mm;}
   }
+
+  /* ===================================================================
+     REDESIGN PREVIEW SKIN (2026-06) — indigo theme + left sidebar +
+     new 체크인 dashboard. Appended last so it wins on equal specificity.
+     =================================================================== */
+  :root{
+    --primary:#006699; --primary-hover:#005580;
+    --ink:#0e3a54; --bg:#f3f7fa;
+    --border:#e8ebf2; --line:#e8ebf2;
+  }
+  /* left sidebar = desktop view switcher (replaces the header tabs ≥841px; phones keep the original tabs) */
+  #sidenav{position:fixed;left:0;top:0;bottom:0;width:228px;z-index:60;display:flex;flex-direction:column;
+    background:linear-gradient(180deg,#0d4a70 0%,#072f47 100%);color:#cfe2ef;padding:20px 14px;box-sizing:border-box;}
+  #sidenav .brand{display:flex;align-items:center;gap:11px;padding:4px 6px 20px;}
+  #sidenav .brand .logo{width:40px;height:40px;border-radius:11px;background:linear-gradient(135deg,#17a1e5,#006699);color:#fff;
+    display:flex;align-items:center;justify-content:center;box-shadow:0 6px 16px rgba(23,161,229,.35);flex:none;}
+  #sidenav .brand b{display:block;color:#fff;font-size:16px;font-weight:700;}
+  #sidenav .brand span{font-size:11px;color:#8fb6cf;}
+  #sidenav .nav{display:flex;flex-direction:column;gap:3px;}
+  #sidenav .nav a{display:flex;align-items:center;gap:12px;padding:11px 13px;border-radius:10px;color:#a9c6da;
+    font-size:14px;font-weight:500;cursor:pointer;user-select:none;transition:.12s;}
+  #sidenav .nav a svg{width:19px;height:19px;flex:none;}
+  #sidenav .nav a:hover{background:rgba(255,255,255,.05);color:#e6ebf3;}
+  #sidenav .nav a.on{background:linear-gradient(135deg,#1289cd,#006699);color:#fff;box-shadow:0 6px 16px rgba(18,137,205,.35);}
+  #sidenav .snote{margin-top:auto;font-size:11.5px;color:#8fb6cf;padding:8px 6px;line-height:1.55;}
+  #sidenav .snote b{color:#d8e9f4;}
+  body{padding-left:228px;}
+  header{background:linear-gradient(90deg,#0d4a70,#072f47);}
+  @media (min-width:841px){ .viewtabs{display:none!important;} }
+  @media (max-width:840px){ #sidenav{display:none;} body{padding-left:0;} }
+  @media print{ #sidenav{display:none!important;} body{padding-left:0!important;} }
+  /* soften cards toward the new radius */
+  .venue,#pool,.legend,#sesspool{border-radius:14px;}
+  /* ===== 체크인 보기 — 새 디자인 대시보드 (#checkin 범위로 격리; 기존 클래스와 충돌 없음) ===== */
+  #checkin{padding:18px 26px 42px;background:var(--bg);}
+  #checkin .ck2stats{display:grid;grid-template-columns:repeat(4,1fr);gap:18px;margin-bottom:22px;}
+  #checkin .ck2stat{display:block;text-align:left;background:#fff;border:1px solid var(--line);border-radius:16px;
+    padding:20px 22px;cursor:pointer;color:var(--text);box-shadow:0 1px 3px rgba(20,30,50,.04);font:inherit;min-height:0;}
+  #checkin .ck2stat:hover{background:#fff;box-shadow:0 4px 14px rgba(20,30,50,.09);}
+  #checkin .ck2stat.fon{outline:2px solid #17a1e5;outline-offset:-1px;}
+  #checkin .ck2stat .row1{display:flex;align-items:center;gap:13px;}
+  #checkin .ck2stat .bico{width:48px;height:48px;border-radius:13px;display:flex;align-items:center;justify-content:center;flex:none;}
+  #checkin .ck2stat .bico .ico{width:22px;height:22px;}
+  #checkin .ck2stat.s1 .bico{background:#dff1fc;color:#0e86c4;}
+  #checkin .ck2stat.s2 .bico{background:#dcfce7;color:#16a34a;}
+  #checkin .ck2stat.s3 .bico{background:#e0edff;color:#3b82f6;}
+  #checkin .ck2stat.s4 .bico{background:#fef3c7;color:#f59e0b;}
+  #checkin .ck2stat .lbl{font-size:13.5px;color:#7a879c;font-weight:600;}
+  #checkin .ck2stat .num{font-size:28px;font-weight:800;color:#1f2733;margin-top:12px;display:flex;align-items:baseline;justify-content:space-between;}
+  #checkin .ck2stat .pct{font-size:13.5px;font-weight:700;}
+  #checkin .ck2stat .pct.g{color:#16a34a;} #checkin .ck2stat .pct.b{color:#3b82f6;} #checkin .ck2stat .pct.a{color:#f59e0b;}
+  #checkin .ck2lower{display:grid;grid-template-columns:1fr 360px;gap:22px;align-items:start;}
+  #checkin .ck2panel{background:#fff;border:1px solid var(--line);border-radius:16px;box-shadow:0 1px 3px rgba(20,30,50,.04);padding:24px 26px;}
+  #checkin .ck2panel h2{margin:0 0 16px;font-size:18px;font-weight:800;color:#1f2733;display:flex;align-items:center;gap:10px;}
+  #checkin .fchip{font-size:12px;font-weight:700;color:var(--primary);background:#dff1fc;border-radius:999px;padding:4px 12px;cursor:pointer;}
+  #checkin .fchip:hover{background:#cfe9fa;}
+  #checkin .ck2search{position:relative;margin-bottom:6px;}
+  #checkin .ck2search input{width:100%;border:1px solid var(--line);border-radius:11px;padding:13px 42px 13px 44px;
+    font:inherit;font-size:14px;background:#fff;box-sizing:border-box;}
+  #checkin .ck2search input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px rgba(0,102,153,.13);}
+  #checkin .ck2search .mag{position:absolute;left:15px;top:50%;transform:translateY(-50%);color:#9aa6b8;display:flex;}
+  #checkin .ck2search .mag .ico{width:17px;height:17px;}
+  #checkin .ck2search .clr2{position:absolute;right:8px;top:50%;transform:translateY(-50%);width:30px;height:30px;border:none;
+    background:none;color:#9aa6b8;font-size:18px;cursor:pointer;border-radius:8px;display:none;padding:0;min-height:0;line-height:1;}
+  #checkin .ck2search .clr2.show{display:block;}
+  #checkin .ck2search .clr2:hover{background:#f3f5fa;color:#3a4658;}
+  #checkin table.ck2tbl{width:100%;border-collapse:collapse;}
+  #checkin .ck2tbl thead th{text-align:left;font-size:11px;font-weight:700;letter-spacing:.05em;color:#9aa6b8;
+    text-transform:uppercase;padding:16px 10px 10px;border-bottom:1px solid var(--line);}
+  #checkin .ck2tbl tbody td{padding:11px 10px;border-bottom:1px solid #f1f3f8;font-size:13.5px;color:#3a4658;vertical-align:middle;}
+  #checkin .ck2tbl tbody tr{cursor:pointer;}
+  #checkin .ck2tbl tbody tr:hover{background:#fafbff;}
+  #checkin .att{display:flex;align-items:center;gap:12px;min-width:0;}
+  #checkin .att .av,#checkin .ri .av{border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;flex:none;}
+  #checkin .att .av{width:38px;height:38px;font-size:13px;}
+  #checkin .att .who2{min-width:0;display:flex;flex-direction:column;}
+  #checkin .att .nm{font-weight:700;color:#1f2733;font-size:14px;}
+  #checkin .att .kn{font-weight:500;color:#7a879c;font-size:12px;margin-left:5px;}
+  #checkin .att .em{font-size:12px;color:#7a879c;}
+  #checkin .att .em.none{color:#b3bdcb;}
+  #checkin .tid{font-variant-numeric:tabular-nums;white-space:nowrap;}
+  #checkin .ckpill{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:999px;font-size:12.5px;
+    font-weight:700;border:none;cursor:pointer;font-family:inherit;white-space:nowrap;min-height:0;}
+  #checkin .ckpill .ico{width:13px;height:13px;}
+  #checkin .ckpill.in{background:#dcfce7;color:#15803d;}
+  #checkin .ckpill.in:hover{background:#c9f3d4;}
+  #checkin .ckpill.out{background:#fee2e2;color:#dc2626;}
+  #checkin .ckpill.out:hover{background:#fbcfcf;}
+  #checkin .ckpill.sessonly{background:#eef4fb;color:#2a5d8c;cursor:default;}
+  #checkin .citime{font-variant-numeric:tabular-nums;white-space:nowrap;line-height:1.3;}
+  #checkin .citime small{display:block;color:#7a879c;font-size:12px;}
+  #checkin td.none{color:#b3bdcb;}
+  #checkin .ck2nores{padding:34px;text-align:center;color:#7a879c;font-size:14px;}
+  #checkin .ck2pg{display:flex;align-items:center;justify-content:space-between;padding:16px 2px 0;flex-wrap:wrap;gap:10px;}
+  #checkin .ck2pg .info{font-size:13px;color:#7a879c;}
+  #checkin .ck2pg .ck2perw{display:flex;align-items:center;gap:7px;margin-left:auto;}
+  #checkin .ck2pg .ck2perw label{font-size:12.5px;color:#9aa6b8;}
+  #checkin .ck2pg .ck2perw select{height:36px;border:1px solid var(--line);background:#fff;border-radius:9px;padding:0 10px;font:inherit;font-size:13px;color:#3a4658;cursor:pointer;}
+  #checkin .ck2pg .ck2perw select:hover{background:#f6f7fb;}
+  #checkin .ck2pg .pages{display:flex;gap:6px;align-items:center;}
+  #checkin .ck2pg .pages button{min-width:36px;height:36px;border:1px solid var(--line);background:#fff;border-radius:9px;
+    font:inherit;font-size:13.5px;color:#3a4658;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;min-height:0;}
+  #checkin .ck2pg .pages button.on{background:var(--primary);border-color:var(--primary);color:#fff;font-weight:700;}
+  #checkin .ck2pg .pages button:hover:not(.on):not(:disabled){background:#f6f7fb;}
+  #checkin .ck2pg .pages button:disabled{opacity:.4;cursor:default;}
+  #checkin .ck2pg .gap{color:#9aa6b8;padding:0 2px;}
+  #checkin .ck2rail{display:flex;flex-direction:column;gap:22px;}
+  #checkin .donut2wrap{display:flex;justify-content:center;margin:4px 0 16px;}
+  #checkin .ck2donut{position:relative;width:188px;height:188px;}
+  #checkin .ck2donut svg{transform:rotate(-90deg);}
+  #checkin .ck2donut circle#ck2Donut{transition:stroke-dashoffset .5s ease;}
+  #checkin .ck2donut .ctr{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;}
+  #checkin .ck2donut .ctr b{font-size:28px;font-weight:800;color:#1f2733;}
+  #checkin .ck2donut .ctr span{font-size:12.5px;color:#7a879c;margin-top:2px;}
+  #checkin .ck2legend{display:flex;flex-direction:column;gap:12px;margin-bottom:16px;}
+  #checkin .ck2legend .li{display:flex;align-items:center;gap:10px;font-size:13.5px;}
+  #checkin .ck2legend .k{width:11px;height:11px;border-radius:50%;flex:none;}
+  #checkin .ck2legend .li.g .k{background:#1f9d4e;}
+  #checkin .ck2legend .li.o .k{background:#cbd3df;}
+  #checkin .ck2legend .v{margin-left:auto;font-weight:700;color:#1f2733;font-variant-numeric:tabular-nums;}
+  #checkin .ck2report{width:100%;display:flex;align-items:center;justify-content:center;gap:8px;background:#dff1fc;border:none;
+    border-radius:12px;padding:13px;font:inherit;font-size:14px;font-weight:700;color:var(--primary);cursor:pointer;min-height:0;}
+  #checkin .ck2report:hover{background:#cfe9fa;}
+  #checkin .ck2report .ico{width:17px;height:17px;}
+  #checkin .ri{display:flex;align-items:center;gap:12px;padding:10px 6px;cursor:pointer;border-radius:10px;}
+  #checkin .ri:hover{background:#fafbff;}
+  #checkin .ri .av{width:36px;height:36px;font-size:12.5px;}
+  #checkin .ri .nm{font-size:14px;font-weight:600;color:#1f2733;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  #checkin .ri .tm{margin-left:auto;font-size:13px;color:#7a879c;font-variant-numeric:tabular-nums;flex:none;}
+  #checkin .noneyet{color:#9aa6b8;font-size:13px;padding:12px 0;}
+  /* 상세 모달: 기존 ckCard를 그대로 모달 안에 (테두리·그림자 제거) */
+  .ckmodal{position:relative;overflow:auto;min-height:0;}
+  .ckmodal .ckcard{margin-top:0;border:none;box-shadow:none;border-radius:0;}
+  .ckmodal .ckx{position:absolute;top:10px;right:12px;z-index:2;}
+  @media (max-width:1100px){ #checkin .ck2lower{grid-template-columns:1fr;} #checkin .ck2rail{flex-direction:row;flex-wrap:wrap;} #checkin .ck2rail .ck2panel{flex:1 1 300px;} }
+  @media (max-width:760px){ #checkin{padding:12px;} #checkin .ck2stats{grid-template-columns:repeat(2,1fr);gap:10px;} }
+  @media (max-width:480px){ #checkin .ck2stats{grid-template-columns:1fr;} }
+  /* ICMDA 브랜드 보정: 남아있던 코랄 틴트(호버·포커스·시작화면)를 블루 계열로 통일 (위험 동작의 빨강은 유지) */
+  .sbslot:hover,.sbtool:hover,.sbdaylab:hover{background:#e6f3fb;}
+  .card .cbody.edit input:focus,.card .cbody.edit select:focus,.card .cbody.edit textarea:focus{box-shadow:0 0 0 3px rgba(0,102,153,.14);}
+  .ss-btn{box-shadow:0 2px 8px rgba(0,102,153,.28);}
+  .ss-eyebrow{color:var(--primary);background:#dff1fc;}
+  .ss-drop.drag{border-color:var(--primary);background:#eef7fd;}
+  #tlhead .lbl .colgrip:hover,#tlhead .lbl .colgrip.drag{background:rgba(0,102,153,.3);}
+  .chip.dropmark::after{box-shadow:0 0 4px rgba(0,102,153,.6);}
+  .tlrow.dropmark::after{box-shadow:0 0 5px rgba(0,102,153,.6);}
+  .tlgroup:hover{filter:brightness(1.05);box-shadow:inset 0 0 0 2px rgba(0,102,153,.45);}
+
+  /* ===================================================================
+     POLISH PASS — checkin-redesign-preview.html 톤앤매너로 전체 통일:
+     밝은 톱바, 흰 카드 + 부드러운 그림자, 둥근 컨트롤, 브랜드 포커스 링.
+     =================================================================== */
+  :root{ --pool:#ffffff; --success:#1f9d4e; --success-bg:#e3f6ea; }
+  :focus-visible{outline:2px solid #17a1e5;}
+  button,label.btn{border-radius:9px;}
+  .chip{border-radius:6px;}
+  /* 헤더: 다크 바 → 밝은 톱바 (시안과 동일한 톤) */
+  header{background:#fff;color:var(--text);border-bottom:1px solid var(--line);box-shadow:0 1px 2px rgba(20,30,50,.04);}
+  header h1{color:var(--ink);font-size:17px;font-weight:800;}
+  header h1 .yr{color:#0e86c4;}
+  header .tbdiv{background:var(--line);}
+  .tgroup+.tgroup{border-left-color:var(--line);}
+  header .toolbtns button,header .toolbtns label.btn{padding:7px clamp(9px,0.8vw,13px);}
+  .toolbtns .ghost{background:#fff;color:var(--text2);border-color:var(--border);}
+  .toolbtns .ghost:not(:disabled):hover{background:#f3f9fd;border-color:var(--primary);color:var(--primary);}
+  .toolbtns button:disabled,.toolbtns label.btn:disabled{background:#f1f4f8;color:#a8b4c3;border-color:transparent;}
+  .toolbtns .go{background:var(--success);}
+  .toolbtns .go:not(:disabled):hover{background:#187f3f;}
+  #srcname{color:var(--text-muted);}
+  /* 모바일 뷰 탭 — 밝은 헤더 위에서 읽히도록 */
+  .viewtabs{background:#f1f4f8;}
+  .vtab{color:var(--text-muted);}
+  .vtab:hover{color:var(--ink);}
+  .vtab.active{background:var(--primary);color:#fff;box-shadow:0 1px 3px rgba(0,102,153,.25);}
+  .viewtabs.disabled .vtab.active{background:#dbe4ec;color:#8b98a7;}
+  /* 통계 바: 구분선 행 → 칩 행 (카드형 대시보드와 톤 일치) */
+  #statsbar{gap:8px;padding:9px 16px;}
+  #statsbar .stat{border-right:none;background:var(--bg);border-radius:9px;padding:4px 11px;}
+  /* 패널·카드: 흰 면 + 부드러운 그림자, 모서리 통일 */
+  .venue,#pool,#sesspool,.legend,.sesssum{box-shadow:0 1px 3px rgba(20,30,50,.05);}
+  .venue>h2{border-radius:14px 14px 0 0;}
+  .room{background:#fff;border-radius:10px;transition:box-shadow .12s;}
+  .room:hover{box-shadow:0 2px 10px rgba(20,30,50,.08);}
+  /* 검색·필터 컨트롤: 둥근 모서리 + 브랜드 포커스 링 */
+  #pool input.search,#sesspool input.search,#tlbar .search,#tlbar select,#tlbar .tldates button,#jumpbar select{border-radius:9px;}
+  #pool input.search:focus,#sesspool input.search:focus,#tlbar .search:focus,#tlbar select:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px rgba(0,102,153,.12);}
+  /* 모달·다이얼로그: 패널과 같은 16px 모서리 */
+  .card{border-radius:16px;}
+  .card .chead{border-radius:16px 16px 0 0;}
+  .card .cfoot{border-radius:0 0 16px 16px;}
+  #dlg{border-radius:16px;}
+  .toast{border-radius:11px;}
+  /* 시작 화면: 단계 번호를 브랜드 블루 틴트로 */
+  .ss-fnum{background:#dff1fc;color:#0e6e9e;border-color:#bfe3f7;}
+  /* 사이드바: 안내문 위 구분선 + 빌드 버전 */
+  #sidenav .snote{border-top:1px solid rgba(255,255,255,.1);padding-top:14px;}
+  #sidenav .snote .ver{display:block;margin-top:6px;opacity:.6;font-size:10.5px;font-variant-numeric:tabular-nums;}
+
+  /* ===== 디자인 개선 패스 (전 뷰, 체크인 뷰 = 기준) — v2026.06.11-12 ===== */
+  /* [공통] 칩 자물쇠: 포인터 기기에서는 잠긴 칩/호버 시에만 표시 (공간은 유지 → 레이아웃 안 흔들림) */
+  @media(hover:hover) and (pointer:fine){
+    .chip .lk{opacity:0;transition:opacity .12s ease;}
+    .chip:hover .lk,.chip:focus-within .lk,.chip.locked .lk{opacity:1;}
+  }
+  /* [공통] 조건 불일치 경고: 두꺼운 진홍 외곽선 → 가는 외곽선 + ⚠ 마커 (강한 빨강은 정원 초과 전용) */
+  .chip.badmatch{outline:1px solid rgba(207,70,49,.45);}
+  .chip .wmk{flex:none;font-size:10px;line-height:1;color:#c2410c;cursor:help;}
+  /* [공통] 통계바: 분모 가독성 + 그룹 구분선 + 배정완료 진행바 */
+  #statsbar .stat .frac{color:var(--text2);}
+  #statsbar .statdiv{width:1px;align-self:stretch;background:var(--border);margin:0 4px;flex:none;padding:0;}
+  #statsbar .stat .statbar{display:inline-block;vertical-align:1px;width:52px;height:5px;border-radius:99px;background:#e3e9ef;overflow:hidden;margin-left:7px;}
+  #statsbar .stat .statbar i{display:block;height:100%;border-radius:99px;background:var(--success);}
+  /* [숙소 배정] 층/타입 그룹 헤더: 밴드로 승격 (떠 있는 작은 텍스트 → 스캔 가능한 구분 띠) */
+  .floorgrp h3{background:#edf3f9;border-bottom:none;border-radius:8px;padding:5px 10px;margin:10px 0 6px;color:var(--ink);font-size:12.5px;font-weight:700;display:flex;align-items:center;gap:7px;}
+  .floorgrp h3 .fcount{margin-left:auto;font-weight:500;color:var(--text2);}
+  /* [숙소 배정] 빈 객실: 점선 고스트 카드 + 중앙 힌트 (빈 흰 박스 → 의도된 드롭 공간으로) */
+  .room.vacant{border-style:dashed;border-color:#c3d2de;background:#fbfdfe;box-shadow:none;}
+  .room.vacant:hover{box-shadow:none;border-color:#9fc0d8;}
+  .room.vacant .vhint{display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--text-faint);padding:6px 0 8px;user-select:none;pointer-events:none;}
+  /* [숙소 배정] 호텔 헤더: 점유율 미니 진행바 */
+  .venue>h2 .vprog{flex:0 0 84px;height:5px;border-radius:99px;background:rgba(0,0,0,.12);overflow:hidden;}
+  .venue>h2 .vprog i{display:block;height:100%;background:rgba(13,74,112,.55);border-radius:99px;}
+  /* [숙소 배정] 하단 경고 스트립: 접힘 상태에선 우측 하단 플로팅 알약 (전폭 분홍 띠 → 컴팩트) */
+  @media(min-width:641px){
+    #warnpanel.collapsed{position:sticky;bottom:10px;z-index:30;width:max-content;max-width:calc(100% - 28px);margin-left:auto;margin-right:14px;background:#fff;border:1px solid #f0ccc7;border-radius:999px;box-shadow:0 6px 18px rgba(0,0,0,.13);padding:5px 14px;}
+  }
+  /* [숙소 배정] 미배정 풀: 검색창 sticky + 남/여 구성 + 범례 행 카드화 */
+  #pool .searchwrap{position:sticky;top:-8px;z-index:3;background:var(--pool);padding:4px 0;margin-top:-4px;}
+  #pool>h2 .poolmf{font-size:11px;font-weight:600;color:var(--text2);margin-left:7px;}
+  #legend>summary{cursor:pointer;font-size:11.5px;color:var(--text2);background:var(--bg);border-radius:7px;padding:4px 9px;}
+  #legend[open]>summary{margin-bottom:4px;}
+  /* [타임라인] 색상 의미 범례 */
+  #tllegend{display:inline-flex;gap:10px;align-items:center;margin-left:6px;font-size:11px;color:var(--text2);flex-wrap:wrap;}
+  #tllegend .tlg{display:inline-flex;align-items:center;gap:4px;white-space:nowrap;}
+  #tllegend .sw{display:inline-block;width:14px;height:9px;border-radius:3px;background:#5b8ed6;}
+  #tllegend .sw.pre{background:#f3e6e6;border:1px solid #e3cccc;}
+  #tllegend .sw.line{width:3px;height:12px;border-radius:2px;background:var(--success);}
+  #tllegend .sw.none{background:#cfd4da;}
+  #tlhint{cursor:help;white-space:nowrap;}
+  @media(max-width:840px){ #tllegend{display:none;} }   /* 좁은 화면에선 범례 생략 (ⓘ 툴팁은 유지) */
+  /* [세션 배정] 시간대 칩 매트릭스: 들쭉날쭉한 알약 나열 → 열이 맞는 그리드 */
+  .sbslots{display:grid;grid-template-columns:repeat(auto-fill,minmax(168px,1fr));gap:5px;}
+  .sbslot{min-width:0;}
+  /* [세션 배정] 날짜 헤더 = 강한 밴드 (시간대 헤더와 위계 구분) */
+  .sessdayhd{background:linear-gradient(135deg,#e7f1f9,#dcebf8);border-radius:10px;padding:7px 12px;}
+  .sessday + .sessday .sessdayhd{border-top:none;margin-top:14px;}
+  /* [세션 배정] 좌측 풀: 그룹 탭을 밝은 세그먼트로 (체크인 필터 톤), 안내문은 접이식 */
+  .sessgbtog{border-radius:8px;}
+  .sessgb.on{background:var(--primary);color:#fff;}
+  details.sess-poolhint>summary{cursor:pointer;font-weight:700;font-size:11px;color:var(--text2);background:var(--bg);border-radius:7px;padding:4px 9px;user-select:none;}
+  details.sess-poolhint[open]>summary{margin-bottom:4px;}
+  details.sess-poolhint>div{margin:2px 0 6px;line-height:1.45;}
+  /* [세션 배정] 빈 세션 카드의 반복 안내문: 포인터 기기에선 호버 시에만 (0/25 배지가 빈 상태를 이미 알림) */
+  @media(hover:hover) and (pointer:fine){
+    .sesscols .room .sess-drophint{opacity:0;transition:opacity .12s ease;}
+    .sesscols .room:hover .sess-drophint{opacity:1;}
+  }
+  /* [일정] 식사/휴식 행: 옅은 띠 밴드로 (흐린 글자만 떠 있던 것 → 하루 리듬이 읽히게) */
+  table.schedtbl .k-meal{background:#f3f6f9;}
+  table.schedtbl .k-meal .ci{font-size:11.5px;color:#7e8c99;font-weight:600;letter-spacing:.4px;}
+  /* [일정] 주말 헤더 틴트 + 제목 타이포 강화 */
+  table.schedtbl thead th.wknd{background:#fbf5f4;}
+  table.schedtbl thead th.wknd .hd-date{color:#c2574f;}
+  .sched-title{font-size:20px;letter-spacing:.3px;margin:6px 0 14px;}
+  /* [체크인] 미체크인 = 중립 (시작 시 전원 빨강 → 오류처럼 보이던 것; 완료=초록 유지) */
+  #checkin .ckpill.out{background:#eef1f4;color:#5b6875;}
+  #checkin .ckpill.out:hover{background:#e2e7ec;}
 </style>
 </head>
 <body>
+<!-- REDESIGN PREVIEW: 좌측 사이드바 — 데스크톱 화면 전환 (헤더 탭은 ≥841px에서 숨김; 모바일은 기존 탭 유지) -->
+<aside id="sidenav" aria-label="화면 전환">
+  <div class="brand">
+    <div class="logo"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
+    <div><b>ICMDA 2026</b><span>숙소·체크인 매니저</span></div>
+  </div>
+  <nav class="nav">
+    <a data-view="rooms" role="button" tabindex="0"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 4v16"/><path d="M2 8h18a2 2 0 0 1 2 2v10"/><path d="M2 17h20"/><path d="M6 8v4"/></svg> 숙소 배정</a>
+    <a data-view="timeline" role="button" tabindex="0"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg> 숙소 타임라인</a>
+    <a data-view="schedule" role="button" tabindex="0"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> 일정</a>
+    <a data-view="session" role="button" tabindex="0"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg> 세션 배정</a>
+    <a data-view="checkin" role="button" tabindex="0"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 11 12 14 20 6"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg> 현장 체크인</a>
+  </nav>
+  <div class="snote"><b>ICMDA 2026 숙소배정</b><br>숙소 · 일정 · 세션 · 체크인 통합 대시보드<span class="ver" id="snVer"></span></div>
+</aside>
 <header>
-  <h1 id="appTitle" role="button" tabindex="0" title="처음 화면(파일 열기)으로 돌아갑니다">ICMDA 2026 숙소배정</h1>
+  <h1 id="appTitle" role="button" tabindex="0" title="처음 화면(파일 열기)으로 돌아갑니다">ICMDA <span class="yr">2026</span> 숙소배정</h1>
   <div class="toolbtns">
     <!-- ① data input -->
     <span class="tgroup" role="group" aria-label="1단계 데이터 입력">
@@ -1194,7 +1476,6 @@
       </div>
     </div>
   </div>
-  <div class="ss-version" id="ssVersion" title="index.html 빌드 버전"></div>
 </div>
 
 <div id="main">
@@ -1230,7 +1511,8 @@
       <button id="tlDateAdd" type="button" title="타임라인 끝에 날짜를 추가합니다 (마스터 업데이트 시 새 날짜 열로 저장)">날짜 +</button>
     </span>
     <span id="tlcount" class="muted" aria-live="polite"></span>
-    <span class="muted" id="tlhint">· 막대 양끝을 끌어 숙박기간 조정, 가운데를 끌어 이동</span>
+    <span class="muted" id="tlhint" title="막대 양끝을 끌어 숙박기간 조정 · 가운데를 끌어 이동 · 행 손잡이(⠿)로 객실 이동">ⓘ 사용법</span>
+    <span id="tllegend" aria-hidden="true"><span class="tlg"><i class="sw pre"></i>6/29 이전(공식지원 외)</span><span class="tlg"><i class="sw line"></i>6/29 지원 시작</span><span class="tlg"><i class="sw bar"></i>막대색 = 분류</span><span class="tlg"><i class="sw none"></i>숙박 없음</span></span>
     <span class="muted" id="tlsel" aria-live="polite"></span>
   </div>
   <!-- gantt scroller wrapped for edge-fade affordances; #gantt is the scroller -->
@@ -1303,7 +1585,7 @@
 "use strict";
 // ⚑ index.html build version — shown bottom-right on the start screen. BUMP ON EACH DEPLOY.
 //   Format: vYYYY.MM.DD-N  (N = same-day build counter; reset to 1 on a new date).
-const APP_VERSION = "v2026.06.11-8";
+const APP_VERSION = "v2026.06.11-13";
 /* ============================================================
    ICMDA 2026 Room Assignment Dashboard (single file)
    - reads the live master .xlsx (columns mapped by HEADER NAME)
@@ -1385,6 +1667,7 @@ const state = {
   tlSel: new Set(),// timeline multi-select: party ids selected for group drag
   tlSort: {key:null, dir:"asc"},  // timeline sort: key "id"|"name"|"room"|"cap" (null = manual drag order), dir asc|desc
   roomOrder: {},   // roomKey -> [pid,...] manual occupant order inside a room (drag-to-reorder); absent = sort by name
+  ck2: {q:"", f:"all", page:1, per:50},   // 새 디자인 체크인 대시보드 UI 상태 (검색·필터·페이지·페이지당 인원); per=0 → 전체
   warnOpen: false, // 점검 panel: collapsed to its summary line by default on mobile (desktop CSS always shows it full)
 };
 
@@ -1471,8 +1754,10 @@ function dialog({title, body, okText="확인", cancelText="취소", danger=false
   bg.style.display="flex";
   const close=()=>{ bg.style.display="none"; document.removeEventListener("keydown",onKey,true); };
   const ok=()=>{ const chk=$("#dlgChk"); const checked=chk?chk.checked:false; close(); if(onOk) onOk(checked); };
-  // capture phase so Esc/Enter here win over the page-level Esc handler
-  const onKey=e=>{ if(e.key==="Escape"){ e.stopPropagation(); close(); } else if(e.key==="Enter"){ e.preventDefault(); ok(); } };
+  // capture phase so Esc/Enter here win over the page-level Esc handler. Enter confirms only when focus
+  // isn't on 취소/체크박스 — otherwise a keyboard user pressing Enter on 취소 would fire the dangerous action.
+  const onKey=e=>{ if(e.key==="Escape"){ e.stopPropagation(); close(); }
+    else if(e.key==="Enter"){ const f=document.activeElement; if(f&&(f.id==="dlgCancel"||f.id==="dlgChk")) return; e.preventDefault(); ok(); } };
   document.addEventListener("keydown",onKey,true);
   bg.onclick=e=>{ if(e.target===bg) close(); };    // tap backdrop to dismiss (= cancel)
   $("#dlgOk").onclick=ok;
@@ -1778,7 +2063,7 @@ function parseParticipants(aoa, wb){
     let pickCol=hdr.indexOf("세션선택"); if(pickCol<0) pickCol=2;
     for(let r=1;r<xA.length;r++){
       const row=xA[r]||[], tag=norm(row[0]);
-      if(tag==="(정원)"){ const k=norm(row[1]); if(k) state.sessionCap[k]=parseInt(norm(row[2]),10)||0; continue; }
+      if(tag==="(정원)"){ const k=norm(row[1]); if(k){ const n=parseInt(norm(row[2]),10); state.sessionCap[k]=isNaN(n)?null:n; } continue; }   // blank = 정원 없음(∞) — a user-cleared catalog cap round-trips
       if(tag==="(잠금)"){ const k=norm(row[1]); if(k) state.sessionLocked[k]=true; continue; }   // restore session locks
       if(tag==="(면제분류)"){ const c=norm(row[1]); if(c) state.sessExempt.add(c); continue; }   // category exempted from session assignment
       if(!tag || tag.charAt(0)==="(") continue;
@@ -1981,6 +2266,10 @@ function render(){
     $("#checkin").style.display = ck?"block":"none";   // 체크인 보기 (세부 기능 추후)
     if(sc||se||ck) $("#statsbarwrap").style.display = "none";  // 일정/세션/체크인 보기: the room stat bar isn't relevant here
     $("#warnpanel").style.display = (sc||se||ck)?"none":"block"; // 점검 결과 panel: room-assignment views only
+    // 숙소 배정 전용 액션 — 다른 보기에선 숨김(자동 배정·배정 초기화·배정 결과 저장·인쇄/PDF). 마스터 열기/업데이트는 모든 보기 공통.
+    const roomActs = v==="rooms";
+    $("#btnAuto").closest(".tgroup").style.display = roomActs?"":"none";   // ② 실행 그룹(자동 배정·배정 초기화) 통째로
+    ["#btnExcel","#btnPrint","#mbAuto","#shClear","#shExcel","#shPrint"].forEach(s=>{ const n=$(s); if(n) n.style.display = roomActs?"":"none"; });
     updateViewTabs();                                  // active tab + ARIA (shared with the empty state)
     if(tl) renderTimeline();
     else if(sc) renderSchedule();
@@ -1999,6 +2288,30 @@ function updateViewTabs(){                            // reflect state.view on t
     const on=state.view===k; n.classList.toggle("active",on);
     n.setAttribute("role","tab"); n.setAttribute("aria-selected",String(on));
   });
+  document.querySelectorAll("#sidenav .nav a[data-view]").forEach(a=>a.classList.toggle("on", a.dataset.view===state.view));
+  applyStartCopy();                                  // 시작 화면 인트로 카피를 선택된 보기에 맞춤 (빈 상태에서만 보이지만 갱신은 항상)
+}
+// 시작 화면 좌측 인트로(제목·설명·3단계) — 선택된 보기별 카피. 숙소 배정·숙소 타임라인은 공통, 일정·세션 배정·현장 체크인은 각각 별도.
+const START_COPY = {
+  rooms:    { title:"숙소 배정 대시보드",
+    sub:"참가자와 객실 데이터를 불러와 자동으로 방을 배정하고, 타임라인으로 확인한 뒤 마스터 파일을 새 버전으로 저장합니다.",
+    steps:[["마스터 파일 열기","참가자 · 객실 탭이 있는 .xlsx"],["자동 배정","규칙에 따라 방을 자동 배정"],["마스터 업데이트","결과를 새 버전으로 저장"]] },
+  schedule: { title:"일정 보기",
+    sub:"마스터의 '일정' 탭을 불러와 2026 ICMDA 프로그램 시간표를 확인·편집하고, 변경 내용을 마스터 파일에 다시 저장합니다.",
+    steps:[["마스터 파일 열기","일정 탭이 있는 .xlsx"],["일정 확인 · 편집","날짜 · 시간 · 세션 내용 수정"],["마스터 업데이트","변경된 일정을 새 버전으로 저장"]] },
+  session:  { title:"세션 배정",
+    sub:"참가자를 브레이크아웃 · 스트림 세션에 정원 규칙에 맞춰 배정하고, 배정 결과를 마스터 파일에 저장합니다.",
+    steps:[["마스터 파일 열기","참가자 · 일정 탭이 있는 .xlsx"],["세션 배정","정원에 맞춰 참가자를 세션에 배치"],["마스터 업데이트","배정 결과를 새 버전으로 저장"]] },
+  checkin:  { title:"현장 체크인",
+    sub:"이름이나 이메일로 참가자를 검색해 숙소 · 세션 · 등록 정보를 확인하고, 현장 도착을 체크인한 뒤 마스터 파일에 저장합니다.",
+    steps:[["마스터 파일 열기","참가자 탭이 있는 .xlsx"],["검색 · 체크인","이름 · 이메일로 찾아 도착 확인"],["마스터 업데이트","체크인 결과를 새 버전으로 저장"]] },
+};
+function applyStartCopy(){
+  const c = START_COPY[state.view==="timeline"?"rooms":state.view] || START_COPY.rooms;
+  const t=document.querySelector(".ss-title"), s=document.querySelector(".ss-sub"), f=document.querySelector(".ss-flow");
+  if(t) t.textContent=c.title;
+  if(s) s.textContent=c.sub;
+  if(f) f.innerHTML=c.steps.map((st,i)=>`<div class="ss-fitem"><span class="ss-fnum">${i+1}</span><div class="ss-ftext"><b>${esc(st[0])}</b><span>${esc(st[1])}</span></div></div>`).join("");
 }
 // view switch works before a file loads too — at the empty state it just pre-selects the landing view (start screen stays)
 function setView(v){ state.view=v; state.picks.clear(); saveUI(); if(state.masterBuf) render(); else updateViewTabs(); }
@@ -2027,7 +2340,8 @@ function ckToggleCheckin(pid){
   const was=!!state.checkedIn[pid];
   if(was) delete state.checkedIn[pid]; else state.checkedIn[pid]=ckNowStamp();
   state.edited=true;                                     // workSig() now includes state.checkedIn → unsaved-changes guard fires
-  if(state._ckCur) ckShowCard(state._ckCur);            // re-render the banner (and time)
+  if(state._ckCur && $("#modal").style.display!=="none") ckShowCard(state._ckCur);   // 모달이 열려 있으면 배너·시각 갱신
+  if(state.view==="checkin") ck2Refresh();               // 대시보드 통계·표·도넛 갱신
   toast(was?`체크인을 해제했습니다.`:`체크인 완료 — ${state.checkedIn[pid]}`,"ok");
 }
 // unified people list: every 숙소 party + every 세션 참가자, joined by email (1 entry per person where emails overlap).
@@ -2064,33 +2378,17 @@ function ckPersonSessions(ids){
   out.sort((a,b)=> dk(a.day)-dk(b.day) || tk(a.time)-tk(b.time) || String(a.name||"").localeCompare(String(b.name||"")));
   return out;
 }
-// rank: name-prefix < name-contains < email-prefix < email-contains
-function ckFilter(q){
-  q=q.trim().toLowerCase(); if(!q) return [];
-  const scored=[];
-  checkinPeople().forEach(e=>{ const nm=(e.name||"").toLowerCase(), em=(e.email||"").toLowerCase();
-    const ni=nm.indexOf(q), ei=em.indexOf(q); if(ni<0&&ei<0) return;
-    scored.push({e,rank:ni===0?0:ni>0?1:ei===0?2:3,nm}); });
-  scored.sort((a,b)=> a.rank-b.rank || a.nm.localeCompare(b.nm));
-  return scored.map(s=>s.e);
-}
-function ckOptHtml(e,i){
-  const tag=(on,cls,lbl)=>`<span class="cktag ${on?cls:'off'}">${lbl}</span>`;
-  return `<div class="ckopt" data-i="${i}"><div><div class="nm">${esc(e.name||"(이름 없음)")}</div>`+
-    `<div class="em">${esc(e.email||"이메일 없음")}</div></div>`+
-    `<div class="meta">${tag(e.acc,'acc','숙소')}${tag(e.sess,'sess','세션')}</div></div>`;
-}
-function ckRenderDrop(opts,drop){
-  if(!opts.length){ drop.innerHTML=`<div class="ckempty">일치하는 사람이 없습니다.</div>`; return; }
-  const show=opts.slice(0,12);
-  let h=show.map((e,i)=>ckOptHtml(e,i)).join("");
-  if(opts.length>show.length) h+=`<div class="ckmore">+${opts.length-show.length}명 더 — 검색어를 좁혀주세요</div>`;
-  drop.innerHTML=h;
-}
-function ckHl(drop,hl){
-  drop.querySelectorAll(".ckopt").forEach((o,i)=>o.classList.toggle("hl",i===hl));
-  const cur=drop.querySelector(".ckopt.hl"); if(cur) cur.scrollIntoView({block:"nearest"});
-}
+// ===== 새 디자인 체크인 대시보드 helpers =====
+const CK2_AV=["#3b82f6","#6366f1","#e35d8a","#f59e0b","#0891b2","#7c6cf6","#0ea5a0","#10b981","#8b5cf6","#ef7c4d"];
+const ck2Color=id=>{ let h=0; for(const ch of String(id)) h=(h*31+ch.charCodeAt(0))>>>0; return CK2_AV[h%CK2_AV.length]; };
+function ck2Init(name){ const s=norm(name); if(!s) return "?";
+  if(/[가-힣]/.test(s[0])) return s[0];
+  const w=s.split(/\s+/); return ((w[0][0]||"")+(w[1]?w[1][0]:"")).toUpperCase()||"?"; }
+function ck2TodayKey(){ const d=new Date(),p=n=>String(n).padStart(2,"0"); return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}`; }
+function ck2Time(ts){ const m=/^(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2})/.exec(ts||"");
+  if(!m) return {t:ts==="✓"?"✓":(ts||""), d:""};
+  const h=+m[4], ap=h<12?"AM":"PM", h12=h%12||12;
+  return {t:`${String(h12).padStart(2,"0")}:${m[5]} ${ap}`, d:`${+m[2]}월 ${+m[3]}일`}; }
 // build the merged detail card for one person
 function ckCard(entry){
   const acc=entry.acc, sess=entry.sess, ci=catInfo(entry.cat);
@@ -2146,43 +2444,155 @@ function ckCard(entry){
     <div class="cksec"><h4>세션 배정</h4>${sessHtml}</div>
   </div>`;
 }
-// render the card into #ckResult and wire the check-in button; remembers the current entry so a toggle can re-render
+// 상세 카드(기존 ckCard 그대로)를 모달로 표시; 토글 후에도 state._ckCur로 다시 그림
 function ckShowCard(entry){
   state._ckCur=entry;
-  const r=$("#ckResult"); if(!r) return; r.innerHTML=ckCard(entry);
-  const btn=r.querySelector(".ckbtn[data-pid]");
+  const card=$("#card"); card.className="card";
+  card.innerHTML=`<div class="ckmodal">${ckCard(entry)}<button class="cx ckx" onclick="closeCard()" aria-label="닫기">×</button></div>`;
+  const btn=card.querySelector(".ckbtn[data-pid]");
   if(btn) btn.onclick=()=>ckToggleCheckin(btn.dataset.pid);
+  $("#modal").style.display="flex";
 }
+// 체크인 보기 (새 디자인): 통계 카드 + 검색·페이지 테이블 + 도넛 요약 + 최근 체크인.
+// 셸은 1회 구성(검색 입력 포커스 유지), 데이터 영역은 ck2Refresh()로 갱신.
 function renderCheckin(){
-  const wrap=$("#checkin"); if(wrap.dataset.built) return;   // build the shell once → typing/results survive re-renders
-  wrap.dataset.built="1";
-  wrap.innerHTML=`<div class="ckwrap">
-    <div class="cksearchbox">
-      <input id="ckSearch" type="text" placeholder="이름 또는 이메일로 검색…" autocomplete="off" spellcheck="false">
-      <button class="ckclear" id="ckClear" aria-label="지우기">×</button>
-      <div class="ckdrop" id="ckDrop"></div>
+  const wrap=$("#checkin");
+  if(!wrap.dataset.built){
+    wrap.dataset.built="1";
+    const circ='<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/></svg>';
+    wrap.innerHTML=`
+    <div class="ck2stats">
+      <button type="button" class="ck2stat s1" data-f="all" title="전체 보기"><span class="row1"><span class="bico">${ico('users')}</span><span class="lbl">총 등록</span></span><span class="num" id="ck2Total">0</span></button>
+      <button type="button" class="ck2stat s2" data-f="in" title="체크인 완료만 보기"><span class="row1"><span class="bico">${ico('checkCircle')}</span><span class="lbl">체크인 완료</span></span><span class="num"><span id="ck2In">0</span><span class="pct g" id="ck2InP">0%</span></span></button>
+      <button type="button" class="ck2stat s3" data-f="out" title="미체크인만 보기"><span class="row1"><span class="bico">${circ}</span><span class="lbl">미체크인</span></span><span class="num"><span id="ck2Out">0</span><span class="pct b" id="ck2OutP">0%</span></span></button>
+      <button type="button" class="ck2stat s4" data-f="today" title="오늘 체크인한 사람만 보기"><span class="row1"><span class="bico">${ico('checkSquare')}</span><span class="lbl">오늘 체크인</span></span><span class="num"><span id="ck2Today">0</span><span class="pct a">자세히 →</span></span></button>
     </div>
-    <div id="ckResult"></div>
-  </div>`;
-  const inp=$("#ckSearch"), drop=$("#ckDrop"), clear=$("#ckClear");
-  let opts=[], hl=-1;
-  const closeDrop=()=>{ drop.classList.remove("open"); hl=-1; };
-  const pick=e=>{ if(!e) return; inp.value=e.name||e.email||""; clear.style.display="block"; closeDrop(); ckShowCard(e); };
-  const open=()=>{ const q=inp.value.trim(); clear.style.display=q?"block":"none";
-    if(!q){ closeDrop(); return; } opts=ckFilter(q); ckRenderDrop(opts,drop); drop.classList.add("open"); hl=-1; };
-  inp.addEventListener("input",open);
-  inp.addEventListener("focus",()=>{ if(inp.value.trim()) open(); });
-  inp.addEventListener("keydown",e=>{
-    if(!drop.classList.contains("open")) return;
-    if(e.key==="ArrowDown"){ e.preventDefault(); hl=Math.min(Math.min(opts.length,12)-1,hl+1); ckHl(drop,hl); }
-    else if(e.key==="ArrowUp"){ e.preventDefault(); hl=Math.max(0,hl-1); ckHl(drop,hl); }
-    else if(e.key==="Enter"){ e.preventDefault(); pick(opts[hl>=0?hl:0]); }
-    else if(e.key==="Escape"){ closeDrop(); }
+    <div class="ck2lower">
+      <div class="ck2panel">
+        <h2>체크인 참가자 <span class="fchip" id="ck2Chip" style="display:none"></span></h2>
+        <div class="ck2search"><span class="mag">${ico('search')}</span><input id="ck2Q" placeholder="이름, 이메일, 참가자ID로 검색…" autocomplete="off" aria-label="체크인 참가자 검색"><button type="button" class="clr2" id="ck2Clr" aria-label="검색어 지우기">×</button></div>
+        <table class="ck2tbl"><thead><tr><th>참가자</th><th>참가 유형</th><th>참가자ID</th><th>상태</th><th>체크인 시각</th></tr></thead><tbody id="ck2Rows"></tbody></table>
+        <div class="ck2nores" id="ck2NoRes" style="display:none">검색 결과가 없습니다</div>
+        <div class="ck2pg"><span class="info" id="ck2Info"></span><span class="ck2perw"><label for="ck2Per">페이지당</label><select id="ck2Per"><option value="50">50명씩 보기</option><option value="100">100명씩 보기</option><option value="0">전체 보기</option></select></span><span class="pages" id="ck2Pages"></span></div>
+      </div>
+      <div class="ck2rail">
+        <div class="ck2panel">
+          <h2>체크인 요약</h2>
+          <div class="donut2wrap"><div class="ck2donut">
+            <svg width="188" height="188" viewBox="0 0 188 188"><circle cx="94" cy="94" r="78" fill="none" stroke="#eef1f6" stroke-width="20"/><circle id="ck2Donut" cx="94" cy="94" r="78" fill="none" stroke="#1f9d4e" stroke-width="20" stroke-linecap="round" stroke-dasharray="490" stroke-dashoffset="490"/></svg>
+            <div class="ctr"><b id="ck2Pct">0%</b><span>체크인 완료</span></div>
+          </div></div>
+          <div class="ck2legend">
+            <div class="li g"><span class="k"></span><span class="nm">체크인 완료</span><span class="v" id="ck2LgIn">0</span></div>
+            <div class="li o"><span class="k"></span><span class="nm">미체크인</span><span class="v" id="ck2LgOut">0</span></div>
+          </div>
+          <button type="button" class="ck2report" id="ck2Report">${ico('checkCircle')} 체크인 완료 명단 보기</button>
+        </div>
+        <div class="ck2panel">
+          <h2>최근 체크인</h2>
+          <div id="ck2Recent"></div>
+        </div>
+      </div>
+    </div>`;
+    const ui=state.ck2, q=$("#ck2Q"), clr=$("#ck2Clr");
+    q.addEventListener("input",()=>{ ui.q=q.value; ui.page=1; clr.classList.toggle("show",!!q.value); ck2Refresh(); });
+    clr.addEventListener("click",()=>{ q.value=""; ui.q=""; clr.classList.remove("show"); ui.page=1; ck2Refresh(); q.focus(); });
+    wrap.querySelectorAll(".ck2stat").forEach(s=>s.addEventListener("click",()=>{ const f=s.dataset.f;
+      ui.f=(ui.f===f||f==="all")?"all":f; ui.page=1; ck2Refresh(); }));
+    const perSel=$("#ck2Per"); perSel.value=String(ui.per);
+    perSel.addEventListener("change",()=>{ ui.per=+perSel.value||0; ui.page=1; ck2Refresh(); });
+    $("#ck2Chip").addEventListener("click",()=>{ ui.f="all"; ui.page=1; ck2Refresh(); });
+    $("#ck2Report").addEventListener("click",()=>{ ui.f="in"; ui.page=1; ck2Refresh(); });
+    setTimeout(()=>q.focus(),0);
+  }
+  ck2Refresh();
+}
+function ck2Refresh(){
+  const wrap=$("#checkin"); if(!wrap||!wrap.dataset.built) return;
+  const ui=state.ck2, ci=state.checkedIn||{}, roster=state.parties||[];
+  const total=roster.length;
+  const inN=roster.filter(p=>ci[p.id]).length, outN=total-inN;
+  const today=ck2TodayKey();
+  const todayN=roster.filter(p=>typeof ci[p.id]==="string" && ci[p.id].slice(0,10)===today).length;
+  const frac=total?inN/total:0;
+  const pctS=(frac*100).toFixed(1).replace(/\.0$/,"")+"%", outS=((1-frac)*100).toFixed(1).replace(/\.0$/,"")+"%";
+  $("#ck2Total").textContent=total; $("#ck2In").textContent=inN; $("#ck2Out").textContent=outN; $("#ck2Today").textContent=todayN;
+  $("#ck2InP").textContent=pctS; $("#ck2OutP").textContent=outS;
+  $("#ck2Donut").setAttribute("stroke-dashoffset",String(490*(1-frac)));
+  $("#ck2Pct").textContent=pctS;
+  $("#ck2LgIn").textContent=`${inN} (${pctS})`; $("#ck2LgOut").textContent=`${outN} (${outS})`;
+  wrap.querySelectorAll(".ck2stat").forEach(s=>s.classList.toggle("fon", s.dataset.f===ui.f && ui.f!=="all"));
+  const chip=$("#ck2Chip");
+  if(ui.f!=="all"){ chip.style.display=""; chip.textContent=({in:"체크인 완료만",out:"미체크인만",today:"오늘 체크인만"})[ui.f]+"  ✕ 해제"; }
+  else chip.style.display="none";
+  // 행 = 숙소 명단 + (이메일 병합) 세션 전용 레코드 — 기존 체크인 보기와 같은 검색 범위 (checkinPeople)
+  const q=(ui.q||"").trim().toLowerCase();
+  const rows=checkinPeople().filter(e=>{
+    if(q){ const acc=e.acc;
+      const hay=[e.name, acc&&acc.kname, e.email, acc&&acc.id, e.sess&&e.sess.id].filter(Boolean).join(" ").toLowerCase();
+      if(!hay.includes(q)) return false; }
+    const t=e.acc?ci[e.acc.id]:null;
+    if(ui.f==="in") return !!t;
+    if(ui.f==="out") return !!e.acc && !t;
+    if(ui.f==="today") return !!t && String(t).slice(0,10)===today;
+    return true;
   });
-  drop.addEventListener("mousedown",e=>{ const o=e.target.closest(".ckopt"); if(!o) return; e.preventDefault(); pick(opts[+o.dataset.i]); });
-  clear.addEventListener("click",()=>{ inp.value=""; clear.style.display="none"; closeDrop(); $("#ckResult").innerHTML=""; state._ckCur=null; inp.focus(); });
-  document.addEventListener("mousedown",e=>{ if(!e.target.closest(".cksearchbox")) closeDrop(); });
-  setTimeout(()=>inp.focus(),0);
+  rows.sort((a,b)=>{
+    const ta=a.acc?(ci[a.acc.id]||""):"", tb=b.acc?(ci[b.acc.id]||""):"";
+    if(!!ta!==!!tb) return ta?-1:1;                       // 체크인 완료 먼저
+    if(ta&&tb&&ta!==tb) return ta<tb?1:-1;                // 최근 체크인 순
+    if(!!a.acc!==!!b.acc) return a.acc?-1:1;              // 세션 전용 레코드는 뒤로
+    if(a.acc&&b.acc) return a.acc._row-b.acc._row;        // 명단(시트) 순
+    return String(a.name||"").localeCompare(String(b.name||""));
+  });
+  const per=ui.per>0?ui.per:(rows.length||1), npg=Math.max(1,Math.ceil(rows.length/per));
+  if(ui.page>npg) ui.page=npg; if(ui.page<1) ui.page=1;
+  const at=(ui.page-1)*per, page=rows.slice(at,at+per);
+  const tb=$("#ck2Rows"); tb.innerHTML="";
+  $("#ck2NoRes").style.display=rows.length?"none":"";
+  const circ='<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/></svg>';
+  page.forEach(e=>{
+    const acc=e.acc, pid=acc?acc.id:(e.sess?e.sess.id:""), t=acc?ci[acc.id]:null, ft=ck2Time(t||"");
+    const cat=e.cat?(catInfo(e.cat).ab||e.cat):"—";
+    const tr=el("tr");
+    tr.innerHTML=
+      `<td><div class="att"><span class="av" style="background:${ck2Color(pid||e.name)}">${esc(ck2Init(e.name))}</span>`+
+      `<span class="who2"><span class="nm">${esc(e.name||"(이름 없음)")}${acc&&acc.kname?`<span class="kn">${esc(acc.kname)}</span>`:""}</span>`+
+      `<span class="em${e.email?"":" none"}">${e.email?esc(e.email):"이메일 미등록"}</span></span></div></td>`+
+      `<td>${esc(cat)}</td><td class="tid">${esc(pid)}</td>`+
+      (acc
+        ? `<td><button type="button" class="ckpill ${t?"in":"out"}" data-pid="${esc(acc.id)}" title="${t?"클릭: 체크인 취소":"클릭: 체크인 완료"}">${t?ico('check')+" 체크인 완료":circ+" 미체크인"}</button></td>`
+        : `<td><span class="ckpill sessonly" title="숙소 명단에 없는 세션 참가자 — 체크인 대상 아님">세션 전용</span></td>`)+
+      `<td class="${t?"citime":"none"}">${t?`${esc(ft.t)}<small>${esc(ft.d)}</small>`:"—"}</td>`;
+    tr.addEventListener("click",ev=>{ if(ev.target.closest(".ckpill[data-pid]")) return; ckShowCard(e); });
+    const pill=tr.querySelector(".ckpill[data-pid]");
+    if(pill) pill.addEventListener("click",ev=>{ ev.stopPropagation(); ckToggleCheckin(acc.id); });
+    tb.append(tr);
+  });
+  $("#ck2Info").textContent=rows.length?`${rows.length}명 중 ${at+1}–${Math.min(at+per,rows.length)}명 표시`:"";
+  const pg=$("#ck2Pages"); pg.innerHTML="";
+  const mkb=(html,on,dis,fn)=>{ const b=el("button"); b.type="button"; b.innerHTML=html;
+    if(on) b.classList.add("on"); b.disabled=!!dis; if(fn) b.onclick=fn; pg.append(b); };
+  mkb("‹",false,ui.page<=1,()=>{ ui.page--; ck2Refresh(); });
+  const want=new Set([1,2,npg,ui.page-1,ui.page,ui.page+1]); let prev=0;
+  for(let i=1;i<=npg;i++){
+    if(!want.has(i)) continue;
+    if(i-prev>1) pg.append(el("span","gap","…"));
+    const n=i; mkb(String(i), i===ui.page, false, ()=>{ ui.page=n; ck2Refresh(); });
+    prev=i;
+  }
+  mkb("›",false,ui.page>=npg,()=>{ ui.page++; ck2Refresh(); });
+  // 최근 체크인 (최근 5명, 시각 역순)
+  const rec=$("#ck2Recent"); rec.innerHTML="";
+  const recents=roster.filter(p=>ci[p.id]).sort((x,y)=>(ci[x.id]<ci[y.id]?1:-1)).slice(0,5);
+  if(!recents.length) rec.append(el("div","noneyet","아직 체크인 기록이 없습니다"));
+  recents.forEach(p=>{
+    const ft=ck2Time(ci[p.id]);
+    const d=el("div","ri");
+    d.innerHTML=`<span class="av" style="background:${ck2Color(p.id)}">${esc(ck2Init(p.name))}</span><span class="nm">${esc(p.name)}</span><span class="tm">${esc(ft.t||"✓")}</span>`;
+    d.onclick=()=>{ const ent=checkinPeople().find(x=>x.acc&&x.acc.id===p.id); if(ent) ckShowCard(ent); };
+    rec.append(d);
+  });
 }
 // 일정 보기: faithful read-only timetable from the uploaded master's '일정' tab (rows=time slots, cols=days; cell newlines = parallel sessions)
 function renderSchedule(){
@@ -2219,9 +2629,11 @@ function renderSchedule(){
   const btn=el("button",state.scheduleEdit?"go":null); btn.type="button"; btn.textContent=state.scheduleEdit?"✓ 편집 잠금":"✎ 수정";   // 수정 = primary, 편집 잠금 = green
   btn.onclick=()=>{ state.scheduleEdit=!state.scheduleEdit; renderSchedule(); };
   bar.append(btn);
-  bar.append(el("div","sched-hint", state.scheduleEdit
-    ? "편집 모드입니다. 셀을 클릭해 수정하세요. 변경 내용은 ‘마스터 업데이트 (v+1)’를 누르면 마스터 엑셀 파일(.xlsx)의 ‘일정’ 탭에 저장됩니다."
-    : "‘수정’ 버튼을 눌러야 셀을 편집할 수 있습니다. 편집한 내용은 ‘마스터 업데이트 (v+1)’ 시 마스터 엑셀 파일(.xlsx)의 ‘일정’ 탭에 그대로 반영됩니다."));
+  const hint=el("div","sched-hint", state.scheduleEdit
+    ? "편집 모드 — 셀을 클릭해 수정하세요. ‘마스터 업데이트 (v+1)’ 시 저장됩니다."
+    : "‘수정’을 누르면 셀을 편집할 수 있습니다.");
+  hint.title="편집한 내용은 ‘마스터 업데이트 (v+1)’를 누르면 마스터 엑셀 파일(.xlsx)의 ‘일정’ 탭에 그대로 반영됩니다.";   // full explanation moved to hover
+  bar.append(hint);
   const legend=el("div","sched-legend");   // program color key, lifted from the band row(s)
   const schedTop=el("div","sched-top"); schedTop.append(bar,legend); frag.append(schedTop);   // 수정 toolbar (left) + legend (right) share one row, each its own rounded box
   let hi=aoa.findIndex(r=>r&&r.some(c=>nz(c)==="시간"));   // header row = the one starting the time column
@@ -2231,7 +2643,7 @@ function renderSchedule(){
   const wrapT=el("div","schedscroll"); const table=el("table","schedtbl");
   const thead=el("thead"), htr=el("tr"), hrow=aoa[hi]||[];
   const spanAttr=(node,r,c)=>{ const sp=span[r+","+c]; if(sp){ if(sp.rs>1)node.rowSpan=sp.rs; if(sp.cs>1)node.colSpan=sp.cs; } return node; };
-  for(let c=0;c<ncol;c++){ if(covered.has(hi+","+c)) continue; const th=el("th",c===0?"timecol":null); const hp=nz(hrow[c]).split("\n");   // header on ONE line: bold day + lighter date (e.g. "Day 1 · 6/30 (화)")
+  for(let c=0;c<ncol;c++){ if(covered.has(hi+","+c)) continue; const th=el("th",c===0?"timecol":(/\((토|일)\)/.test(nz(hrow[c]))?"wknd":null)); const hp=nz(hrow[c]).split("\n");   // header on ONE line: bold day + lighter date (e.g. "Day 1 · 6/30 (화)"); weekend headers tinted
     th.innerHTML=hp.length>1?`<span class="hd-day">${esc(hp[0])}</span><span class="hd-date">${esc(hp.slice(1).join(" "))}</span>`:esc(hp[0]||"");
     htr.append(spanAttr(edit(th,hi,c),hi,c)); }
   thead.append(htr); table.append(thead);
@@ -3115,7 +3527,9 @@ function renderSession(){
     gbWrap.append(b);
   });
 
-  pool.append(el("div","sess-poolhint","위에서 시간대를 고르면 그 시간대의 병렬 세션이 칼럼으로 나타납니다. 이 시간대에 아직 배정되지 않은 사람만 풀에 보입니다. 풀은 분류·나이대·성별·국가 또는 확인필요 기준으로 묶어 볼 수 있습니다. 클릭해 선택(Shift+클릭: 범위 선택) → 세션 칼럼을 누르거나 끌어서 배정 · 칼럼 간 드래그로 이동 · 풀로 끌면 제외"));
+  { const ph=el("details","sess-poolhint");   // long how-to folded behind a summary (was a permanent 5-line paragraph)
+    ph.innerHTML=`<summary>ⓘ 사용법 안내</summary><div>위에서 시간대를 고르면 그 시간대의 병렬 세션이 칼럼으로 나타납니다. 이 시간대에 아직 배정되지 않은 사람만 풀에 보입니다. 풀은 분류·나이대·성별·국가 또는 확인필요 기준으로 묶어 볼 수 있습니다. 클릭해 선택(Shift+클릭: 범위 선택) → 세션 칼럼을 누르거나 끌어서 배정 · 칼럼 간 드래그로 이동 · 풀로 끌면 제외</div>`;
+    pool.append(ph); }
   pool.append(gbWrap);   // 그룹 보기 토글 — 안내문 바로 아래
 
   const plist=el("div","sesspoollist"); plist.dataset.dropkey="__sesspool__"; plist.setAttribute("role","group"); plist.setAttribute("aria-label","참가자 목록"); pool.append(plist);
@@ -3504,9 +3918,10 @@ function renderStats(issues){
   sb.append(
     mk("총 인원",total),
     mk("방 필요",needP),
-    mk("배정완료",assignedP,`<span class="frac">/${needP}</span>`),   // consistent fraction vs 방 필요
+    mk("배정완료",assignedP,`<span class="frac">/${needP}</span><span class="statbar" title="${pct(assignedP,needP)}% 완료" aria-hidden="true"><i style="width:${pct(assignedP,needP)}%"></i></span>`),   // consistent fraction vs 방 필요 + mini progress
     un,
     mk("방 불필요",noRoom),
+    el("span","statdiv"),                              // visual divider: 인원 stats | 숙소 stats
     ...hotels.map(h=>venStat(h===VEN.BYYTC?"부영수련원":venShort(h),byHotel[h],capHotel[h])),
     ...(booyIsInv()?[]:[mk("부영호텔(NOC)",byBOOY)]),   // NOC chip only when 부영호텔 is off-inventory (else it's a normal venStat above)
     ...(byTEMP?[mk("임시배치(재배정필요)",byTEMP)]:[]),   // holding-bucket chip, only when someone is parked there
@@ -3541,7 +3956,8 @@ function chip(p){
   const ckTime = state.checkedIn && state.checkedIn[p.id];   // 현장 체크인 완료 → green chip (B.6)
   if(ckTime) c.classList.add("checkedin");
   const room = state.assign[p.id] && state.assign[p.id]!=="BOOY" ? state.roomById[state.assign[p.id]] : null;
-  if(room && matchIssue(room,p)) c.classList.add("badmatch");
+  const bm = room ? matchIssue(room,p) : null;
+  if(bm){ c.classList.add("badmatch"); c.title="⚠ "+bm; }   // hover explains WHY the chip is flagged
   const grip=el("span","drag"); grip.innerHTML=ico('grip'); grip.setAttribute("aria-hidden","true"); grip.title="끌어서 이동(드래그)";
   const ci=catInfo(p.cat);
   // slim 1-char category badge (colour carries the rest; the legend + hover decode it) → more room for names
@@ -3558,11 +3974,12 @@ function chip(p){
   lk.setAttribute("aria-pressed", state.locked[p.id]?"true":"false");
   lk.setAttribute("aria-label", (state.locked[p.id]?"잠금 해제":"잠금")+" — "+p.name+" (자동배정 제외)");
   lk.title="잠금 토글(자동배정 제외)";
-  const toggleLock=ev=>{ ev.stopPropagation(); state.locked[p.id]=!state.locked[p.id];
+  const toggleLock=ev=>{ ev.stopPropagation(); if(state.locked[p.id]) delete state.locked[p.id]; else state.locked[p.id]=true;   // delete (not =false) so workSig matches the saved baseline after an on/off toggle
     announce(`${p.name} ${state.locked[p.id]?"잠금":"잠금 해제"}`); render(); };
   lk.onclick=toggleLock;
   lk.addEventListener("keydown",e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); toggleLock(e); } });
   c.append(grip,cat,sx,nm,hc);
+  if(bm){ const wm=el("span","wmk","⚠"); wm.title="⚠ "+bm; wm.setAttribute("aria-hidden","true"); c.append(wm); }
   if(ckTime){ const ck=el("span","chk"); ck.innerHTML=ico('check'); ck.setAttribute("aria-hidden","true");
     ck.title=`현장 체크인 완료${ckTime!=='✓'?` · ${ckTime}`:""}`; c.append(ck); }   // 체크인 완료 표시 (초록 체크 배지)
   c.append(lk);
@@ -3674,7 +4091,8 @@ function renderPool(){
   const un=state.parties.filter(p=>p.need!=="No" && !state.assign[p.id])
         .filter(p=> !q || p.name.toLowerCase().includes(q)||p.id.toLowerCase().includes(q)||(p.kname||"").toLowerCase().includes(q))
         .sort((a,b)=> (b.partySex==="MIX")-(a.partySex==="MIX") || a.name.localeCompare(b.name));
-  $("#poolcount").textContent = `(${un.reduce((s,p)=>s+p.hc,0)}명 / ${un.length}건)`;
+  { const mN=un.filter(p=>p.partySex==="M").length, fN=un.filter(p=>p.partySex==="F").length, oN=un.length-mN-fN;
+    $("#poolcount").innerHTML = `(${un.reduce((s,p)=>s+p.hc,0)}명 / ${un.length}건)<span class="poolmf">남 ${mN} · 여 ${fN}${oN?` · 기타 ${oN}`:""}</span>`; }
   if(state.picks.size) list.append(makePickHint());
   // distinguish "pool is genuinely empty" from "search filtered everything out"
   if(!un.length){ const eh=el("div","empty-hint");
@@ -3776,7 +4194,7 @@ function renderVenues(){
     const div=el("div","venue "+venueClass(hotel)); div.id=vId;
     if(hotel===VEN.BOOY && !booyIsInv()){            // off-inventory NOC roster (no real rooms) — when 부영호텔 has rooms, fall through to normal venue rendering
       const occ=state.parties.filter(p=>state.assign[p.id]==="BOOY");
-      venueHeader(div,vId,`${hotel} <span class="cap">· 외부 예약(NOC) · ${occ.reduce((s,p)=>s+p.hc,0)}명</span>`);
+      venueHeader(div,vId,`${esc(hotel)} <span class="cap">· 외부 예약(NOC) · ${occ.reduce((s,p)=>s+p.hc,0)}명</span>`);
       jumps.push({label:`▸ ${venShort(hotel)}`, id:vId});
       const wrap=el("div","floorgrp"); const rm=el("div","rooms");
       const box=el("div","room booylist"); box.style.minWidth="100%";
@@ -3788,7 +4206,7 @@ function renderVenues(){
     }
     if(hotel===VEN.TEMP){                            // hardcoded 임시배치(재배정필요) holding bucket — flat drop-list, no real rooms (mirrors the BOOY box but always present)
       const occ=state.parties.filter(p=>state.assign[p.id]==="TEMP");
-      venueHeader(div,vId,`${hotel} <span class="cap">· 재배정 대기 · ${occ.reduce((s,p)=>s+p.hc,0)}명</span>`);
+      venueHeader(div,vId,`${esc(hotel)} <span class="cap">· 재배정 대기 · ${occ.reduce((s,p)=>s+p.hc,0)}명</span>`);
       jumps.push({label:`▸ ${venShort(hotel)}`, id:vId});
       const wrap=el("div","floorgrp"); const rm=el("div","rooms");
       const box=el("div","room booylist"); box.style.minWidth="100%";
@@ -3802,7 +4220,7 @@ function renderVenues(){
     const rooms=state.rooms.filter(r=>r.hotel===hotel);
     const used=rooms.reduce((s,r)=>s+roomLoad(r.key),0);
     const cap=rooms.reduce((s,r)=>s+r.total,0);
-    venueHeader(div,vId,`${hotel} <span class="cap">· ${rooms.length}실 · ${used}/${cap}명</span>`,hotel);
+    venueHeader(div,vId,`${esc(hotel)} <span class="cap">· ${rooms.length}실 · ${used}/${cap}명</span><span class="vprog" title="${cap?Math.min(100,Math.round(used/cap*100)):0}% 사용" aria-hidden="true"><i style="width:${cap?Math.min(100,Math.round(used/cap*100)):0}%"></i></span>`,hotel);
     jumps.push({label:`▸ ${venShort(hotel)}`, id:vId});
     // group by 동/층 when those columns are filled (부영청소년수련원 + any new hotel that uses them),
     // otherwise by 방 타입 (유어스, since floor blank)
@@ -3862,7 +4280,7 @@ function buildJump(jumps){
 function roomCard(r){
   const load=roomLoad(r.key);
   const rlock=!!state.roomLocked[r.key];
-  const card=el("div","room"+(load>r.total?" over":"")+(rlock?" locked":""));
+  const card=el("div","room"+(load>r.total?" over":"")+(rlock?" locked":"")+(load===0?" vacant":""));
   card.tabIndex=0; card.setAttribute("role","group");
   card.setAttribute("aria-label",`${r.rno||r.id}호, ${r.gender||"성별 미지정"}${r.ondol?", 온돌":""}, ${load}/${r.total}명${load>r.total?", 정원 초과":""}. 선택한 인원을 여기에 배정하려면 누르세요`);
   const hdr=el("div","rhdr");
@@ -3905,6 +4323,7 @@ function roomCard(r){
   card.append(hdr);
   card.title=`${r.type||""} ${r.gender||"미지정"} 기준${r.base}+추가${r.ext}=${r.total}`+(r.note?` · ${r.note}`:"");
   roomOccupants(r.key).forEach(p=>card.append(chip(p)));
+  if(load===0) card.append(el("div","vhint",`빈 객실 · 정원 ${r.total}`));   // ghost hint so an empty room reads as intentional drop space
   makeDrop(card,r.key);
   return card;
 }
@@ -3992,7 +4411,7 @@ function partyVenue(p){
   if(a){ const rm=state.roomById[a]; return rm?rm.hotel:""; }
   return "(미배정)";
 }
-function venShort(hotel){ return hotel===VEN.BYYTC?"부영청소년":hotel===VEN.YOUUS?"유어스":hotel===VEN.BOOY?"부영호텔":hotel===VEN.TEMP?"임시배치":hotel; }
+function venShort(hotel){ return hotel===VEN.BYYTC?"부영청소년":hotel===VEN.YOUUS?"유어스":hotel===VEN.BOOY?"부영호텔":hotel===VEN.TEMP?"임시배치":(hotel&&hotel.startsWith("부영호텔")?"부영호텔":hotel); }   // prefix fallback: "부영호텔&리조트" 등 변형도 짧게 (display only)
 function partyRoomInfo(p){
   const a=state.assign[p.id];
   if(a==="BOOY") return {ven:VEN.BOOY, vshort:"부영호텔", rno:"팀룸", full:VEN.BOOY+" (팀룸)", cap:null};
@@ -4001,7 +4420,7 @@ function partyRoomInfo(p){
     const full=(rm.bldg?rm.bldg+"동 ":"")+(rm.floor?rm.floor+" ":"")+(rm.rno||rm.id)+(rm.type?" ("+rm.type+")":"");
     return {ven:rm.hotel, vshort:venShort(rm.hotel), rno:(rm.rno||rm.id), full, cap:rm.total};
   }}
-  return {ven:null, vshort:"미배정", rno:"미배정", full:"미배정", cap:null};
+  return {ven:null, vshort:"미배정", rno:"—", full:"미배정", cap:null};   // 객실번호 cell shows — (호텔 cell already says 미배정; twice was redundant)
 }
 function computeDups(){                       // flag rows sharing a name or email (duplicate participant)
   const byName={}, byEmail={}; state.dupInfo={}; state.dupWhy={};
@@ -4485,6 +4904,7 @@ function enableBarDrag(p,bar,hl,hr,track,n,place){
       bar.removeEventListener("pointermove",move); bar.removeEventListener("pointerup",up); bar.removeEventListener("pointercancel",up);
       try{ bar.releasePointerCapture(pid); }catch(_){}
       bar.classList.remove("dragging"); setDragging(false);
+      if(e.type==="pointercancel"){ p.stay.s=s0; p.stay.e=e0; }   // system-cancelled drag → revert the in-flight change
       place();                                       // settle onto the day grid — the CSS transition eases it into place
       refreshStay(p); renderStats();
     };
@@ -4505,8 +4925,8 @@ function openCard(p){
     const dupHtml = dup ? `<div class="carddup ${dup.severity==="danger"?"d":"w"}">${ico('alert')}<div><b>중복 의심 레코드</b><ul>${dup.lines.map(l=>`<li>${esc(l.t)}</li>`).join("")}</ul><span class="hint">같은 사람이 중복 등록된 경우, 아래 '기록 삭제'로 이 레코드를 데이터에서 완전히 지울 수 있습니다(다른 레코드는 그대로 유지).</span></div></div>` : "";
     card.innerHTML=
       `<div class="chead" style="background:${ci.c}">
-         <div class="htitle"><h2>${p.name||p.id}</h2>
-         <div class="sub">${p.id} · ${p.cat||""}</div></div>
+         <div class="htitle"><h2>${esc(p.name||p.id)}</h2>
+         <div class="sub">${esc(p.id)} · ${esc(p.cat||"")}</div></div>
          <button class="cx" onclick="closeCard()">×</button>
        </div>${dupHtml}<div class="cbody">${sb}</div>
        <div class="cfoot"><button class="cdanger" id="sessDelBtn">기록 삭제</button></div>`;
@@ -4537,8 +4957,8 @@ function openCard(p){
   });
   card.innerHTML=
     `<div class="chead" style="background:${ci.c}">
-       <div class="htitle"><h2>${p.name||p.id}${p.kname?` <span style="font-weight:400">(${p.kname})</span>`:""}</h2>
-       <div class="sub">${p.id} · ${p.cat||""}${p.team?" · "+p.team:""}${p.group?" · 묶음 "+p.group:""}</div></div>
+       <div class="htitle"><h2>${esc(p.name||p.id)}${p.kname?` <span style="font-weight:400">(${esc(p.kname)})</span>`:""}</h2>
+       <div class="sub">${esc(p.id)} · ${esc(p.cat||"")}${p.team?" · "+esc(p.team):""}${p.group?" · 묶음 "+esc(p.group):""}</div></div>
        ${a?`<button class="cedit cunassign" id="cardUnassignBtn">미배정으로 빼기</button>`:""}
        <button class="cedit" id="cardEditBtn">수정</button>
        <button class="cx" onclick="closeCard()">×</button>
@@ -4598,7 +5018,7 @@ const SEX_OPTS=[["M","남"],["F","여"],["?","미상"]];
 // state-key → master '참가자' header (for surgical write-back)
 const FIELD_HDR={name:"이름",kname:"한글이름",sex:"성별",dob:"생년월일",nat:"국적",email:"이메일",
   aff:"소속",title:"직책",wb:"WB등급",pay:"결제상태",cat:"카테고리",team:"팀",group:"그룹ID",
-  need:"배정필요",note:"비고",companions:"동반자요약"};
+  need:"배정필요",note:"비고",companions:"동반자요약",pre:"배정숙소"};   // pre = 사전 배정(원본) — modal edits now persist; the live-assignment write in exportMaster still wins for assigned people
 function editCard(p){
   const card=$("#card"); card.className="card"; const ci=catInfo(p.cat); card.style.setProperty("--catc",ci.c);
   const opt=(arr,cur)=>arr.map(o=>{const v=Array.isArray(o)?o[0]:o,t=Array.isArray(o)?o[1]:o;return `<option value="${esc(v)}"${String(cur)===String(v)?" selected":""}>${esc(t)}</option>`;}).join("");
@@ -4932,7 +5352,7 @@ function sessionSheetAoa(){
   const hdr=["참가자ID","이름","세션선택"];
   const exemptRows=[...state.sessExempt].map(c=>["(면제분류)",c,""]);   // each exempt 카테고리 on its own row
   const capCat=state.sessionCapCat||{};   // only persist caps the user CHANGED from the catalog's 수용인원 (keeps the tab lean)
-  const capRows=Object.keys(state.sessionCap).filter(k=>keySet.has(k)&&state.sessionCap[k]!=null&&state.sessionCap[k]!==capCat[k]).map(k=>["(정원)",k,state.sessionCap[k]]);
+  const capRows=Object.keys(state.sessionCap).filter(k=>keySet.has(k)&&(state.sessionCap[k]!=null ? state.sessionCap[k]!==capCat[k] : capCat[k]!=null)).map(k=>["(정원)",k,state.sessionCap[k]==null?"":state.sessionCap[k]]);   // a null(∞) override of a catalog cap is saved too (blank C = 정원 없음) so it survives reload
   const lockRows=Object.keys(state.sessionLocked).filter(k=>keySet.has(k)&&state.sessionLocked[k]).map(k=>["(잠금)",k,"✓"]);   // ✓ = session locked
   const picks={};
   Object.keys(state.sessionAssign).forEach(k=>{ if(!keySet.has(k)) return; (state.sessionAssign[k]||new Set()).forEach(pid=>{ (picks[pid]=picks[pid]||[]).push(k); }); });
@@ -5141,6 +5561,7 @@ async function exportMaster(){
   const saved=await downloadBytes(fflate.zipSync(files,{level:6}),outName,"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
   if(saved===false){ toast("저장을 취소했습니다.","info"); return; }   // user closed the 저장 위치 dialog → no file written
   markSaved();   // export succeeded → current state is now the saved baseline (no more unsaved-changes warning until the next edit)
+  state.masterName=outName; const snEl=$("#srcname"); if(snEl) snEl.textContent=outName;   // next 마스터 업데이트 bumps from THIS file (v21 → v22, not v21 again)
   let msg=`'${outName}' 저장 완료 — 변경 ${changed}건.\n· 배정동/배정층/배정호실/배정객실ID 열을 추가했습니다.\n· 총인원·도착일·출발일·숙박일수는 수식이라 그대로 두었습니다.`;
   if(capChanged) msg+=`\n· 객실 수용(추가인원·총가능인원) ${capChanged}건을 '객실' 탭에 반영했습니다.`;
   if(delCount) msg+=`\n· 삭제한 기록 ${delCount}건의 행을 '참가자' 탭에서 비웠습니다.`;
@@ -5441,12 +5862,14 @@ $("#jumpsel").addEventListener("change",e=>{
   requestAnimationFrame(()=>{ const n=document.getElementById(id); if(n) n.scrollIntoView({behavior:"smooth",block:"start"}); });
 });
 
-// title = home: back to the import/start (load) screen. Guarded with a confirm when a master is
+// title = home: back to the import/start (load) screen. Guarded with the app dialog when a master is
 // loaded, since returning to the load page discards unsaved in-memory edits (a fresh reload).
+// On confirm the saved baseline is reset so the beforeunload guard stays quiet (no second prompt).
 function goHome(){
   if(!state.masterBuf){ return; }                   // already at the load screen — nothing to do
-  if(!confirm("처음 화면(파일 열기)으로 돌아가시겠습니까?\n저장하지 않은 변경 사항은 사라집니다.")) return;
-  location.reload();
+  dialog({title:"처음 화면으로", okText:"이동", danger:true,
+    body:"처음 화면(파일 열기)으로 돌아갑니다.\n저장하지 않은 변경 사항은 사라집니다.",
+    onOk:()=>{ state.savedSig=workSig(); location.reload(); }});
 }
 $("#appTitle").onclick=goHome;
 $("#appTitle").addEventListener("keydown",e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); goHome(); } });
@@ -5458,6 +5881,10 @@ $("#timeline").addEventListener("scroll",hideDupTip,{passive:true});   // wheel-
 $("#tabSchedule").onclick=()=>setView("schedule");
 $("#tabSession").onclick=()=>setView("session");
 $("#tabCheckin").onclick=()=>setView("checkin");
+document.querySelectorAll("#sidenav .nav a[data-view]").forEach(a=>{   // 사이드바 → 뷰 전환 (데스크톱)
+  a.onclick=()=>setView(a.dataset.view);
+  a.addEventListener("keydown",e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); setView(a.dataset.view); } });
+});
 // 일정 보기: cells are non-editable by default (stable table size). In edit mode, clicking a cell makes ONLY
 // that cell contenteditable; it reverts on blur — so toggling 수정 never reflows/resizes the whole table.
 $("#schedule").addEventListener("mousedown",e=>{
@@ -5523,7 +5950,7 @@ $("#gantt").addEventListener("scroll",updateGanttFades,{passive:true});
 $("#statsbar").addEventListener("scroll",updateStatsFades,{passive:true});
 
 document.querySelectorAll("[data-ico]").forEach(n=>{ n.innerHTML=ico(n.dataset.ico); });   // inject SVG icons into static toolbar buttons
-$("#ssVersion").textContent = APP_VERSION;   // stamp the start-screen build version
+const _snv=document.getElementById("snVer"); if(_snv) _snv.textContent=APP_VERSION;   // stamp the sidebar build version
 loadUI();   // restore column widths, collapsed groups, and last view
 applyPoolHidden();   // 저장된 미배정 패널 접힘 상태 반영 (loadUI 이후)
 buildLegend();   // static category key (DESIGN-4)
