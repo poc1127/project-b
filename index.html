@@ -69,6 +69,8 @@
   .venue.vx1>h2{background:var(--vx1);border-bottom:2px solid var(--vx1-b);} .venue.vx2>h2{background:var(--vx2);border-bottom:2px solid var(--vx2-b);}
   .venue.vx3>h2{background:var(--vx3);border-bottom:2px solid var(--vx3-b);} .venue.vx4>h2{background:var(--vx4);border-bottom:2px solid var(--vx4-b);}
   .venue.vx5>h2{background:var(--vx5);border-bottom:2px solid var(--vx5-b);}
+  .venue.temphold{border-color:#e2961c;border-style:dashed;}   /* hardcoded 임시배치(재배정필요) holding bucket — dashed amber to read as "not a real room" */
+  .venue.temphold>h2{background:#fbe9d0;border-bottom:2px solid #e2961c;color:#7a4f12;}
   .venue>h2 .cap{font-size:12px;font-weight:500;}
   .venue>h2 .vlk{margin-left:auto;cursor:pointer;display:inline-flex;align-items:center;color:inherit;
     background:rgba(0,0,0,.10);border:1px solid rgba(0,0,0,.2);border-radius:6px;padding:3px 7px;flex:none;}
@@ -354,6 +356,9 @@
   .chip.dropmark.dm-after::after{bottom:-3px;}
   /* tap-to-assign: picked chip, room drop-target cue, hint banner */
   .chip.picked{outline:2px solid var(--ok);box-shadow:0 0 0 2px #b6e0b8;background:#eef7ee;}
+  /* 검색 적중: an assigned person matched the 미배정 search box → highlight their room chip + pulse so it's easy to spot after scrolling */
+  .chip.searchhit{outline:3px solid #ff9d00;outline-offset:1px;background:#fff3d6;box-shadow:0 0 0 3px rgba(255,157,0,.35),0 2px 10px rgba(0,0,0,.25);animation:searchhitpulse 1.1s ease-in-out 2;}
+  @keyframes searchhitpulse{0%,100%{box-shadow:0 0 0 3px rgba(255,157,0,.4),0 2px 10px rgba(0,0,0,.25);}50%{box-shadow:0 0 0 8px rgba(255,157,0,0),0 2px 12px rgba(0,0,0,.3);}}
   #venues.picking .room{outline:1px dashed #79b27c;cursor:pointer;}
   #venues.picking .room:hover{outline:2px solid var(--ok);background:#f1f8f1;}
   .pickhint{background:#e9f6ea;border:1px solid #b6e0b8;color:#256a2a;font-size:11px;font-weight:600;padding:5px 8px;border-radius:6px;margin-bottom:6px;line-height:1.35;}
@@ -388,6 +393,62 @@
   .viewtabs.disabled{opacity:.55;}                                    /* empty state: tabs visible but inert */
   .viewtabs.disabled .vtab{cursor:default;}
   .viewtabs.disabled .vtab.active{background:rgba(255,255,255,.4);color:#cdd9e4;box-shadow:none;}
+  /* 체크인 보기 — single search box → autocomplete dropdown → person detail card */
+  .ckwrap{max-width:780px;margin:20px auto;padding:0 16px;}
+  .cksearchbox{position:relative;}
+  #ckSearch{width:100%;box-sizing:border-box;font:inherit;font-size:15px;padding:12px 38px 12px 14px;border:1px solid var(--line);border-radius:10px;background:#fff;}
+  #ckSearch:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px rgba(207,70,49,.15);}
+  .cksearchbox .ckclear{position:absolute;right:9px;top:50%;transform:translateY(-50%);border:none;background:none;color:var(--text-muted);font-size:20px;line-height:1;cursor:pointer;display:none;padding:2px 6px;}
+  .ckdrop{position:absolute;left:0;right:0;top:calc(100% + 4px);z-index:30;background:#fff;border:1px solid var(--line);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.13);max-height:360px;overflow:auto;display:none;}
+  .ckdrop.open{display:block;}
+  .ckopt{display:flex;align-items:center;gap:10px;padding:9px 13px;cursor:pointer;border-bottom:1px solid #f1f3f5;}
+  .ckopt:last-child{border-bottom:none;}
+  .ckopt:hover,.ckopt.hl{background:#f3f7fb;}
+  .ckopt>div:first-child{min-width:0;}
+  .ckopt .nm{font-weight:600;color:#26323f;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .ckopt .em{color:var(--text-muted);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .ckopt .meta{margin-left:auto;display:flex;gap:5px;flex:none;}
+  .cktag{font-size:10px;font-weight:700;padding:1px 7px;border-radius:999px;border:1px solid;}
+  .cktag.acc{color:#2c6e49;border-color:#a8d5ba;background:#eef8f1;}
+  .cktag.sess{color:#2a5d8c;border-color:#a9c8e6;background:#eef4fb;}
+  .cktag.off{color:#b9bec4;border-color:#e6e9ec;background:#f7f8f9;}
+  .ckdrop .ckmore{padding:8px 13px;color:var(--text-muted);font-size:12px;}
+  .ckdrop .ckempty{padding:16px;color:var(--text-muted);text-align:center;}
+  .ckcard{margin-top:18px;border:1px solid var(--line);border-radius:14px;overflow:hidden;background:#fff;box-shadow:0 2px 10px rgba(0,0,0,.05);}
+  .ckcard .ckhead{padding:15px 20px;color:#fff;}
+  .ckcard .ckhead h3{margin:0;font-size:18px;font-weight:700;}
+  .ckcard .ckhead .cksub{font-size:12.5px;opacity:.93;margin-top:4px;}
+  .cksec{padding:14px 20px;border-top:1px solid #eef0f3;}
+  .cksec h4{margin:0 0 11px;font-size:12.5px;font-weight:700;letter-spacing:.02em;color:var(--ink);display:flex;align-items:center;gap:7px;}
+  .cksec h4::before{content:"";width:4px;height:14px;border-radius:2px;background:var(--catc,var(--primary));}
+  .ckgrid{display:grid;grid-template-columns:max-content 1fr;gap:8px 18px;font-size:13px;align-items:baseline;}
+  .ckgrid .k{color:var(--text-muted);font-size:12px;white-space:nowrap;}
+  .ckgrid .v{color:#26323f;font-weight:500;word-break:break-word;}
+  .cknone{color:var(--text-muted);font-size:12.5px;font-style:italic;}
+  .cksesslist{display:flex;flex-direction:column;gap:6px;}
+  .cksessitem{display:flex;align-items:baseline;gap:10px;padding:7px 11px;border:1px solid #eef0f3;border-radius:8px;background:#fafbfc;}
+  .cksessitem .when{font-size:11.5px;color:var(--text-muted);font-variant-numeric:tabular-nums;white-space:nowrap;flex:none;min-width:104px;}
+  .cksessitem .what{font-weight:600;color:#26323f;font-size:13px;word-break:break-word;}
+  .cksessitem .code{font-size:11px;color:var(--text-faint);margin-left:auto;flex:none;white-space:nowrap;}
+  /* 현장 체크인 banner inside the card */
+  .ckcheck{display:flex;align-items:center;gap:12px;padding:12px 20px;background:#fbfdff;border-top:1px solid #eef0f3;border-bottom:1px solid #eef0f3;}
+  .ckcheck.on{background:#eef9f1;}
+  .ckcheck.na{color:var(--text-muted);font-size:12.5px;font-style:italic;}
+  .ckcheckstat{display:flex;align-items:center;gap:7px;font-size:13.5px;color:#26323f;}
+  .ckcheck.on .ckcheckstat{color:#1d7a45;}
+  .ckcheckstat svg{width:16px;height:16px;}
+  .ckcheckstat .cktime{color:var(--text-muted);font-size:12px;font-variant-numeric:tabular-nums;font-weight:600;}
+  .ckcheckstat .ckdot{width:9px;height:9px;border-radius:50%;background:#cbd2da;flex:none;}
+  .ckbtn{margin-left:auto;flex:none;font:inherit;font-size:13px;font-weight:700;padding:8px 16px;border-radius:8px;border:1px solid;cursor:pointer;}
+  .ckbtn.go{background:#2c9d5f;border-color:#2c9d5f;color:#fff;}
+  .ckbtn.go:hover{background:#258a52;}
+  .ckbtn.undo{background:#fff;border-color:#d9b3ad;color:#9c3b2c;}
+  .ckbtn.undo:hover{background:#fdf3f1;}
+  /* 체크인 완료 chip in 숙소 배정 (B.6) */
+  .chip.checkedin{background:#eafaf1;border-left-color:#2c9d5f !important;}
+  .chip .chk{flex:none;display:inline-flex;align-items:center;justify-content:center;width:15px;height:15px;border-radius:50%;background:#2c9d5f;color:#fff;}
+  .chip .chk svg{width:11px;height:11px;}
+  @media(max-width:640px){ .ckgrid{grid-template-columns:1fr;gap:2px 0;} .ckgrid .k{margin-top:7px;} .cksessitem{flex-direction:column;gap:2px;} .cksessitem .code{margin-left:0;} .ckcheck{flex-wrap:wrap;} .ckbtn{margin-left:0;} }
   /* import / start screen (shown until a master loads) */
   #startscreen{display:flex;align-items:center;justify-content:center;box-sizing:border-box;position:relative;
     min-height:calc(100vh - var(--headerh,56px));padding:32px 24px;user-select:none;}
@@ -1063,7 +1124,7 @@
     <span class="tgroup" role="group" aria-label="2단계 자동 배정">
       <span class="tglabel" aria-hidden="true">② 실행</span>
       <button class="go" id="btnAuto" disabled title="성별·정원·온돌·묶음 규칙에 따라 미배정 인원을 방에 자동으로 배치합니다. (잠긴 인원은 제외)">② 자동 배정</button>
-      <button class="ghost" id="btnClear" disabled title="잠기지 않은 배정을 모두 미배정으로 되돌립니다. (잠긴 인원·잠긴 방·잠긴 호텔·개별예약(NOC)은 유지)">배정 초기화</button>
+      <button class="ghost" id="btnClear" disabled title="잠기지 않은 배정을 모두 미배정으로 되돌립니다(개별예약(NOC/부영호텔) 포함). 잠긴 인원·잠긴 방·잠긴 호텔은 유지">배정 초기화</button>
     </span>
     <!-- ③ exports — 마스터 내보내기 (version bump) sits last + accented as the heavier action -->
     <span class="tgroup" role="group" aria-label="3단계 내보내기">
@@ -1079,6 +1140,7 @@
     <button id="tabTimeline" class="vtab" title="참가자 단위 보기 — 숙박 기간과 배정 현황을 한눈에 보고 막대로 조정합니다.">숙소 타임라인 보기</button>
     <button id="tabSchedule" class="vtab" title="업로드한 엑셀 '일정' 탭의 2026 ICMDA 프로그램 일정표를 봅니다.">일정 보기</button>
     <button id="tabSession" class="vtab" title="브레이크아웃·스트림 세션에 참가자를 배정합니다. (정원 관리)">세션 배정 보기</button>
+    <button id="tabCheckin" class="vtab" title="체크인 — (세부 기능은 추후 추가)">체크인</button>
   </span>
   <span id="srcname" style="font-size:11px;opacity:.8;"></span>
 </header>
@@ -1168,6 +1230,9 @@
 <!-- 세션 배정 보기: assign participants to breakout/stream sessions (built in renderSession) -->
 <div id="session" style="display:none;"></div>
 
+<!-- 체크인 보기: placeholder — 세부 기능은 추후 추가 (built in renderCheckin) -->
+<div id="checkin" style="display:none;"></div>
+
 <div id="warnpanel"></div>
 <div id="printarea"></div>
 <!-- print preview: shown when 인쇄/PDF is clicked; 인쇄 진행 → window.print() -->
@@ -1218,7 +1283,7 @@
 "use strict";
 // ⚑ index.html build version — shown bottom-right on the start screen. BUMP ON EACH DEPLOY.
 //   Format: vYYYY.MM.DD-N  (N = same-day build counter; reset to 1 on a new date).
-const APP_VERSION = "v2026.06.11-1";
+const APP_VERSION = "v2026.06.11-5";
 /* ============================================================
    ICMDA 2026 Room Assignment Dashboard (single file)
    - reads the live master .xlsx (columns mapped by HEADER NAME)
@@ -1230,6 +1295,7 @@ const VEN = {
   BYYTC: "부영청소년수련원",
   YOUUS: "유어스호텔",
   BOOY:  "부영호텔",          // 3rd venue (off-inventory; NOC pre-booked)
+  TEMP:  "임시배치(재배정필요)",   // hardcoded off-inventory holding bucket: park 미배정자 here while their real room is undecided
 };
 // ④ distinct category markers — colour + short label per 카테고리
 const CAT = {
@@ -1279,6 +1345,7 @@ const state = {
   sessAnchor: null,     // 세션 보기 pool: last plainly-clicked pid → pivot for Shift+click range selection
   sessFilter: {q:""},
   sessExempt: new Set(), // 세션 보기: 카테고리(분류) names marked "세션 불필요" → hidden from the pool
+  checkedIn: {},        // 체크인 보기: 숙소 참가자 P-code → 체크인 시각 문자열 ("YYYY-MM-DD HH:MM"). presence = 도착 체크인 완료. saved to the '체크인' tab.
   sessDay: null,        // 세션 보기 슬롯 보드: focused day; when sessSlot is null the whole day's slots are shown
   sessSlot: null,       // 세션 보기 슬롯 보드: focused time-slot key ("day||time"); null → show all slots of sessDay
   sessPoolCollapsed: false, // 세션 보기 pool collapse on tablet/phone (mirrors #pool.collapsed)
@@ -1357,6 +1424,7 @@ function announceAssign(msg){
 }
 function dropLabel(key){
   if(key==="BOOY") return VEN.BOOY;
+  if(key==="TEMP") return VEN.TEMP;
   const rm=state.roomById[key]; return rm?`${rm.rno||rm.id}호`:key;
 }
 
@@ -1581,6 +1649,8 @@ function loadMaster(arrbuf){
   const spSheet = wb.Sheets["세션 참가자"];         // 세션 배정 보기 pool source (separate population from 참가자/숙소); falls back to 참가자 when absent
   state.sessParticipants = spSheet ? parseSessParticipants(XLSX.utils.sheet_to_json(spSheet,{header:1,raw:false,defval:""})) : null;
   state.sessById={}; (state.sessParticipants||[]).forEach(p=>state.sessById[p.id]=p);
+  const ckSheet = wb.Sheets["체크인"];              // app-managed 현장 체크인 tab → restores arrival check-in state
+  state._checkinAoa = ckSheet ? XLSX.utils.sheet_to_json(ckSheet,{header:1,raw:false,defval:""}) : null;
   buildSpeakerIndex();
   state.scheduleDirty = new Set();              // fresh master → no pending 일정 edits
   state.dbDirty = new Map(); state.spkDirty = new Map();   // fresh master → no pending session-modal edits
@@ -1596,8 +1666,10 @@ function loadMaster(arrbuf){
   }
   // default assignment: respect 배정숙소 pre-locks, then restore any prior 배정 result (배정객실ID, written by 마스터 업데이트)
   state.assign={}; state.locked={}; state.roomLocked={}; state.tlSel.clear(); state.deletedRows=[]; state.sessDeletedRows=[]; state.roomOrder={};
+  state.checkedIn=parseCheckin(state._checkinAoa);   // restore 체크인 state from the '체크인' tab (keyed by 숙소 P-code); only ids still in the roster are kept
   const booyInv = booyIsInv();                                 // 부영호텔 has real 객실 rows → behaves like any inventory hotel (no BOOY lock)
   state.parties.forEach(p=>{
+    if(p.pre.indexOf("임시배치")>=0){ state.assign[p.id]="TEMP"; return; }   // restore the 임시배치(재배정필요) holding bucket from a prior export (배정숙소)
     if(!booyInv && p.pre.indexOf("부영호텔")>=0){ state.assign[p.id]="BOOY"; state.locked[p.id]=true; return; }   // off-inventory NOC pre-booking → locked
     const rid=p.asgRoom;                                       // restore a previously exported assignment so it shows on initial load
     if(!rid) return;
@@ -1608,6 +1680,7 @@ function loadMaster(arrbuf){
   setActionsEnabled(true);
   populateFilters();
   render();
+  markSaved();   // clean baseline for the unsaved-changes (beforeunload) guard
 }
 // enable/disable every action control (desktop toolbar + mobile bar + 더보기 sheet)
 function setActionsEnabled(on){
@@ -1744,7 +1817,7 @@ function sortOcc(roomKey, arr){
 }
 function buildOcc(){                              // single O(P) pass over the assignment map
   const occ={};
-  for(const pid in state.assign){ const k=state.assign[pid]; if(k && k!=="BOOY"){ (occ[k]=occ[k]||[]).push(state.byId[pid]); } }
+  for(const pid in state.assign){ const k=state.assign[pid]; if(k && k!=="BOOY" && k!=="TEMP"){ (occ[k]=occ[k]||[]).push(state.byId[pid]); } }
   for(const k in occ) sortOcc(k, occ[k]);        // match roomOccupants' contract once
   return occ;
 }
@@ -1797,13 +1870,13 @@ function matchIssue(room,party){                 // SOFT: message for warnings /
    then single individuals (size-1 fillers) last so they pack leftover seats. */
 const FAMTYPE=["Family","Triple","Suite"];
 function autoAssign(){
-  for(const pid in state.assign){ if(!state.locked[pid] && !state.roomLocked[state.assign[pid]] && state.assign[pid]!=="BOOY") delete state.assign[pid]; }
+  for(const pid in state.assign){ if(!state.locked[pid] && !state.roomLocked[state.assign[pid]] && state.assign[pid]!=="BOOY" && state.assign[pid]!=="TEMP") delete state.assign[pid]; }   // 임시배치(재배정필요) holding bucket is preserved, like BOOY
   state.roomOrder={};                              // a fresh auto-assign reshuffles occupants → drop stale manual order
   // Loop-local occupancy index, seeded from the assignments that survive the prune above (locked
   // parties on real rooms; BOOY is off-inventory so it is skipped). Updated incrementally as each
   // unit is placed, so compatible()/score() read O(occupants) instead of rescanning state.assign.
   const occL={}, loadL={};
-  for(const pid in state.assign){ const k=state.assign[pid]; if(k && k!=="BOOY"){ (occL[k]=occL[k]||[]).push(state.byId[pid]); loadL[k]=(loadL[k]||0)+state.byId[pid].hc; } }
+  for(const pid in state.assign){ const k=state.assign[pid]; if(k && k!=="BOOY" && k!=="TEMP"){ (occL[k]=occL[k]||[]).push(state.byId[pid]); loadL[k]=(loadL[k]||0)+state.byId[pid].hc; } }
   const invH = inventoryHotels();
   const prefVenue = p => {
     for(const h of invH) if(p.pre.indexOf(h)>=0) return h;     // exact hotel name in 배정숙소 → that venue (incl. 부영호텔 when inventory)
@@ -1864,7 +1937,7 @@ function inventoryHotels(){
 // ("부영호텔&리조트" etc.), NOT the literal VEN.BOOY, so the venue list stays driven purely by 객실. When true,
 // every off-inventory NOC code path (the synthesized 부영호텔 box, NOC stat chip, "BOOY" marker/lock) is gated off.
 function booyIsInv(){ return state.rooms.some(r=>r.hotel && (r.hotel.indexOf("부영호텔")>=0 || r.hotel.indexOf("리조트")>=0)); }
-const VEN_CLASS={[VEN.BYYTC]:"byytc",[VEN.YOUUS]:"youus",[VEN.BOOY]:"booyoung"};
+const VEN_CLASS={[VEN.BYYTC]:"byytc",[VEN.YOUUS]:"youus",[VEN.BOOY]:"booyoung",[VEN.TEMP]:"temphold"};
 const VX_PALETTE=["vx1","vx2","vx3","vx4","vx5"];
 function venueClass(hotel){
   if(VEN_CLASS[hotel]) return VEN_CLASS[hotel];
@@ -1879,17 +1952,19 @@ function render(){
   try{
     const issues = state.rooms.length ? computeIssues() : [];   // compute once; shared by the stats badge + warning panel
     renderStats(issues);
-    const v = state.view, tl = v==="timeline", sc = v==="schedule", se = v==="session";
+    const v = state.view, tl = v==="timeline", sc = v==="schedule", se = v==="session", ck = v==="checkin";
     $("#main").style.display = v==="rooms"?"flex":"none";
     $("#timeline").style.display = tl?"flex":"none";   // flex column (gantt/cards fill remaining height)
     $("#schedule").style.display = sc?"block":"none";  // read-only 일정표
     $("#session").style.display = se?"flex":"none";    // 세션 배정 보기 (pool + session cards)
-    if(sc||se) $("#statsbarwrap").style.display = "none";  // 일정/세션 보기: the room stat bar isn't relevant here
-    $("#warnpanel").style.display = (sc||se)?"none":"block"; // 점검 결과 panel: room-assignment views only
+    $("#checkin").style.display = ck?"block":"none";   // 체크인 보기 (세부 기능 추후)
+    if(sc||se||ck) $("#statsbarwrap").style.display = "none";  // 일정/세션/체크인 보기: the room stat bar isn't relevant here
+    $("#warnpanel").style.display = (sc||se||ck)?"none":"block"; // 점검 결과 panel: room-assignment views only
     updateViewTabs();                                  // active tab + ARIA (shared with the empty state)
     if(tl) renderTimeline();
     else if(sc) renderSchedule();
     else if(se) renderSession();
+    else if(ck) renderCheckin();
     else { renderPool(); renderVenues(); }
     renderWarnings(issues);                            // populates #warnpanel (hidden in 일정 view)
     $("#venues").classList.toggle("picking", v==="rooms" && !!state.picks.size);
@@ -1898,7 +1973,7 @@ function render(){
 }
 function updateViewTabs(){                            // reflect state.view on the tabs — used by render() AND the empty state
   const vt=document.querySelector(".viewtabs"); if(vt) vt.setAttribute("role","tablist");
-  const tabs={rooms:"#tabRooms",timeline:"#tabTimeline",schedule:"#tabSchedule",session:"#tabSession"};
+  const tabs={rooms:"#tabRooms",timeline:"#tabTimeline",schedule:"#tabSchedule",session:"#tabSession",checkin:"#tabCheckin"};
   Object.entries(tabs).forEach(([k,sel])=>{ const n=$(sel); if(!n) return;
     const on=state.view===k; n.classList.toggle("active",on);
     n.setAttribute("role","tab"); n.setAttribute("aria-selected",String(on));
@@ -1906,6 +1981,174 @@ function updateViewTabs(){                            // reflect state.view on t
 }
 // view switch works before a file loads too — at the empty state it just pre-selects the landing view (start screen stays)
 function setView(v){ state.view=v; state.picks.clear(); saveUI(); if(state.masterBuf) render(); else updateViewTabs(); }
+// 체크인 보기: one search box (name OR email) → autocomplete dropdown → a detail card that joins a
+// person's 숙소(accommodation) record, 세션 배정, and registration details. The two rosters (숙소 참가자 vs
+// 세션 참가자) are SEPARATE populations matched by lowercased email; the card merges whatever exists.
+const CK_SEXK={M:"남",F:"여","?":"미상"};
+// '체크인' tab → restore arrival check-in: {P-code: 시각문자열}. Only ids still in the 숙소 roster are kept.
+function parseCheckin(aoa){
+  const out={}; if(!aoa||!aoa.length) return out;
+  const nz=s=>(s==null?"":String(s)).trim();
+  let hi=aoa.findIndex(r=>r&&r.some(c=>nz(c)==="참가자ID")); if(hi<0) return out;
+  const H={}; (aoa[hi]||[]).forEach((h,i)=>{ const k=nz(h); if(k&&H[k]==null) H[k]=i; });
+  if(H["참가자ID"]==null) return out;
+  for(let r=hi+1;r<aoa.length;r++){ const row=aoa[r]||[]; const id=nz(row[H["참가자ID"]]); if(!id) continue;
+    if(state.byId && !state.byId[id]) continue;            // drop check-ins for people no longer in the roster
+    out[id]=(H["체크인시각"]!=null?nz(row[H["체크인시각"]]):"")||"✓"; }
+  return out;
+}
+// local timestamp "YYYY-MM-DD HH:MM" (text, so Excel never reformats it into a date serial)
+function ckNowStamp(){ const d=new Date(), p=n=>String(n).padStart(2,"0");
+  return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`; }
+// toggle a person's arrival check-in (by 숙소 P-code) and refresh the open card
+function ckToggleCheckin(pid){
+  state.checkedIn=state.checkedIn||{};
+  const was=!!state.checkedIn[pid];
+  if(was) delete state.checkedIn[pid]; else state.checkedIn[pid]=ckNowStamp();
+  state.edited=true;                                     // workSig() now includes state.checkedIn → unsaved-changes guard fires
+  if(state._ckCur) ckShowCard(state._ckCur);            // re-render the banner (and time)
+  toast(was?`체크인을 해제했습니다.`:`체크인 완료 — ${state.checkedIn[pid]}`,"ok");
+}
+// unified people list: every 숙소 party + every 세션 참가자, joined by email (1 entry per person where emails match)
+function checkinPeople(){
+  const map=new Map(), extra=[]; const ek=e=>(e||"").trim().toLowerCase();
+  (state.parties||[]).forEach(p=>{ const k=ek(p.email); const e={name:p.name||p.id,email:p.email||"",cat:p.cat||"",acc:p,sess:null};
+    if(k) map.set(k,e); else extra.push(e); });
+  (state.sessParticipants||[]).forEach(p=>{ const k=ek(p.email);
+    if(k && map.has(k)){ const e=map.get(k); e.sess=p; if(!e.cat) e.cat=p.cat||""; }
+    else { const e={name:p.name||p.id,email:p.email||"",cat:p.cat||"",acc:null,sess:p}; if(k) map.set(k,e); else extra.push(e); } });
+  return [...map.values(),...extra];
+}
+// sessions a person is assigned to, sorted by day then start time. Assignments may be keyed by EITHER the
+// session-pool numeric id OR the accommodation P-code (older masters assigned against the 숙소 roster when the
+// 세션 참가자 pool was absent), so we match against any of the person's ids.
+function ckPersonSessions(ids){
+  ids=(Array.isArray(ids)?ids:[ids]).filter(x=>x!=null);
+  if(!ids.length) return [];
+  const out=[];
+  Object.keys(state.sessionAssign||{}).forEach(k=>{ const set=state.sessionAssign[k];
+    if(!set || !ids.some(i=>set.has(i))) return;
+    const s=(state.sessionList||[]).find(x=>x.key===k); if(s) out.push(s);   // skip orphan keys (assignment to a session no longer in the schedule) — mirrors the session board
+  });
+  const dk=d=>{ const m=/(\d{1,2})\/(\d{1,2})/.exec(d||""); return m?(+m[1])*100+(+m[2]):9999; };
+  const tk=t=>{ const m=/(\d{1,2}):(\d{2})/.exec(t||""); return m?(+m[1])*60+(+m[2]):9999; };
+  out.sort((a,b)=> dk(a.day)-dk(b.day) || tk(a.time)-tk(b.time) || String(a.name||"").localeCompare(String(b.name||"")));
+  return out;
+}
+// rank: name-prefix < name-contains < email-prefix < email-contains
+function ckFilter(q){
+  q=q.trim().toLowerCase(); if(!q) return [];
+  const scored=[];
+  checkinPeople().forEach(e=>{ const nm=(e.name||"").toLowerCase(), em=(e.email||"").toLowerCase();
+    const ni=nm.indexOf(q), ei=em.indexOf(q); if(ni<0&&ei<0) return;
+    scored.push({e,rank:ni===0?0:ni>0?1:ei===0?2:3,nm}); });
+  scored.sort((a,b)=> a.rank-b.rank || a.nm.localeCompare(b.nm));
+  return scored.map(s=>s.e);
+}
+function ckOptHtml(e,i){
+  const tag=(on,cls,lbl)=>`<span class="cktag ${on?cls:'off'}">${lbl}</span>`;
+  return `<div class="ckopt" data-i="${i}"><div><div class="nm">${esc(e.name||"(이름 없음)")}</div>`+
+    `<div class="em">${esc(e.email||"이메일 없음")}</div></div>`+
+    `<div class="meta">${tag(e.acc,'acc','숙소')}${tag(e.sess,'sess','세션')}</div></div>`;
+}
+function ckRenderDrop(opts,drop){
+  if(!opts.length){ drop.innerHTML=`<div class="ckempty">일치하는 사람이 없습니다.</div>`; return; }
+  const show=opts.slice(0,12);
+  let h=show.map((e,i)=>ckOptHtml(e,i)).join("");
+  if(opts.length>show.length) h+=`<div class="ckmore">+${opts.length-show.length}명 더 — 검색어를 좁혀주세요</div>`;
+  drop.innerHTML=h;
+}
+function ckHl(drop,hl){
+  drop.querySelectorAll(".ckopt").forEach((o,i)=>o.classList.toggle("hl",i===hl));
+  const cur=drop.querySelector(".ckopt.hl"); if(cur) cur.scrollIntoView({block:"nearest"});
+}
+// build the merged detail card for one person
+function ckCard(entry){
+  const acc=entry.acc, sess=entry.sess, ci=catInfo(entry.cat);
+  const grid=rows=>{ const inner=rows.filter(([,v])=>v!=null&&v!=="")
+      .map(([k,v])=>`<div class="k">${esc(k)}</div><div class="v">${esc(String(v)).replace(/\n/g,"<br>")}</div>`).join("");
+    return inner?`<div class="ckgrid">${inner}</div>`:`<div class="cknone">정보 없음</div>`; };
+  // 등록 정보 — richer from the 숙소 party; fall back to the 세션 record's fields
+  const regRows = acc
+    ? [["참가행사",acc.event],["성별",CK_SEXK[acc.sex]||acc.sex],["생년월일",acc.dob],["국적",acc.nat],
+       ["소속",acc.aff],["직책",acc.title],["WB등급",acc.wb],["결제상태",acc.pay]]
+    : [["나이대",sess.band],["성별",CK_SEXK[sess.sex]||sess.sex],["지역",sess.region],["결제여부",sess.pay]];
+  // 숙소 배정
+  let accHtml;
+  if(acc){
+    const venue=partyVenue(acc), a=state.assign[acc.id]; let roomTxt=venue||"미배정";
+    if(a && a!=="BOOY"){ const rm=state.roomById[a]; if(rm) roomTxt=`${rm.hotel} · ${rm.bldg?rm.bldg+"동 ":""}${rm.floor?rm.floor+" ":""}${rm.rno||rm.id} (${rm.type||""})`; }
+    accHtml=grid([["현재 배정",roomTxt],["도착일",acc.arr],["출발일(체크아웃)",acc.dep],
+      ["숙박",acc.stay?`${stayNights(acc)}박`:"없음"],["방 필요",acc.need],["사전 배정(원본)",acc.pre],
+      ["총인원",acc.hc!=null?`${acc.hc}명`:""],["동반자요약",acc.companions],["비고",acc.note]]);
+  } else accHtml=`<div class="cknone">숙소 참가자 명단에 없는 분입니다.</div>`;
+  // 세션 배정 — assignments may be keyed by the session-pool id OR the accommodation id, so pass both
+  let sessHtml;
+  const list=ckPersonSessions([sess&&sess.id, acc&&acc.id]);
+  if(list.length===0){
+    sessHtml=`<div class="cknone">${sess?"배정된 세션이 없습니다.":"세션 참가자 명단에 없고, 배정된 세션도 없습니다."}</div>`;
+  } else { sessHtml=`<div class="cksesslist">`+list.map(s=>{
+      const when=`${esc(s.day||"")}${s.trange?" "+esc(s.trange):(s.time?" "+esc(s.time):"")}`.trim();
+      const code=esc(s.scode||s.pcode||s.key||"");
+      return `<div class="cksessitem"><span class="when">${when||"시간 미정"}</span><span class="what">${esc(s.name||s.key)}</span>${code?`<span class="code">${code}</span>`:""}</div>`;
+    }).join("")+`</div>`; }
+  const title=esc(acc&&acc.name||sess&&sess.name||entry.name||"(이름 없음)")+(acc&&acc.kname?` <span style="font-weight:400">(${esc(acc.kname)})</span>`:"");
+  const ids=[acc?`숙소 ID ${esc(acc.id)}`:"",sess?`세션 ID ${esc(sess.id)}`:""].filter(Boolean).join(" · ");
+  const sub=`${entry.email?esc(entry.email):"이메일 없음"}${entry.cat?" · "+esc(entry.cat):""}${ids?" · "+ids:""}`;
+  // 현장 체크인 — by 숙소 person (P-code). Only 숙소 roster members are check-in targets.
+  let ckHtml;
+  if(acc){ const t=state.checkedIn&&state.checkedIn[acc.id];
+    ckHtml=`<div class="ckcheck ${t?'on':''}">
+      <div class="ckcheckstat">${t?`${ico('check')} <b>체크인 완료</b>${t!=='✓'?` <span class="cktime">${esc(t)}</span>`:""}`:`<span class="ckdot"></span>미체크인 (현장 미도착)`}</div>
+      <button class="ckbtn ${t?'undo':'go'}" data-pid="${esc(acc.id)}">${t?"체크인 취소":"체크인 완료"}</button>
+    </div>`;
+  } else ckHtml=`<div class="ckcheck na">숙소 명단에 없어 체크인 대상이 아닙니다. (세션 참가자 전용 레코드)</div>`;
+  return `<div class="ckcard" style="--catc:${ci.c}">
+    <div class="ckhead" style="background:${ci.c}"><h3>${title}</h3><div class="cksub">${sub}</div></div>
+    ${ckHtml}
+    <div class="cksec"><h4>등록 정보</h4>${grid(regRows)}</div>
+    <div class="cksec"><h4>숙소 배정</h4>${accHtml}</div>
+    <div class="cksec"><h4>세션 배정</h4>${sessHtml}</div>
+  </div>`;
+}
+// render the card into #ckResult and wire the check-in button; remembers the current entry so a toggle can re-render
+function ckShowCard(entry){
+  state._ckCur=entry;
+  const r=$("#ckResult"); if(!r) return; r.innerHTML=ckCard(entry);
+  const btn=r.querySelector(".ckbtn[data-pid]");
+  if(btn) btn.onclick=()=>ckToggleCheckin(btn.dataset.pid);
+}
+function renderCheckin(){
+  const wrap=$("#checkin"); if(wrap.dataset.built) return;   // build the shell once → typing/results survive re-renders
+  wrap.dataset.built="1";
+  wrap.innerHTML=`<div class="ckwrap">
+    <div class="cksearchbox">
+      <input id="ckSearch" type="text" placeholder="이름 또는 이메일로 검색…" autocomplete="off" spellcheck="false">
+      <button class="ckclear" id="ckClear" aria-label="지우기">×</button>
+      <div class="ckdrop" id="ckDrop"></div>
+    </div>
+    <div id="ckResult"></div>
+  </div>`;
+  const inp=$("#ckSearch"), drop=$("#ckDrop"), clear=$("#ckClear");
+  let opts=[], hl=-1;
+  const closeDrop=()=>{ drop.classList.remove("open"); hl=-1; };
+  const pick=e=>{ if(!e) return; inp.value=e.name||e.email||""; clear.style.display="block"; closeDrop(); ckShowCard(e); };
+  const open=()=>{ const q=inp.value.trim(); clear.style.display=q?"block":"none";
+    if(!q){ closeDrop(); return; } opts=ckFilter(q); ckRenderDrop(opts,drop); drop.classList.add("open"); hl=-1; };
+  inp.addEventListener("input",open);
+  inp.addEventListener("focus",()=>{ if(inp.value.trim()) open(); });
+  inp.addEventListener("keydown",e=>{
+    if(!drop.classList.contains("open")) return;
+    if(e.key==="ArrowDown"){ e.preventDefault(); hl=Math.min(Math.min(opts.length,12)-1,hl+1); ckHl(drop,hl); }
+    else if(e.key==="ArrowUp"){ e.preventDefault(); hl=Math.max(0,hl-1); ckHl(drop,hl); }
+    else if(e.key==="Enter"){ e.preventDefault(); pick(opts[hl>=0?hl:0]); }
+    else if(e.key==="Escape"){ closeDrop(); }
+  });
+  drop.addEventListener("mousedown",e=>{ const o=e.target.closest(".ckopt"); if(!o) return; e.preventDefault(); pick(opts[+o.dataset.i]); });
+  clear.addEventListener("click",()=>{ inp.value=""; clear.style.display="none"; closeDrop(); $("#ckResult").innerHTML=""; state._ckCur=null; inp.focus(); });
+  document.addEventListener("mousedown",e=>{ if(!e.target.closest(".cksearchbox")) closeDrop(); });
+  setTimeout(()=>inp.focus(),0);
+}
 // 일정 보기: faithful read-only timetable from the uploaded master's '일정' tab (rows=time slots, cols=days; cell newlines = parallel sessions)
 function renderSchedule(){
   const wrap=$("#schedule"); const aoa=state.schedule;
@@ -3190,7 +3433,7 @@ function sessionCard(s,showParent){
 function populateFilters(){
   const vsel=$("#tlvenue"), csel=$("#tlcat");
   vsel.length=1; csel.length=1;
-  [...inventoryHotels(),...(booyIsInv()?[]:[VEN.BOOY]),"(미배정)"].forEach(v=>vsel.add(new Option(v,v)));
+  [...inventoryHotels(),...(booyIsInv()?[]:[VEN.BOOY]),VEN.TEMP,"(미배정)"].forEach(v=>vsel.add(new Option(v,v)));
   [...new Set(state.parties.map(p=>p.cat).filter(Boolean))].sort().forEach(c=>csel.add(new Option(c,c)));
 }
 
@@ -3201,7 +3444,7 @@ function renderStats(issues){
   const needP=state.parties.filter(p=>p.need!=="No").reduce((s,p)=>s+p.hc,0);
   const noRoom=state.parties.filter(p=>p.need==="No").reduce((s,p)=>s+p.hc,0);
   const hotels=inventoryHotels();
-  let assignedP=0, byBOOY=0, unassigned=0;
+  let assignedP=0, byBOOY=0, byTEMP=0, unassigned=0;
   const byHotel={}, capHotel={};                       // per-hotel used / capacity, data-driven
   hotels.forEach(h=>{ byHotel[h]=0; capHotel[h]=0; });
   state.rooms.forEach(r=>{ if(capHotel[r.hotel]!=null) capHotel[r.hotel]+=r.total; });
@@ -3209,6 +3452,7 @@ function renderStats(issues){
     if(p.need==="No") return;
     const a=state.assign[p.id];
     if(!a){ unassigned+=p.hc; return; }
+    if(a==="TEMP"){ byTEMP+=p.hc; return; }            // 임시배치(재배정필요) — not counted as 배정완료 nor 미배정
     assignedP+=p.hc;
     if(a==="BOOY") byBOOY+=p.hc;
     else { const rm=state.roomById[a]; if(rm && byHotel[rm.hotel]!=null) byHotel[rm.hotel]+=p.hc; }
@@ -3230,6 +3474,7 @@ function renderStats(issues){
     mk("방 불필요",noRoom),
     ...hotels.map(h=>venStat(h===VEN.BYYTC?"부영수련원":venShort(h),byHotel[h],capHotel[h])),
     ...(booyIsInv()?[]:[mk("부영호텔(NOC)",byBOOY)]),   // NOC chip only when 부영호텔 is off-inventory (else it's a normal venStat above)
+    ...(byTEMP?[mk("임시배치(재배정필요)",byTEMP)]:[]),   // holding-bucket chip, only when someone is parked there
   );
   // surfaced warning badge → jumps to the detail warning panel (DESIGN-5)
   const issueN=issues.length;
@@ -3247,7 +3492,7 @@ function renderStats(issues){
 function ariaForChip(p){
   const sex=p.partySex==="MIX"?"가족":p.partySex==="M"?"남성":p.partySex==="F"?"여성":"성별미상";
   const a=state.assign[p.id];
-  const where=a?(a==="BOOY"?VEN.BOOY:(state.roomById[a]?dropLabel(a):"배정됨")):"미배정";
+  const where=a?(a==="BOOY"?VEN.BOOY:a==="TEMP"?VEN.TEMP:(state.roomById[a]?dropLabel(a):"배정됨")):"미배정";
   return `${p.name}, ${sex}, ${p.hc}명, ${where}${state.picks.has(p.id)?", 선택됨":""}. `
        + (a?"두 번 누르면 미배정으로 이동":"누르면 선택, 방을 눌러 배정");
 }
@@ -3258,6 +3503,8 @@ function chip(p){
   c.setAttribute("aria-pressed", state.picks.has(p.id)?"true":"false");
   c.setAttribute("aria-label", ariaForChip(p));
   if(state.locked[p.id]) c.classList.add("locked");
+  const ckTime = state.checkedIn && state.checkedIn[p.id];   // 현장 체크인 완료 → green chip (B.6)
+  if(ckTime) c.classList.add("checkedin");
   const room = state.assign[p.id] && state.assign[p.id]!=="BOOY" ? state.roomById[state.assign[p.id]] : null;
   if(room && matchIssue(room,p)) c.classList.add("badmatch");
   const grip=el("span","drag"); grip.innerHTML=ico('grip'); grip.setAttribute("aria-hidden","true"); grip.title="끌어서 이동(드래그)";
@@ -3280,7 +3527,10 @@ function chip(p){
     announce(`${p.name} ${state.locked[p.id]?"잠금":"잠금 해제"}`); render(); };
   lk.onclick=toggleLock;
   lk.addEventListener("keydown",e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); toggleLock(e); } });
-  c.append(grip,cat,sx,nm,hc,lk);
+  c.append(grip,cat,sx,nm,hc);
+  if(ckTime){ const ck=el("span","chk"); ck.innerHTML=ico('check'); ck.setAttribute("aria-hidden","true");
+    ck.title=`현장 체크인 완료${ckTime!=='✓'?` · ${ckTime}`:""}`; c.append(ck); }   // 체크인 완료 표시 (초록 체크 배지)
+  c.append(lk);
   c.style.cursor="pointer";
   // pointer-drag: from the ⠿ grip (all pointer types) and from the chip body (mouse/pen only,
   // so touch swipes on the body still scroll the list and taps still select).
@@ -3392,9 +3642,32 @@ function renderPool(){
   $("#poolcount").textContent = `(${un.reduce((s,p)=>s+p.hc,0)}명 / ${un.length}건)`;
   if(state.picks.size) list.append(makePickHint());
   // distinguish "pool is genuinely empty" from "search filtered everything out"
-  if(!un.length){ const eh=el("div","empty-hint"); eh.innerHTML = q?`'${esc($("#poolsearch").value)}' 검색 결과가 없습니다`:`${ico('checkCircle')} 미배정 없음`; list.append(eh); }
+  if(!un.length){ const eh=el("div","empty-hint");
+    // when the search has no pool match but DID match someone already in a room, say so (그 사람은 우측 객실에서 강조 표시됨)
+    const asg = q ? state.parties.filter(p=>state.assign[p.id] && (p.name.toLowerCase().includes(q)||p.id.toLowerCase().includes(q)||(p.kname||"").toLowerCase().includes(q))).length : 0;
+    eh.innerHTML = q?(asg?`'${esc($("#poolsearch").value)}' — 미배정엔 없고, 이미 배정된 ${asg}명을 우측에서 강조 표시했습니다`:`'${esc($("#poolsearch").value)}' 검색 결과가 없습니다`):`${ico('checkCircle')} 미배정 없음`; list.append(eh); }
   un.forEach(p=>list.append(chip(p)));
   makeDrop(list,null);   // drop back to pool = unassign
+}
+// 미배정 검색이 '이미 방에 배정된 사람'도 찾도록 — 매칭된 배정 칩을 강조 표시하고 (필요하면 접힌 호텔/구역을 펼친 뒤) 첫 결과로 스크롤한다.
+function locateAssigned(){
+  document.querySelectorAll(".chip.searchhit").forEach(c=>c.classList.remove("searchhit"));
+  const q=($("#poolsearch").value||"").toLowerCase().trim();
+  if(!q) return;
+  const hit=p=> p.name.toLowerCase().includes(q)||p.id.toLowerCase().includes(q)||(p.kname||"").toLowerCase().includes(q);
+  const matches=state.parties.filter(p=>state.assign[p.id] && hit(p));
+  if(!matches.length) return;
+  // a match can sit inside a collapsed 호텔/구역 (display:none) — expand its ancestors so it can be seen + scrolled to
+  let reflow=false;
+  matches.forEach(p=>{
+    const c=document.querySelector(`#venues .chip[data-pid="${p.id}"]`); if(!c) return;
+    const fg=c.closest(".floorgrp"); if(fg && state.collapsedRooms[fg.id]){ delete state.collapsedRooms[fg.id]; reflow=true; }
+    const ven=c.closest(".venue"); if(ven && state.collapsedRooms[ven.id]){ delete state.collapsedRooms[ven.id]; reflow=true; }
+  });
+  if(reflow){ saveUI(); renderVenues(); }
+  matches.forEach(p=>{ const c=document.querySelector(`#venues .chip[data-pid="${p.id}"]`); if(c) c.classList.add("searchhit"); });
+  const first=document.querySelector("#venues .chip.searchhit");
+  if(first) first.scrollIntoView({behavior:"smooth",block:"center"});
 }
 
 // Register `node` as a drop target. roomKey===null ⇒ pool (unassign).
@@ -3425,7 +3698,7 @@ function setEmpty(isEmpty){
 }
 function renderVenues(){
   const root=$("#venues"); root.innerHTML="";
-  const order=[...inventoryHotels(),...(booyIsInv()?[]:[VEN.BOOY])];   // every hotel in the data; off-inventory NOC venue appended only when it has no real rooms
+  const order=[...inventoryHotels(),...(booyIsInv()?[]:[VEN.BOOY]),VEN.TEMP];   // every hotel in the data; off-inventory NOC venue appended only when it has no real rooms; 임시배치 bucket always last
   const jumps=[];                                  // {label,id} for the mobile jump-to-floor control
   // collapsible venue header (accordion). Collapse state is keyed by element id.
   const venueHeader=(div,vKey,inner,lockHotel)=>{
@@ -3476,6 +3749,19 @@ function renderVenues(){
       box.append(hd);
       occ.forEach(p=>box.append(chip(p)));
       makeDrop(box,"BOOY"); rm.append(box); wrap.append(rm); div.append(wrap);
+      root.append(div); return;
+    }
+    if(hotel===VEN.TEMP){                            // hardcoded 임시배치(재배정필요) holding bucket — flat drop-list, no real rooms (mirrors the BOOY box but always present)
+      const occ=state.parties.filter(p=>state.assign[p.id]==="TEMP");
+      venueHeader(div,vId,`${hotel} <span class="cap">· 재배정 대기 · ${occ.reduce((s,p)=>s+p.hc,0)}명</span>`);
+      jumps.push({label:`▸ ${venShort(hotel)}`, id:vId});
+      const wrap=el("div","floorgrp"); const rm=el("div","rooms");
+      const box=el("div","room booylist"); box.style.minWidth="100%";
+      const hd=el("div","rhdr"); hd.innerHTML=`<span class="rno">임시 보관 · 재배정 필요</span><span class="capbadge">${occ.reduce((s,p)=>s+p.hc,0)}명</span>`;
+      box.append(hd);
+      if(!occ.length){ const e=el("div","sess-drophint"); e.textContent="비어 있음 · 미배정자를 끌어다 임시 보관"; box.append(e); }
+      occ.forEach(p=>box.append(chip(p)));
+      makeDrop(box,"TEMP"); rm.append(box); wrap.append(rm); div.append(wrap);
       root.append(div); return;
     }
     const rooms=state.rooms.filter(r=>r.hotel===hotel);
@@ -3616,10 +3902,10 @@ function editCap(r,capEl,load){
 // shared warning computation — used by both the panel and the top warning badge (DESIGN-5)
 function computeIssues(){
   const issues=[];
-  const roomLabel=k=> k==="BOOY"?VEN.BOOY : (state.roomById[k]?`${state.roomById[k].rno||state.roomById[k].id}호`:k);
+  const roomLabel=k=> k==="BOOY"?VEN.BOOY : k==="TEMP"?VEN.TEMP : (state.roomById[k]?`${state.roomById[k].rno||state.roomById[k].id}호`:k);
   state.rooms.forEach(r=>{ const l=roomLoad(r.key); if(l>r.total) issues.push(`정원 초과 — ${r.hotel} ${r.rno||r.id}호: 정원 ${r.total}명인데 ${l}명이 배정되어 ${l-r.total}명 초과되었습니다.`); });
   state.parties.forEach(p=>{
-    const a=state.assign[p.id]; if(!a||a==="BOOY") return;
+    const a=state.assign[p.id]; if(!a||a==="BOOY"||a==="TEMP") return;
     const rm=state.roomById[a]; if(!rm) return;
     const iss=matchIssue(rm,p);
     if(iss && iss!=="정원 초과") issues.push(`${iss} — ${p.name} 님이 조건이 맞지 않는 ${rm.hotel} ${rm.rno||rm.id}호에 배정되어 있습니다.`);
@@ -3667,13 +3953,15 @@ function renderWarnings(issues){
 function partyVenue(p){
   const a=state.assign[p.id];
   if(a==="BOOY") return VEN.BOOY;
+  if(a==="TEMP") return VEN.TEMP;
   if(a){ const rm=state.roomById[a]; return rm?rm.hotel:""; }
   return "(미배정)";
 }
-function venShort(hotel){ return hotel===VEN.BYYTC?"부영청소년":hotel===VEN.YOUUS?"유어스":hotel===VEN.BOOY?"부영호텔":hotel; }
+function venShort(hotel){ return hotel===VEN.BYYTC?"부영청소년":hotel===VEN.YOUUS?"유어스":hotel===VEN.BOOY?"부영호텔":hotel===VEN.TEMP?"임시배치":hotel; }
 function partyRoomInfo(p){
   const a=state.assign[p.id];
   if(a==="BOOY") return {ven:VEN.BOOY, vshort:"부영호텔", rno:"팀룸", full:VEN.BOOY+" (팀룸)", cap:null};
+  if(a==="TEMP") return {ven:VEN.TEMP, vshort:"임시배치", rno:"재배정필요", full:VEN.TEMP, cap:null};
   if(a){ const rm=state.roomById[a]; if(rm){
     const full=(rm.bldg?rm.bldg+"동 ":"")+(rm.floor?rm.floor+" ":"")+(rm.rno||rm.id)+(rm.type?" ("+rm.type+")":"");
     return {ven:rm.hotel, vshort:venShort(rm.hotel), rno:(rm.rno||rm.id), full, cap:rm.total};
@@ -3757,6 +4045,36 @@ function syncTop(){                                   // keep panels sized to th
   if(thh) ds.setProperty("--tlheadh",thh+"px");     // only when the timeline header is visible (matches prior guard)
   applyColW();   // re-evaluate the night-track floor for the new width
 }
+// ---- unsaved-work guard (option 1: beforeunload warning) ----
+// A single signature of everything 마스터 업데이트 would write (+ locks/order/edits the user would lose on refresh).
+// Captured at load and after each export → compared on unload so the browser warns ONLY when there are real unsaved changes.
+// No per-mutation wiring needed; any divergence from the post-load/post-export baseline counts as dirty (safe over-warn).
+function workSig(){
+  if(!state.parties) return "";
+  const setArr=s=> s?[...s].sort():[];
+  const mapKeys=m=> m?[...m.keys()].sort():[];
+  const sa={}; for(const k in (state.sessionAssign||{})) sa[k]=setArr(state.sessionAssign[k]);
+  const ed=[]; state.parties.forEach(p=>{
+    const es=(p._edits&&p._edits.size)?[...p._edits].sort():null;
+    const os=p._os, ns=p.stay;
+    const stayCh=(!!os!==!!ns)||(os&&ns&&(os.s!==ns.s||os.e!==ns.e));
+    if(es||stayCh) ed.push([p.id, es, stayCh?(ns?[ns.s,ns.e]:0):null]);
+  });
+  const cap=[]; (state.rooms||[]).forEach(rm=>{ if(rm.ext!==rm._oext||rm.total!==rm._ototal) cap.push([rm.key,rm.ext,rm.total]); });
+  return JSON.stringify([
+    state.assign, state.locked, state.roomLocked, state.roomOrder||{},
+    (state.deletedRows||[]).slice().sort(), (state.sessDeletedRows||[]).slice().sort(),
+    sa, state.sessionCap||{}, state.sessionLocked||{}, setArr(state.sessExempt),
+    setArr(state.scheduleDirty), mapKeys(state.dbDirty), mapKeys(state.spkDirty),
+    ed, cap, (state.nightCols||[]).length, state.checkedIn||{}
+  ]);
+}
+function markSaved(){ state.savedSig=workSig(); }   // call after load + after a successful 마스터 업데이트 → resets the unsaved-changes baseline
+window.addEventListener("beforeunload", e=>{
+  if(!state.masterBuf || state.savedSig==null) return;   // nothing loaded → nothing to lose
+  if(workSig()===state.savedSig) return;                 // no unsaved changes → let the page close quietly
+  e.preventDefault(); e.returnValue="";                  // unsaved changes → native "이 페이지를 떠나시겠습니까?" prompt
+});
 const UIKEY="icmda_ui";
 function saveUI(){ try{ localStorage.setItem(UIKEY, JSON.stringify({colW:state.colW, collapsedRooms:state.collapsedRooms, sessFolded:state.sessFolded, sessSlot:state.sessSlot, sessDay:state.sessDay, view:state.view, sessSeriesNoPrompt:state.sessSeriesNoPrompt, sessPoolW:state.sessPoolW})); }catch(e){} }   // timeline 'collapsed' is intentionally NOT persisted → 숙소 타임라인 always defaults to fully expanded
 function loadUI(){ try{
@@ -3767,7 +4085,7 @@ function loadUI(){ try{
   if(s.sessFolded && typeof s.sessFolded==="object") state.sessFolded=s.sessFolded;
   if(typeof s.sessSlot==="string") state.sessSlot=s.sessSlot;
   if(typeof s.sessDay==="string") state.sessDay=s.sessDay;
-  if(s.view==="rooms"||s.view==="timeline"||s.view==="schedule"||s.view==="session") state.view=s.view;
+  if(s.view==="rooms"||s.view==="timeline"||s.view==="schedule"||s.view==="session"||s.view==="checkin") state.view=s.view;
   if(s.sessSeriesNoPrompt) state.sessSeriesNoPrompt=true;
   if(typeof s.sessPoolW==="number" && s.sessPoolW>=220 && s.sessPoolW<=760) state.sessPoolW=s.sessPoolW;
 }catch(e){} }
@@ -3867,7 +4185,7 @@ function renderTimeline(){
   const wrap=$("#tlrows"); const frag=document.createDocumentFragment();
   if(!rows.length){ wrap.replaceChildren(el("div","empty-hint","해당 조건의 참가자가 없습니다.")); return; }
   // ② group by hotel (horizontal split) · ⑤ foldable · custom vertical order
-  const order=[...inventoryHotels(),...(booyIsInv()?[]:[VEN.BOOY]),"(미배정)"];
+  const order=[...inventoryHotels(),...(booyIsInv()?[]:[VEN.BOOY]),VEN.TEMP,"(미배정)"];
   const groups={}; rows.forEach(p=>{ const v=partyVenue(p); (groups[v]=groups[v]||[]).push(p); });
   const pos={}; state.orderList.forEach((id,i)=>pos[id]=i);
   let shown=0, openTotal=0; const CAP=1000;   // PER-GROUP cap → each venue expands independently (a big group can't starve the others); high enough that real venues fully expand, still a guard against pathological data; openTotal counts EXPANDED rows so a collapse doesn't fake the overflow notice
@@ -3898,7 +4216,7 @@ function renderTimeline(){
 function renderTLCards(rows, off629, planEnd, n){
   const wrap=$("#tlcards"); const frag=document.createDocumentFragment();
   if(!rows.length){ wrap.replaceChildren(el("div","empty-hint","해당 조건의 참가자가 없습니다.")); return; }
-  const order=[...inventoryHotels(),...(booyIsInv()?[]:[VEN.BOOY]),"(미배정)"];
+  const order=[...inventoryHotels(),...(booyIsInv()?[]:[VEN.BOOY]),VEN.TEMP,"(미배정)"];
   const groups={}; rows.forEach(p=>{ const v=partyVenue(p); (groups[v]=groups[v]||[]).push(p); });
   const pos={}; state.orderList.forEach((id,i)=>pos[id]=i);
   if(n==null) n=state.dates.length;   // fallback if called without the trimmed column count
@@ -4040,6 +4358,7 @@ function tlGripStart(p,grip,row,ev){
 }
 function assignToHotel(p,hotel){
   if(hotel==="(미배정)"){ delete state.assign[p.id]; return; }
+  if(hotel===VEN.TEMP){ state.assign[p.id]="TEMP"; return; }   // 임시배치(재배정필요) holding bucket
   if(hotel===VEN.BOOY && !booyIsInv()){ state.assign[p.id]="BOOY"; return; }   // off-inventory NOC marker; when 부영호텔 has rooms, pick a real room below
   let cands=state.rooms.filter(rm=>rm.hotel===hotel && compatible(rm,p));
   if(!cands.length){ toast(`${hotel}에 ${p.name} 배치 가능한 방이 없습니다 (성별/정원).`,"warn"); return; }
@@ -4212,6 +4531,7 @@ function openRowSheet(p,row){
      <div class="rs-venues">
        ${inventoryHotels().map(h=>venBtn(h,h)).join("")}
        ${booyIsInv()?"":venBtn(VEN.BOOY+"(NOC)",VEN.BOOY)}
+       ${venBtn(VEN.TEMP,VEN.TEMP)}
        <button class="rsbtn${cur==null?" cur":""}" data-act="venue" data-h=""><span class="ic">${ico('undo')}</span>미배정${cur==null?ico('check'):""}</button>
      </div>
      <div class="rs-row">
@@ -4255,11 +4575,12 @@ function editCard(p){
   const depSel=`<select data-f="stayE">${dates.map((d,i)=>`<option value="${i}"${p.stay&&p.stay.e===i?" selected":""}>${esc(nextDay(d))} (체크아웃)</option>`).join("")}</select>`;
   // 현재 배정: venue + room
   const a=state.assign[p.id];
-  const curVen = a==="BOOY"?VEN.BOOY : (a&&state.roomById[a]?state.roomById[a].hotel:"");
+  const curVen = a==="BOOY"?VEN.BOOY : a==="TEMP"?VEN.TEMP : (a&&state.roomById[a]?state.roomById[a].hotel:"");
   const venSel=`<select data-f="venue" id="edVenue">
       <option value="">미배정</option>
       ${inventoryHotels().map(h=>`<option value="${esc(h)}"${curVen===h?" selected":""}>${esc(h)}</option>`).join("")}
-      ${booyIsInv()?"":`<option value="${esc(VEN.BOOY)}"${curVen===VEN.BOOY?" selected":""}>${esc(VEN.BOOY)} (외부예약)</option>`}</select>`;
+      ${booyIsInv()?"":`<option value="${esc(VEN.BOOY)}"${curVen===VEN.BOOY?" selected":""}>${esc(VEN.BOOY)} (외부예약)</option>`}
+      <option value="${esc(VEN.TEMP)}"${curVen===VEN.TEMP?" selected":""}>${esc(VEN.TEMP)}</option></select>`;
   const roomSelHtml=ven=>{
     if(!inventoryHotels().includes(ven)) return `<select data-f="room" id="edRoom" disabled><option value="">—</option></select>`;
     const rs=state.rooms.filter(r=>r.hotel===ven);
@@ -4383,6 +4704,7 @@ function saveCard(p){
   // assignment — a room must be tied to the selected 숙소; never bind a room from another hotel
   const ven=val("venue"); const room=val("room");
   if(!ven){ delete state.assign[p.id]; }
+  else if(ven===VEN.TEMP){ state.assign[p.id]="TEMP"; }
   else if(ven===VEN.BOOY && !booyIsInv()){ state.assign[p.id]="BOOY"; }
   else if(room && state.roomById[room] && state.roomById[room].hotel===ven){ state.assign[p.id]=room; }
   else if(room){                   // chosen room isn't in the selected hotel → auto-pick within it instead
@@ -4407,6 +4729,7 @@ function exportExcel(){
   state.parties.forEach(p=>{
     const a=state.assign[p.id]; let venue="",loc="",rno="";
     if(a==="BOOY"){venue=VEN.BOOY;loc="개별예약";}
+    else if(a==="TEMP"){venue=VEN.TEMP;loc="재배정필요";}
     else if(a){ const rm=state.roomById[a]; if(rm){venue=rm.hotel; loc=(rm.bldg?rm.bldg+"동 ":"")+(rm.floor?rm.floor+" ":"")+(rm.type||""); rno=rm.rno||rm.id;} }
     else if(p.need==="No"){venue="(방 불필요)";}
     res.push([p.id,p.name,p.kname,p.hc,p.partySex,p.cat,p.team,venue,loc.trim(),rno,p.arr,p.dep, state.locked[p.id]?"Y":""]);
@@ -4424,6 +4747,8 @@ function exportExcel(){
   _occ=null;
   const booy=state.parties.filter(p=>state.assign[p.id]==="BOOY");
   if(booy.length) ros.push([VEN.BOOY,"","","개별","","",booy.reduce((s,p)=>s+p.hc,0),booy.reduce((s,p)=>s+p.hc,0),booy.map(o=>o.name).join(", ")]);
+  const temp=state.parties.filter(p=>state.assign[p.id]==="TEMP");
+  if(temp.length) ros.push([VEN.TEMP,"","","임시","","",temp.reduce((s,p)=>s+p.hc,0),temp.reduce((s,p)=>s+p.hc,0),temp.map(o=>o.name).join(", ")]);
   XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(ros),"객실roster");
   XLSX.writeFile(wb,"ICMDA 숙소배정 결과.xlsx");
   toast("배정 결과 저장 완료 — 'ICMDA 숙소배정 결과.xlsx'","ok");
@@ -4748,6 +5073,15 @@ async function exportMaster(){
   let sessRows=0;
   const sessAoa=sessionSheetAoa();
   if(sessAoa){ writeManagedSheet(files,"세션배정",sessAoa); sessRows=sessAoa.filter((r,i)=>i>0 && !String(r[0]||"").startsWith("(")).length; }   // count participant rows (skip header + tag rows)
+  // 체크인 보기 → write/refresh the app-managed '체크인' tab (full rewrite). header: 참가자ID·이름·체크인시각
+  let checkinRows=0;
+  { const ci=state.checkedIn||{};
+    const ids=Object.keys(ci).sort((a,b)=>String((state.byId[a]||{}).name||a).localeCompare(String((state.byId[b]||{}).name||b)));
+    if(ids.length || xlsxSheetPaths(files)["체크인"]){   // write if there are check-ins OR a prior '체크인' tab needs refreshing (e.g. all cleared)
+      const aoa=[["참가자ID","이름","체크인시각"], ...ids.map(id=>[id,(state.byId[id]||{}).name||"",ci[id]==="✓"?"":ci[id]])];
+      writeManagedSheet(files,"체크인",aoa); checkinRows=ids.length;
+    }
+  }
   // keep the 요약(Overview) sheet's "데이터 v{N} 기준 …" version note in sync with the new file version
   const outName=bumpMasterName(state.masterName);
   const newVer=(()=>{ const m=/v(\d+)\.xlsx$/i.exec(outName); return m?+m[1]:null; })();   // same number the filename bumps to → cell + filename always agree
@@ -4770,12 +5104,14 @@ async function exportMaster(){
   $("#loading").style.display="none";                  // drop the spinner so the "저장 위치" dialog shows on its own
   const saved=await downloadBytes(fflate.zipSync(files,{level:6}),outName,"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
   if(saved===false){ toast("저장을 취소했습니다.","info"); return; }   // user closed the 저장 위치 dialog → no file written
+  markSaved();   // export succeeded → current state is now the saved baseline (no more unsaved-changes warning until the next edit)
   let msg=`'${outName}' 저장 완료 — 변경 ${changed}건.\n· 배정동/배정층/배정호실/배정객실ID 열을 추가했습니다.\n· 총인원·도착일·출발일·숙박일수는 수식이라 그대로 두었습니다.`;
   if(capChanged) msg+=`\n· 객실 수용(추가인원·총가능인원) ${capChanged}건을 '객실' 탭에 반영했습니다.`;
   if(delCount) msg+=`\n· 삭제한 기록 ${delCount}건의 행을 '참가자' 탭에서 비웠습니다.`;
   if(sessDelCount) msg+=`\n· 삭제한 세션 참가자 기록 ${sessDelCount}건의 행을 '세션 참가자' 탭에서 비웠습니다.`;
   if(schedChanged) msg+=`\n· 일정 ${schedChanged}건을 '일정' 탭에 반영했습니다.`;
   if(sessRows) msg+=`\n· 세션 배정(참가자 ${sessRows}명)을 '세션배정' 탭에 저장했습니다.`;
+  if(checkinRows) msg+=`\n· 현장 체크인 ${checkinRows}명을 '체크인' 탭에 저장했습니다.`;
   if(verNoteChanged) msg+=`\n· 요약 시트의 버전 표기를 v${newVer}로 갱신했습니다.`;
   if(addNightCols.length) msg+=`\n· 추가한 날짜 ${addNightCols.length}개(${state.nightCols.slice(addedStart).join(", ")})를 '참가자' 탭에 새 날짜 열로 저장했습니다.`;
   if(formulaExt) msg+=`\n· 추가 날짜를 반영하도록 도착일·출발일·숙박일수 수식 ${formulaExt}행을 확장했습니다(엑셀에서 열 때 자동 재계산).`;
@@ -4839,6 +5175,16 @@ function buildPrint(){
     });
     g.append(t); pa.append(g);
   }
+  const temp=state.parties.filter(p=>state.assign[p.id]==="TEMP");
+  if(temp.length){
+    const g=el("div","pgroup"); g.append(el("h2",null,`${VEN.TEMP} · ${temp.reduce((s,p)=>s+p.hc,0)}명`));
+    const t=el("table","proom"); t.innerHTML="<tr><th>이름</th><th>인원</th><th>체크인</th><th>체크아웃</th><th>비고</th></tr>";
+    temp.sort((a,b)=>a.name.localeCompare(b.name)).forEach(p=>{
+      const tr=el("tr"); tr.append(el("td",null,p.name),el("td","num",String(p.hc)),el("td","dt",dateWD(p.arr)),el("td","dt",dateWD(p.dep)),el("td",null,p.note||""));
+      t.append(tr);
+    });
+    g.append(t); pa.append(g);
+  }
 }
 
 /* ---------- wire up ---------- */
@@ -4861,28 +5207,28 @@ function runAuto(){                                // spinner, then run (let the
 function confirmAuto(){
   const need=p=>p.need!=="No";
   const un=state.parties.filter(p=>need(p)&&!state.locked[p.id]&&!state.assign[p.id]).reduce((s,p)=>s+p.hc,0);
-  const movable=state.parties.filter(p=>need(p)&&!state.locked[p.id]&&state.assign[p.id]&&state.assign[p.id]!=="BOOY").reduce((s,p)=>s+p.hc,0);
+  const movable=state.parties.filter(p=>need(p)&&!state.locked[p.id]&&state.assign[p.id]&&state.assign[p.id]!=="BOOY"&&state.assign[p.id]!=="TEMP").reduce((s,p)=>s+p.hc,0);
   dialog({title:"② 자동 배정", danger:true, okText:"자동 배정 실행",
     body:`성별·정원·온돌·묶음 규칙에 따라 미배정 ${un}명을 방에 배치합니다. `
         +`잠기지 않은 기존 배정 ${movable}명도 재배치될 수 있습니다. (잠긴 인원은 그대로) 계속할까요?`,
     onOk:runAuto});
 }
-// "배정 초기화": clear every assignment EXCEPT protected ones — person-locked, room-locked, hotel-locked (via roomLocked), and 개별예약(NOC/BOOY).
-// This is exactly the prune autoAssign() does before re-packing, but without the re-pack.
-const isProtectedAssign=(pid,key)=> state.locked[pid] || key==="BOOY" || !!state.roomLocked[key];
+// "배정 초기화": clear every assignment EXCEPT protected ones — person-locked, room-locked, hotel-locked (via roomLocked).
+// 개별예약(NOC/BOOY) is NOT protected — per user, 초기화 also clears 부영호텔 NOC pre-bookings (and drops their auto-lock so they don't stay stuck-locked).
+const isProtectedAssign=(pid,key)=> key!=="BOOY" && (state.locked[pid] || !!state.roomLocked[key]);
 function clearableLoad(){
   let n=0; for(const pid in state.assign){ const k=state.assign[pid]; if(!isProtectedAssign(pid,k)) n+=state.byId[pid].hc; } return n;
 }
 function clearAssignExceptLocked(){
   let n=0;
-  for(const pid in state.assign){ const k=state.assign[pid]; if(!isProtectedAssign(pid,k)){ delete state.assign[pid]; n+=state.byId[pid].hc; } }
+  for(const pid in state.assign){ const k=state.assign[pid]; if(!isProtectedAssign(pid,k)){ delete state.assign[pid]; if(k==="BOOY") delete state.locked[pid]; n+=state.byId[pid].hc; } }
   render(); announceAssign(`${n}명 미배정으로 초기화`); toast(`배정 초기화 완료 — ${n}명 미배정으로`,"ok");
 }
 function confirmClear(){
   const n=clearableLoad();
   if(!n){ toast("초기화할 배정이 없습니다. (모두 잠금 또는 미배정)","info"); return; }
   dialog({title:"배정 초기화", danger:true, okText:"초기화 실행",
-    body:`잠기지 않은 배정 ${n}명을 미배정으로 되돌립니다. 잠긴 인원·잠긴 방·잠긴 호텔·개별예약(NOC)은 그대로 유지됩니다. 계속할까요?`,
+    body:`배정 ${n}명을 미배정으로 되돌립니다(개별예약(NOC/부영호텔) 포함). 잠긴 인원·잠긴 방·잠긴 호텔은 그대로 유지됩니다. 계속할까요?`,
     onOk:()=>withLoading("배정 초기화 중…",clearAssignExceptLocked)});
 }
 // "비우기": send every (non-person-locked) occupant of the given rooms back to 미배정. Used at room / 동·층 group / hotel level.
@@ -5028,7 +5374,7 @@ function wireSearchClear(inputSel, clrSel, onChange){
   clr.addEventListener("click",()=>{ inp.value=""; sync(); onChange(); inp.focus(); });
   sync();
 }
-wireSearchClear("#poolsearch","#poolsearchclr",renderPool);
+wireSearchClear("#poolsearch","#poolsearchclr",()=>{ renderPool(); locateAssigned(); });
 
 // tablet (≤860px): collapse the stacked 미배정 pool so the room grid isn't pushed far down
 $("#poolToggle").addEventListener("click",()=>{
@@ -5064,6 +5410,7 @@ $("#tabTimeline").onclick=()=>setView("timeline");
 $("#timeline").addEventListener("scroll",hideDupTip,{passive:true});   // wheel-scroll dismisses the 중복 hover box
 $("#tabSchedule").onclick=()=>setView("schedule");
 $("#tabSession").onclick=()=>setView("session");
+$("#tabCheckin").onclick=()=>setView("checkin");
 // 일정 보기: cells are non-editable by default (stable table size). In edit mode, clicking a cell makes ONLY
 // that cell contenteditable; it reverts on blur — so toggling 수정 never reflows/resizes the whole table.
 $("#schedule").addEventListener("mousedown",e=>{
