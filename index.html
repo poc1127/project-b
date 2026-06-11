@@ -1218,7 +1218,7 @@
 "use strict";
 // ⚑ index.html build version — shown bottom-right on the start screen. BUMP ON EACH DEPLOY.
 //   Format: vYYYY.MM.DD-N  (N = same-day build counter; reset to 1 on a new date).
-const APP_VERSION = "v2026.06.10-30";
+const APP_VERSION = "v2026.06.11-1";
 /* ============================================================
    ICMDA 2026 Room Assignment Dashboard (single file)
    - reads the live master .xlsx (columns mapped by HEADER NAME)
@@ -1604,6 +1604,7 @@ function loadMaster(arrbuf){
     if(!booyInv && rid.indexOf("부영호텔")>=0) { state.assign[p.id]="BOOY"; state.locked[p.id]=true; }   // "개별예약(부영호텔)" marker
     else if(state.roomById[rid]) state.assign[p.id]=rid;       // real room — restore unlocked (re-running 자동 배정 may reshuffle, same as live)
   });
+  state.assign0=Object.assign({},state.assign);   // baseline assignment at load → export clears 배정숙소/배정객실ID rows the user later UN-assigns (vs untouched venue-only pre-locks)
   setActionsEnabled(true);
   populateFilters();
   render();
@@ -4653,6 +4654,11 @@ async function exportMaster(){
       if(a==="BOOY"){ rid="개별예약(부영호텔)"; }
       else if(state.roomById[a]){ const rm=state.roomById[a]; bd=rm.bldg||""; fl=rm.floor||""; rn=rm.rno||rm.id; rid=rm.id; }
       putRoom(r,"동",bd); putRoom(r,"층",fl); putRoom(r,"호실",rn); putRoom(r,"객실ID",rid);
+    }
+    else if(state.assign0 && state.assign0[p.id]!=null){   // was assigned at load, now UN-assigned → wipe the venue + room-detail the prior export wrote (leave untouched pre-locks alone)
+      if(H["배정숙소"]!=null && nrm(xCell(ws,r,H["배정숙소"]))!==""){ set(r,H["배정숙소"],""); }
+      putRoom(r,"동",""); putRoom(r,"층",""); putRoom(r,"호실",""); putRoom(r,"객실ID","");
+      changed++;
     }
     // stay → night columns (surgical: only if span changed). 도착일/출발일/숙박일수 are formulas → untouched.
     const os=p._os, ns=p.stay;
