@@ -98,7 +98,7 @@
   /* 일정 보기: minimal-accent timetable (program color = rounded-square marker; left-aligned text; vertical date dividers) */
   #schedule{--prog-st:#E2A636;--prog-gr:#5BA15C;--prog-co:#3D7CB3;--prog-sig:#7E57C2;--prog-ch:#C13B82;
             overflow:auto;padding:12px 16px;background:var(--bg);min-height:0;
-            height:calc(100vh - var(--topoff,92px) - var(--warnh,0px));height:calc(100dvh - var(--topoff,92px) - var(--warnh,0px));}
+            height:calc(100vh - var(--topoff,92px) - var(--warnh,0px) - var(--srcfooth,0px));height:calc(100dvh - var(--topoff,92px) - var(--warnh,0px) - var(--srcfooth,0px));}
   .sched-top{display:flex;align-items:stretch;justify-content:space-between;gap:14px;flex-wrap:wrap;margin:0 0 14px;}   /* 수정 toolbar (left) + legend (right) on one row, each its own rounded box */
   .sched-bar{flex:1 1 320px;display:flex;align-items:center;justify-content:flex-start;gap:12px;margin:0;padding:10px 16px;background:#f7f9fb;border:1px solid #e5e9ee;border-radius:8px;}
   .sched-bar>button{flex:none;}
@@ -371,7 +371,7 @@
   #venues.picking .room:hover{outline:2px solid var(--ok);background:#f1f8f1;}
   .pickhint{background:#e9f6ea;border:1px solid #b6e0b8;color:#256a2a;font-size:11px;font-weight:600;padding:5px 8px;border-radius:6px;margin-bottom:6px;line-height:1.35;}
   /* 데이터 출처 푸터 — 모든 보기 하단에 동일한 레이아웃으로 표시 */
-  #srcfoot{padding:9px 16px;background:#f7f9fc;border-top:1px solid #e8ebf2;color:#7a879c;font-size:11.5px;line-height:1.6;display:flex;align-items:flex-start;gap:8px;flex-wrap:wrap;}
+  #srcfoot{position:sticky;bottom:0;z-index:31;padding:9px 16px;background:#f7f9fc;border-top:1px solid #e8ebf2;color:#7a879c;font-size:11.5px;line-height:1.6;display:flex;align-items:flex-start;gap:8px;flex-wrap:wrap;box-shadow:0 -2px 8px rgba(0,0,0,.05);}
   #srcfoot .sfic{flex:none;width:14px;height:14px;margin-top:2px;opacity:.7;}
   #srcfoot b{color:#5a6678;font-weight:700;margin-right:2px;}
   #srcfoot .sftab{color:#3a4658;font-weight:600;background:#eef2f8;border:1px solid #e1e7f0;border-radius:5px;padding:1px 6px;white-space:nowrap;}
@@ -394,7 +394,7 @@
   #warnpanel.collapsed>:not(h3){display:none;}
   /* PC + tablet (≥641px): pin the 점검 panel to the viewport bottom so warnings stay visible without scrolling to the end of the rooms list; it rests in normal flow at the page bottom (nothing permanently hidden). Phones (≤640) keep the collapsible bottom panel instead. */
   @media (min-width:641px){
-    #warnpanel{position:sticky;bottom:0;z-index:30;box-shadow:0 -2px 8px rgba(0,0,0,.06);}
+    #warnpanel{position:sticky;bottom:var(--srcfooth,0px);z-index:30;box-shadow:0 -2px 8px rgba(0,0,0,.06);}
   }
   .empty-hint{color:var(--text-muted);padding:30px;text-align:center;}
   .muted{color:var(--text-muted);font-size:11px;}
@@ -445,9 +445,10 @@
   .cksec{padding:14px 20px;border-top:1px solid #eef0f3;}
   .cksec h4{margin:0 0 11px;font-size:12.5px;font-weight:700;letter-spacing:.02em;color:var(--ink);display:flex;align-items:center;gap:7px;}
   .cksec h4::before{content:"";width:4px;height:14px;border-radius:2px;background:var(--catc,var(--primary));}
-  .ckgrid{display:grid;grid-template-columns:1fr 1fr;gap:7px 26px;}
-  .ckpair{display:grid;grid-template-columns:max-content 1fr;gap:2px 12px;align-items:baseline;min-width:0;}
+  .ckgrid{display:grid;grid-template-columns:max-content 1fr max-content 1fr;gap:8px 16px;align-items:baseline;}
+  .ckpair{display:grid;grid-template-columns:subgrid;grid-column:span 2;align-items:baseline;min-width:0;}  /* subgrid → every pair shares the grid's key/value tracks, so keys & values line up across rows */
   .ckpair.wide{grid-column:1 / -1;}
+  .ckpair.wide .v{grid-column:2 / -1;}  /* wide value extends past the right-hand key/value tracks */
   .ckpair .k{color:var(--text-muted);font-size:12px;white-space:nowrap;}
   .ckpair .v{color:#26323f;font-weight:500;font-size:13px;word-break:break-word;min-width:0;}
   .cknone{color:var(--text-muted);font-size:12.5px;font-style:italic;}
@@ -481,7 +482,7 @@
   .chip.checkedin{background:#eafaf1;border-left-color:#2c9d5f !important;}
   .chip .chk{flex:none;display:inline-flex;align-items:center;justify-content:center;width:15px;height:15px;border-radius:50%;background:#2c9d5f;color:#fff;}
   .chip .chk svg{width:11px;height:11px;}
-  @media(max-width:640px){ .ckgrid{grid-template-columns:1fr;gap:6px 0;} .cksessitem{flex-direction:column;gap:2px;} .cksessitem .code{margin-left:0;} .ckcheck{flex-wrap:wrap;} .ckbtn{width:100%;} }
+  @media(max-width:640px){ .ckgrid{grid-template-columns:max-content 1fr;gap:6px 12px;} .ckpair{grid-column:1 / -1;} .cksessitem{flex-direction:column;gap:2px;} .cksessitem .code{margin-left:0;} .ckcheck{flex-wrap:wrap;} .ckbtn{width:100%;} }
   /* import / start screen (shown until a master loads) */
   #startscreen{display:flex;align-items:center;justify-content:center;box-sizing:border-box;position:relative;
     min-height:calc(100vh - var(--headerh,56px));padding:32px 24px;user-select:none;}
@@ -517,7 +518,7 @@
      scroller (so frozen columns + sticky date header resolve against it and
      the edge-fade overlays can pin to the non-scrolling #ganttwrap). */
   #timeline{padding:8px 14px;display:flex;flex-direction:column;min-height:0;
-            height:calc(100vh - var(--topoff,92px) - var(--warnh,0px));height:calc(100dvh - var(--topoff,92px) - var(--warnh,0px));}
+            height:calc(100vh - var(--topoff,92px) - var(--warnh,0px) - var(--srcfooth,0px));height:calc(100dvh - var(--topoff,92px) - var(--warnh,0px) - var(--srcfooth,0px));}
   #ganttwrap{position:relative;flex:1;min-height:0;display:flex;}
   #gantt{overflow:auto;flex:1;min-width:0;}
   #tlcards{flex:1;min-height:0;}
@@ -1044,7 +1045,7 @@
     /* keep content clear of the fixed bar */
     body{padding-bottom:calc(54px + env(safe-area-inset-bottom));}
     /* the timeline uses a fixed height, so subtract the bar explicitly */
-    #timeline,#schedule{height:calc(100dvh - var(--topoff,92px) - 54px - env(safe-area-inset-bottom) - var(--warnh,0px));}
+    #timeline,#schedule{height:calc(100dvh - var(--topoff,92px) - 54px - env(safe-area-inset-bottom) - var(--warnh,0px) - var(--srcfooth,0px));}
 
     /* 더보기 bottom sheet */
     #sheet{display:block;}
@@ -1369,7 +1370,7 @@
   .venue>h2 .vprog i{display:block;height:100%;background:rgba(13,74,112,.55);border-radius:99px;}
   /* [숙소 배정] 하단 경고 스트립: 접힘 상태에선 우측 하단 플로팅 알약 (전폭 분홍 띠 → 컴팩트) */
   @media(min-width:641px){
-    #warnpanel.collapsed{position:sticky;bottom:10px;z-index:30;width:max-content;max-width:calc(100% - 28px);margin-left:auto;margin-right:14px;background:#fff;border:1px solid #f0ccc7;border-radius:999px;box-shadow:0 6px 18px rgba(0,0,0,.13);padding:5px 14px;}
+    #warnpanel.collapsed{position:sticky;bottom:calc(var(--srcfooth,0px) + 10px);z-index:30;width:max-content;max-width:calc(100% - 28px);margin-left:auto;margin-right:14px;background:#fff;border:1px solid #f0ccc7;border-radius:999px;box-shadow:0 6px 18px rgba(0,0,0,.13);padding:5px 14px;}
   }
   /* [숙소 배정] 미배정 풀: 검색창 sticky + 남/여 구성 + 범례 행 카드화 */
   #pool .searchwrap{position:sticky;top:-8px;z-index:3;background:var(--pool);padding:4px 0;margin-top:-4px;}
@@ -1552,10 +1553,11 @@
 <!-- 체크인 보기: placeholder — 세부 기능은 추후 추가 (built in renderCheckin) -->
 <div id="checkin" style="display:none;"></div>
 
-<!-- 데이터 출처 푸터: 현재 보기가 어떤 마스터 탭에서 데이터를 읽는지 명시 (보기별로 텍스트 갱신) -->
-<div id="srcfoot" hidden></div>
-
 <div id="warnpanel"></div>
+
+<!-- 데이터 출처 푸터: 현재 보기가 어떤 마스터 탭에서 데이터를 읽는지 명시 (보기별로 텍스트 갱신).
+     하단 고정(sticky) — warnpanel 뒤(DOM 마지막)라 항상 맨 아래에 깔리고 warnpanel은 그 위에 뜸 -->
+<div id="srcfoot" hidden></div>
 <div id="printarea"></div>
 <!-- print preview: shown when 인쇄/PDF is clicked; 인쇄 진행 → window.print() -->
 <div id="printprev" style="display:none">
@@ -1605,7 +1607,7 @@
 "use strict";
 // ⚑ index.html build version — shown bottom-right on the start screen. BUMP ON EACH DEPLOY.
 //   Format: vYYYY.MM.DD-N  (N = same-day build counter; reset to 1 on a new date).
-const APP_VERSION = "v2026.06.11-15";
+const APP_VERSION = "v2026.06.11-16";
 /* ============================================================
    ICMDA 2026 Operations Dashboard (single file)
    - reads the live master .xlsx (columns mapped by HEADER NAME)
@@ -4565,13 +4567,15 @@ function applyColW(){
   tl.style.setProperty("--c2", (w[0]+w[1])+"px");
 }
 function syncTop(){                                   // keep panels sized to the space below header/statsbar at any width
-  const h=document.querySelector("header"), sb=$("#statsbar"), th=$("#tlhead"), wp=$("#warnpanel");
+  const h=document.querySelector("header"), sb=$("#statsbar"), th=$("#tlhead"), wp=$("#warnpanel"), sf=$("#srcfoot");
   const hh=h?h.offsetHeight:52, sbh=sb?sb.offsetHeight:0, thh=th?th.offsetHeight:0;   // read all heights before any write (no layout thrash)
   const wph=(wp&&wp.offsetParent!==null)?wp.offsetHeight:0;   // 점검 결과 panel height → carve room below the timeline so it stays on-screen
+  const sfh=(sf && !sf.hidden && sf.offsetParent!==null)?sf.offsetHeight:0;   // 출처 푸터 높이 → 고정 푸터만큼 아래를 비워 둠 (warnpanel·timeline·schedule)
   const ds=document.documentElement.style;
   ds.setProperty("--headerh",hh+"px");              // pool sticky offset (rooms view)
   ds.setProperty("--topoff",(hh+sbh)+"px");         // timeline panel height
   ds.setProperty("--warnh",wph+"px");               // subtracted from #timeline height (both views show the panel)
+  ds.setProperty("--srcfooth",sfh+"px");            // 고정된 데이터 출처 푸터 높이
   if(thh) ds.setProperty("--tlheadh",thh+"px");     // only when the timeline header is visible (matches prior guard)
   applyColW();   // re-evaluate the night-track floor for the new width
 }
