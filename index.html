@@ -445,11 +445,11 @@
   .cksec{padding:14px 20px;border-top:1px solid #eef0f3;}
   .cksec h4{margin:0 0 11px;font-size:12.5px;font-weight:700;letter-spacing:.02em;color:var(--ink);display:flex;align-items:center;gap:7px;}
   .cksec h4::before{content:"";width:4px;height:14px;border-radius:2px;background:var(--catc,var(--primary));}
-  .ckgrid{display:grid;grid-template-columns:max-content 1fr max-content 1fr;gap:8px 16px;align-items:baseline;}
+  .ckgrid{display:grid;grid-template-columns:72px 1fr 72px 1fr;gap:8px 16px;align-items:baseline;}  /* fixed key column → values line up across ALL sections, not just within one */
   .ckpair{display:grid;grid-template-columns:subgrid;grid-column:span 2;align-items:baseline;min-width:0;}  /* subgrid → every pair shares the grid's key/value tracks, so keys & values line up across rows */
   .ckpair.wide{grid-column:1 / -1;}
   .ckpair.wide .v{grid-column:2 / -1;}  /* wide value extends past the right-hand key/value tracks */
-  .ckpair .k{color:var(--text-muted);font-size:12px;white-space:nowrap;}
+  .ckpair .k{color:var(--text-muted);font-size:12px;white-space:normal;word-break:keep-all;}  /* wrap rather than overflow the fixed key column */
   .ckpair .v{color:#26323f;font-weight:500;font-size:13px;word-break:break-word;min-width:0;}
   .cknone{color:var(--text-muted);font-size:12.5px;font-style:italic;}
   .cksesslist{display:flex;flex-direction:column;gap:6px;}
@@ -482,7 +482,7 @@
   .chip.checkedin{background:#eafaf1;border-left-color:#2c9d5f !important;}
   .chip .chk{flex:none;display:inline-flex;align-items:center;justify-content:center;width:15px;height:15px;border-radius:50%;background:#2c9d5f;color:#fff;}
   .chip .chk svg{width:11px;height:11px;}
-  @media(max-width:640px){ .ckgrid{grid-template-columns:max-content 1fr;gap:6px 12px;} .ckpair{grid-column:1 / -1;} .cksessitem{flex-direction:column;gap:2px;} .cksessitem .code{margin-left:0;} .ckcheck{flex-wrap:wrap;} .ckbtn{width:100%;} }
+  @media(max-width:640px){ .ckgrid{grid-template-columns:72px 1fr;gap:6px 12px;} .ckpair{grid-column:1 / -1;} .cksessitem{flex-direction:column;gap:2px;} .cksessitem .code{margin-left:0;} .ckcheck{flex-wrap:wrap;} .ckbtn{width:100%;} }
   /* import / start screen (shown until a master loads) */
   #startscreen{display:flex;align-items:center;justify-content:center;box-sizing:border-box;position:relative;
     min-height:calc(100vh - var(--headerh,56px));padding:32px 24px;user-select:none;}
@@ -2437,7 +2437,7 @@ function ck2Time(ts){ const m=/^(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2})/.exec(ts
 // build the merged detail card for one person
 function ckCard(entry){
   const acc=entry.acc, sess=entry.sess, ci=catInfo(entry.cat);
-  const WIDEK=new Set(["현재 배정","비고","동반자요약","사전 배정(원본)","소속"]);   // long values span both columns
+  const WIDEK=new Set(["현재 배정","비고","동반자요약","사전 배정","소속"]);   // long values span both columns
   const grid=rows=>{ const items=rows.filter(([,v])=>v!=null&&v!=="");
     if(!items.length) return `<div class="cknone">정보 없음</div>`;
     const inner=items.map(([k,v])=>`<div class="ckpair${WIDEK.has(k)?" wide":""}"><span class="k">${esc(k)}</span><span class="v">${esc(String(v)).replace(/\n/g,"<br>")}</span></div>`).join("");
@@ -2453,8 +2453,8 @@ function ckCard(entry){
     const venue=partyVenue(acc), a=state.assign[acc.id]; let roomTxt=venue||"미배정";
     if(a && a!=="BOOY"){ const rm=state.roomById[a]; if(rm) roomTxt=`${rm.hotel} · ${rm.bldg?rm.bldg+"동 ":""}${rm.floor?rm.floor+" ":""}${rm.rno||rm.id} (${rm.type||""})`; }
     roomLine=roomTxt; arrLine=acc.arr||"";
-    accHtml=grid([["현재 배정",roomTxt],["도착일",acc.arr],["출발일(체크아웃)",acc.dep],
-      ["숙박",acc.stay?`${stayNights(acc)}박`:"없음"],["방 필요",acc.need],["사전 배정(원본)",acc.pre],
+    accHtml=grid([["현재 배정",roomTxt],["도착일",acc.arr],["출발일",acc.dep],
+      ["숙박",acc.stay?`${stayNights(acc)}박`:"없음"],["방 필요",acc.need],["사전 배정",acc.pre],
       ["총인원",acc.hc!=null?`${acc.hc}명`:""],["동반자요약",acc.companions],["비고",acc.note]]);
   } else accHtml=`<div class="cknone">숙소 참가자 명단에 없는 분입니다.</div>`;
   // 세션 배정 — assignments may be keyed by the session-pool id OR the accommodation id, so pass both
