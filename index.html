@@ -1477,18 +1477,19 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
     #checkin .ck2stat{padding:14px 16px;}
     #checkin .ck2stat .num{font-size:24px;margin-top:8px;}
     #checkin .ck2lower{gap:14px;}
-    /* 6칼럼 중 폰에선 참가자·배정 숙소·상태만 — 유형/ID/시각은 행 탭 → 상세 모달에서 확인
+    /* 7칼럼 중 폰에선 참가자·배정 숙소·상태만 — 유형/성별/ID/시각은 행 탭 → 상세 모달에서 확인
        (숙소는 체크인 직후 현장 안내에 바로 필요해 유지) */
     #checkin .ck2tbl th:nth-child(2),#checkin .ck2tbl td:nth-child(2),
     #checkin .ck2tbl th:nth-child(3),#checkin .ck2tbl td:nth-child(3),
-    #checkin .ck2tbl th:nth-child(6),#checkin .ck2tbl td:nth-child(6){display:none;}
+    #checkin .ck2tbl th:nth-child(4),#checkin .ck2tbl td:nth-child(4),
+    #checkin .ck2tbl th:nth-child(7),#checkin .ck2tbl td:nth-child(7){display:none;}
     #checkin .ck2tbl thead th{padding:12px 7px 8px;word-break:keep-all;}   /* 머리글이 세로 한 글자씩 꺾이지 않게 (단어 단위로만 줄바꿈) */
     #checkin .ck2tbl tbody td{padding:10px 7px;font-size:13px;}
     /* 표의 최소 내용폭(긴 이메일이 안 끊김 ≈ 400px)이 패널을 뷰포트 밖으로 밀어
        칼럼이 잘려 보이던 것 → 고정 레이아웃 + 숙소/상태 폭 지정, 이름·이메일은 말줄임 */
     #checkin table.ck2tbl{table-layout:fixed;}
-    #checkin .ck2tbl th:nth-child(4){width:92px;}    /* 배정 숙소 */
-    #checkin .ck2tbl th:nth-child(5){width:104px;}   /* 상태 */
+    #checkin .ck2tbl th:nth-child(5){width:92px;}    /* 배정 숙소 */
+    #checkin .ck2tbl th:nth-child(6){width:104px;}   /* 상태 */
     #checkin .att .who2{min-width:0;}
     #checkin .att .nm,#checkin .att .em{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
     #checkin .att .av{width:32px;height:32px;font-size:12px;}
@@ -1529,8 +1530,13 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
   #checkin .ck2bar select{flex:none;border:1px solid var(--line);border-radius:11px;padding:0 12px;font:inherit;font-size:13.5px;color:#3a4658;background:#fff;cursor:pointer;}
   #checkin .ck2bar select:hover{background:#f6f7fb;}
   /* C-1: 배정 숙소 칼럼 */
-  #checkin .ck2tbl td.rm{font-size:12.5px;color:#3a4658;}
+  #checkin .ck2tbl td.rm{font-size:12.5px;color:#3a4658;word-break:keep-all;}   /* "부영청소년 217"이 단어 중간에서 안 꺾이게 */
   #checkin .ck2tbl td.rm.none{color:#b3bdcb;}
+  /* 성별 칼럼 — 칩 배지와 같은 톤 (남 파랑 / 여 분홍 / 미상 회색) */
+  #checkin .ck2tbl td.sx2{font-size:12.5px;font-weight:600;white-space:nowrap;}
+  #checkin .ck2tbl td.sx2.m{color:#2c5a8c;}
+  #checkin .ck2tbl td.sx2.f{color:#a8456c;}
+  #checkin .ck2tbl td.sx2.none{color:#b3bdcb;font-weight:400;}
   /* C-7: 최근 체크인 — 이름 아래 유형 · 객실 */
   #checkin .ri .riw{flex:1 1 0;min-width:0;display:flex;flex-direction:column;}
   #checkin .ri .riw .nm{flex:none;}
@@ -1786,7 +1792,7 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
 "use strict";
 // ⚑ index.html build version — shown bottom-right on the start screen. BUMP ON EACH DEPLOY.
 //   Format: vYYYY.MM.DD-N  (N = same-day build counter; reset to 1 on a new date).
-const APP_VERSION = "v2026.06.12-5";
+const APP_VERSION = "v2026.06.12-7";
 /* ============================================================
    ICMDA 2026 Operations Dashboard (single file)
    - reads the live master .xlsx (columns mapped by HEADER NAME)
@@ -2701,7 +2707,7 @@ function renderCheckin(){
           <div class="ck2search"><span class="mag">${ico('search')}</span><input id="ck2Q" placeholder="이름, 이메일, 참가자ID로 검색 · Search name / email / ID…" autocomplete="off" aria-label="체크인 참가자 검색 · Search participants"><button type="button" class="clr2" id="ck2Clr" aria-label="검색어 지우기">×</button></div>
           <select id="ck2Cat" aria-label="참가 유형 필터 · Filter by type"><option value="">전체 유형 · All</option></select>
         </div>
-        <table class="ck2tbl"><thead><tr><th>참가자<span class="en">Participant</span></th><th>참가 유형<span class="en">Type</span></th><th>참가자ID<span class="en">ID</span></th><th>배정 숙소<span class="en">Room</span></th><th>상태<span class="en">Status</span></th><th>체크인 시각<span class="en">Checked at</span></th></tr></thead><tbody id="ck2Rows"></tbody></table>
+        <table class="ck2tbl"><thead><tr><th>참가자<span class="en">Participant</span></th><th>참가 유형<span class="en">Type</span></th><th>성별<span class="en">Sex</span></th><th>참가자ID<span class="en">ID</span></th><th>배정 숙소<span class="en">Room</span></th><th>상태<span class="en">Status</span></th><th>체크인 시각<span class="en">Checked at</span></th></tr></thead><tbody id="ck2Rows"></tbody></table>
         <div class="ck2nores" id="ck2NoRes" style="display:none">검색 결과가 없습니다 · No results</div>
         <div class="ck2pg"><span class="info" id="ck2Info"></span><span class="ck2perw"><label for="ck2Per" title="Per page">페이지당</label><select id="ck2Per"><option value="50">50명씩 보기</option><option value="100">100명씩 보기</option><option value="0">전체 보기</option></select></span><span class="pages" id="ck2Pages"></span></div>
       </div>
@@ -2820,12 +2826,15 @@ function ck2Refresh(){
     const cat=e.cat||"—";   // 세션 카테고리(Seniors/Students/…)는 짧으므로 약어 없이 그대로 표시
     const ri2=e.acc?partyRoomInfo(e.acc):null;             // 배정 숙소 — 프런트에서 체크인 직후 바로 안내
     const roomTxt=ri2?(ri2.ven?`${ri2.vshort} ${ri2.rno}`:"미배정"):"—";
+    const sx=(e.acc&&e.acc.sex)||(e.sess&&e.sess.sex)||"";   // 성별: 숙소 레코드 우선, 없으면 세션 참가자 기록
     const tr=el("tr");
     tr.innerHTML=
       `<td><div class="att"><span class="av" style="background:${ck2Color(e.id||e.name)}">${esc(ck2Init(e.name))}</span>`+
       `<span class="who2"><span class="nm">${esc(e.name||"(이름 없음)")}${e.kname?`<span class="kn">${esc(e.kname)}</span>`:""}</span>`+
       `<span class="em${e.email?"":" none"}">${e.email?esc(e.email):"이메일 미등록"}</span></span></div></td>`+
-      `<td>${esc(cat)}</td><td class="tid">${esc(e.id)}</td>`+
+      `<td>${esc(cat)}</td>`+
+      `<td class="sx2 ${sx==="M"?"m":sx==="F"?"f":"none"}">${esc(CK_SEXK[sx]||sx||"—")}</td>`+
+      `<td class="tid">${esc(e.id)}</td>`+
       `<td class="rm${(ri2&&ri2.ven)?"":" none"}">${esc(roomTxt)}</td>`+
       `<td><button type="button" class="ckpill ${t?"in":"out"}" data-pid="${esc(e.id)}" aria-pressed="${t?"true":"false"}" title="${t?"클릭: 체크인 취소 · Click to undo":"클릭: 체크인 완료 · Click to check in"}">${t?ico('check')+" 체크인 완료":circ+" 미체크인"}</button></td>`+
       `<td class="${t?"citime":"none"}">${t?`${esc(ft.t)}<small>${esc(ft.d)}</small>`:"—"}</td>`;
@@ -6047,13 +6056,15 @@ function buildCkPrint(){
   const g=el("div","pgroup");
   g.append(el("h2",null,`현장 체크인 완료 명단 (${done.length} / ${roster.length}명 · ${ckNowStamp()} 기준)`));
   const t=el("table","proom");
-  t.innerHTML="<tr><th class='num'>#</th><th>이름</th><th>참가 유형</th><th>참가자ID</th><th>배정 숙소</th><th class='dt'>체크인 시각</th></tr>";
+  t.innerHTML="<tr><th class='num'>#</th><th>이름</th><th>참가 유형</th><th>참가자ID</th><th>국가</th><th>이메일</th><th>배정 숙소</th><th class='dt'>체크인 시각</th></tr>";
   done.forEach((e,i)=>{
     const ri2=e.acc?partyRoomInfo(e.acc):null;
     const room=ri2?(ri2.ven?`${ri2.vshort} ${ri2.rno}`:"미배정"):"—";
+    const nat=(e.acc&&e.acc.nat)||(e.sess&&e.sess.region)||"";   // 국가: 숙소 레코드의 국적, 없으면 세션 참가자의 지역
     const tr=el("tr");
     tr.append(el("td","num",String(i+1)), el("td",null,e.name||String(e.id)), el("td",null,e.cat||""),
-              el("td",null,String(e.id)), el("td",null,room), el("td","dt",ci[e.id]==="✓"?"✓":String(ci[e.id])));
+              el("td",null,String(e.id)), el("td",null,nat), el("td",null,e.email||""),
+              el("td",null,room), el("td","dt",ci[e.id]==="✓"?"✓":String(ci[e.id])));
     t.append(tr);
   });
   g.append(t); pa.append(g);
