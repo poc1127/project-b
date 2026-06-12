@@ -194,6 +194,10 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
   .sbtool:hover{border-color:var(--primary);color:var(--primary);background:#fdecea;}
   .sbtool.danger{color:var(--warn);}   /* 모두 비우기: destructive — clears every (unlocked) session assignment */
   .sbtool.danger:hover{border-color:var(--warn);color:var(--warn);background:rgba(207,70,49,.12);}
+  .sbcur{display:none;width:100%;align-items:center;justify-content:space-between;gap:8px;background:#fff;border:1px solid var(--border);border-radius:9px;padding:9px 12px;font-size:12.5px;font-weight:700;color:var(--ink);cursor:pointer;text-align:left;}   /* 폰 전용 압축 바 — ≤640 미디어에서 display:flex */
+  .sbcur .t{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .sbcur .chev{flex:none;color:var(--text-faint);font-size:11px;}
+  .sbcur:hover{background:#fff;color:var(--ink);border-color:var(--primary);}   /* 전역 파란 button:hover가 터치 탭 후 hover로 남아 바가 진청색으로 변하던 것 차단 */
   .sbday{display:flex;gap:10px;align-items:flex-start;}
   .sbdaylab{flex:none;width:112px;text-align:center;font-size:11px;font-weight:700;color:var(--text2);background:#fff;border:1px solid var(--border);border-radius:7px;padding:2px 10px;cursor:pointer;user-select:none;white-space:nowrap;}
   .sbdaylab:hover{color:var(--primary);border-color:var(--primary);background:#fdecea;}
@@ -1493,6 +1497,11 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
     #checkin .att .who2{min-width:0;}
     #checkin .att .nm,#checkin .att .em{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
     #checkin .att .av{width:32px;height:32px;font-size:12px;}
+    #checkin .ckpill{padding:9px 12px;}   /* 체크인 토글 = 행사장 핵심 탭 대상 → 터치 높이 확보(~36px) */
+  }
+  /* 폰(좁은 폭): 아바타 원이 이름 칸(~136px)의 40px을 먹어 이름이 5~6자에서 잘리던 것 → 숨겨서 이름에 양보 */
+  @media (max-width:480px){
+    #checkin .att .av{display:none;}
   }
   /* [체크인] iOS 포커스 줌 방지: 검색·페이지당 셀렉트도 16px로 (≤640 공통 input 규칙이
      #checkin ID 셀렉터 특이성에 밀리던 것) */
@@ -1585,10 +1594,16 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
   /* [세션 배정] 폰: 슬롯 피커 압축 — 날짜 라벨·슬롯 알약을 폰 폭에 맞게 */
   @media (max-width:640px){
     .sbday{gap:6px;}
-    .sbdaylab{width:74px;padding:2px 5px;font-size:10.5px;}
-    .sbslots{grid-template-columns:repeat(auto-fill,minmax(128px,1fr));}
-    .sbslot{min-width:0;padding:2px 6px;font-size:11px;}
+    .sbdaylab{width:74px;padding:4px 5px;font-size:10.5px;}
+    .sbslots{grid-template-columns:repeat(auto-fill,minmax(108px,1fr));}   /* 360px에서도 2열 (128px → 1열로 길게 늘어지던 것) */
+    .sbslot{min-width:0;padding:6px;font-size:11px;}
     #sessslotbar h3,.sessdayhd h3{font-size:14px;}
+    /* sticky 피커 내용(~25줄)이 max-height까지 차서 화면 전체를 덮어 세션 보드가 아예 안 보이던 것
+       → 평소엔 .sbcur 한 줄 바만 sticky로 남기고, 탭하면 펼침(내부 스크롤; 하단 액션바 위까지만) */
+    #sesspicker .sbcur{display:flex;}
+    #sesspicker:not(.open) .sbday,#sesspicker:not(.open) .sbtools{display:none;}
+    #sesspicker{max-height:calc(100dvh - var(--headerh,52px) - 70px);}
+    #sesspicker.open .sbtools{flex-wrap:wrap;justify-content:flex-start;}
   }
   /* 실기기 프로필(390px) 검증에서 나온 마감 3건 */
   @media (max-width:640px){
@@ -1792,7 +1807,7 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
 "use strict";
 // ⚑ index.html build version — shown bottom-right on the start screen. BUMP ON EACH DEPLOY.
 //   Format: vYYYY.MM.DD-N  (N = same-day build counter; reset to 1 on a new date).
-const APP_VERSION = "v2026.06.12-7";
+const APP_VERSION = "v2026.06.12-8";
 /* ============================================================
    ICMDA 2026 Operations Dashboard (single file)
    - reads the live master .xlsx (columns mapped by HEADER NAME)
@@ -2704,7 +2719,7 @@ function renderCheckin(){
       <div class="ck2panel">
         <h2>체크인 참가자 <span class="en">Participants</span> <span class="fchip" id="ck2Chip" style="display:none"></span></h2>
         <div class="ck2bar">
-          <div class="ck2search"><span class="mag">${ico('search')}</span><input id="ck2Q" placeholder="이름, 이메일, 참가자ID로 검색 · Search name / email / ID…" autocomplete="off" aria-label="체크인 참가자 검색 · Search participants"><button type="button" class="clr2" id="ck2Clr" aria-label="검색어 지우기">×</button></div>
+          <div class="ck2search"><span class="mag">${ico('search')}</span><input id="ck2Q" placeholder="${matchMedia("(max-width:640px)").matches?"이름·이메일·ID 검색 · Search…":"이름, 이메일, 참가자ID로 검색 · Search name / email / ID…"}" autocomplete="off" aria-label="체크인 참가자 검색 · Search participants"><button type="button" class="clr2" id="ck2Clr" aria-label="검색어 지우기">×</button></div>
           <select id="ck2Cat" aria-label="참가 유형 필터 · Filter by type"><option value="">전체 유형 · All</option></select>
         </div>
         <table class="ck2tbl"><thead><tr><th>참가자<span class="en">Participant</span></th><th>참가 유형<span class="en">Type</span></th><th>성별<span class="en">Sex</span></th><th>참가자ID<span class="en">ID</span></th><th>배정 숙소<span class="en">Room</span></th><th>상태<span class="en">Status</span></th><th>체크인 시각<span class="en">Checked at</span></th></tr></thead><tbody id="ck2Rows"></tbody></table>
@@ -3969,6 +3984,21 @@ function renderSession(){
     });
     g.append(row); picker.append(g);
   });
+  // 폰(≤640px) 전용: sticky 피커 내용이 화면보다 길어 보드를 통째로 덮던 것 → 평소엔 "현재 날짜·시간대" 한 줄 바만
+  // 남기고 접어 두고, 탭하면 펼침. 데스크톱에선 .sbcur가 display:none이라 동작 변화 없음.
+  { const sbcur=el("button","sbcur"); sbcur.type="button"; sbcur.setAttribute("aria-expanded","false");
+    sbcur.title="날짜·시간대 선택 열기/닫기";
+    const sync=curSlotKey=>{ const d=dayWD(state.sessDay||"")||"날짜";
+      let t; if(state.sessSlot && slotsMap.has(state.sessSlot)) t=slotTimeLabel(slotsMap.get(state.sessSlot));
+      else if(curSlotKey && slotsMap.has(curSlotKey)) t=slotTimeLabel(slotsMap.get(curSlotKey));
+      else t="전체 시간대";
+      sbcur.innerHTML=`<span class="t">${esc(d)} · ${esc(t)}</span><span class="chev" aria-hidden="true">${picker.classList.contains("open")?"▴":"▾"}</span>`; };
+    picker._sbcurSync=sync;
+    const setOpen=open=>{ picker.classList.toggle("open",open); sbcur.setAttribute("aria-expanded",open?"true":"false");
+      const ch=sbcur.querySelector(".chev"); if(ch) ch.textContent=open?"▴":"▾"; };
+    sbcur.onclick=()=>setOpen(!picker.classList.contains("open"));
+    picker.addEventListener("click",e=>{ if(picker.classList.contains("open") && e.target.closest(".sbslot,.sbdaylab")){ setOpen(false); sync(); } });   // 항목을 고르면 자동으로 접힘 (재렌더 없는 날짜 점프 경로 포함)
+    sync(); picker.prepend(sbcur); }
 
   // ----- right: picker + (single slot → one bar + grid) OR (whole day → bar + a section per time-slot) -----
   const right=el("div"); right.id="sessright";
@@ -4106,7 +4136,8 @@ function renderSession(){
       // finer grain: highlight the single time-slot pill whose section you've scrolled into
       let curSlot=slotEls.length?slotEls[0].dataset.slot:null;
       for(const elm of slotEls){ if(elm.getBoundingClientRect().top<=lineY) curSlot=elm.dataset.slot; else break; }
-      picker.querySelectorAll(".sbslot").forEach(b=>b.classList.toggle("cur", b.dataset.slot===curSlot)); };
+      picker.querySelectorAll(".sbslot").forEach(b=>b.classList.toggle("cur", b.dataset.slot===curSlot));
+      if(picker._sbcurSync) picker._sbcurSync(curSlot); };   // 폰 압축 바의 "현재 날짜·시간대" 라벨 동기화
     const onScroll=()=>{ if(!raf) raf=requestAnimationFrame(setActive); };
     window.addEventListener("scroll",onScroll,{passive:true}); state._sessScroll=onScroll; setActive();
   }
