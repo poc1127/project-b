@@ -1449,15 +1449,18 @@
     #checkin .ck2stat{padding:14px 16px;}
     #checkin .ck2stat .num{font-size:24px;margin-top:8px;}
     #checkin .ck2lower{gap:14px;}
+    /* 6칼럼 중 폰에선 참가자·배정 숙소·상태만 — 유형/ID/시각은 행 탭 → 상세 모달에서 확인
+       (숙소는 체크인 직후 현장 안내에 바로 필요해 유지) */
     #checkin .ck2tbl th:nth-child(2),#checkin .ck2tbl td:nth-child(2),
-    #checkin .ck2tbl th:nth-child(3),#checkin .ck2tbl td:nth-child(3){display:none;}
-    #checkin .ck2tbl thead th{padding:12px 7px 8px;word-break:keep-all;}   /* '체크인 시각'이 세로 한 글자씩 꺾이지 않게 (단어 단위로만 줄바꿈) */
+    #checkin .ck2tbl th:nth-child(3),#checkin .ck2tbl td:nth-child(3),
+    #checkin .ck2tbl th:nth-child(6),#checkin .ck2tbl td:nth-child(6){display:none;}
+    #checkin .ck2tbl thead th{padding:12px 7px 8px;word-break:keep-all;}   /* 머리글이 세로 한 글자씩 꺾이지 않게 (단어 단위로만 줄바꿈) */
     #checkin .ck2tbl tbody td{padding:10px 7px;font-size:13px;}
     /* 표의 최소 내용폭(긴 이메일이 안 끊김 ≈ 400px)이 패널을 뷰포트 밖으로 밀어
-       시각 칼럼이 잘려 보이던 것 → 고정 레이아웃 + 상태/시각 폭 지정, 이름·이메일은 말줄임 */
+       칼럼이 잘려 보이던 것 → 고정 레이아웃 + 숙소/상태 폭 지정, 이름·이메일은 말줄임 */
     #checkin table.ck2tbl{table-layout:fixed;}
-    #checkin .ck2tbl th:nth-child(4){width:108px;}
-    #checkin .ck2tbl th:nth-child(5){width:74px;}
+    #checkin .ck2tbl th:nth-child(4){width:92px;}    /* 배정 숙소 */
+    #checkin .ck2tbl th:nth-child(5){width:104px;}   /* 상태 */
     #checkin .att .who2{min-width:0;}
     #checkin .att .nm,#checkin .att .em{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
     #checkin .att .av{width:32px;height:32px;font-size:12px;}
@@ -1477,6 +1480,56 @@
      아이콘 한 줄만 보이던 것 → 폰에선 일반 흐름(페이지 끝)으로 */
   @media (max-width:640px){
     #srcfoot{position:static;box-shadow:none;}
+  }
+  /* ===== 체크인 데스크톱 개선 + 이중언어 + 접근성 (C/D 패스) — v2026.06.12-4 ===== */
+  /* D1: 영문 보조 라벨 — 한글 라벨 아래(블록) 또는 옆(패널 제목) 작은 회색 */
+  #checkin .en{display:block;font-size:10px;font-weight:600;color:#aab6c5;letter-spacing:.02em;text-transform:none;}
+  #checkin .ck2panel h2 .en{display:inline;font-size:12px;margin-left:1px;}
+  #checkin .ck2tbl thead th .en{font-size:9.5px;margin-top:1px;}
+  #checkin .ck2tbl thead th{word-break:keep-all;}   /* '체크인 시각'이 데스크톱에서도 단어 단위로만 줄바꿈 */
+  #checkin .ck2stat .lbl .en{margin-top:1px;}
+  #checkin .en2{font-weight:600;color:#9fb6c8;font-size:11.5px;}
+  #checkin .ck2report .en2{color:#4f93b8;}
+  .cksec h4 .en{font-size:11px;color:#a8b3c2;font-weight:600;margin-left:2px;}   /* 상세 모달 섹션 제목 */
+  /* C-9: 통계 카드 = 필터 라는 힌트 (호버/활성 시 우상단에 표시) */
+  #checkin .ck2stat .fhint{margin-left:auto;font-size:11px;font-weight:700;color:#8da3b8;opacity:0;transition:opacity .12s;white-space:nowrap;flex:none;}
+  #checkin .ck2stat:hover .fhint,#checkin .ck2stat.fon .fhint,#checkin .ck2stat:focus-visible .fhint{opacity:1;}
+  #checkin .ck2stat.fon .fhint{color:var(--primary);}
+  /* C-6: 검색 + 참가 유형 필터 한 줄 */
+  #checkin .ck2bar{display:flex;gap:10px;margin-bottom:6px;align-items:stretch;flex-wrap:wrap;}
+  #checkin .ck2bar .ck2search{flex:1 1 260px;margin-bottom:0;}
+  #checkin .ck2bar select{flex:none;border:1px solid var(--line);border-radius:11px;padding:0 12px;font:inherit;font-size:13.5px;color:#3a4658;background:#fff;cursor:pointer;}
+  #checkin .ck2bar select:hover{background:#f6f7fb;}
+  /* C-1: 배정 숙소 칼럼 */
+  #checkin .ck2tbl td.rm{font-size:12.5px;color:#3a4658;}
+  #checkin .ck2tbl td.rm.none{color:#b3bdcb;}
+  /* C-7: 최근 체크인 — 이름 아래 유형 · 객실 */
+  #checkin .ri .riw{flex:1 1 0;min-width:0;display:flex;flex-direction:column;}
+  #checkin .ri .riw .nm{flex:none;}
+  #checkin .ri .rim{font-size:11.5px;color:#7a879c;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  /* C-8: 도넛 중앙 — % 아래 인원수 */
+  #checkin .ck2donut .ctr .cnt{font-size:13.5px;font-weight:700;color:#3a4658;margin-top:2px;}
+  /* C-2: 데스크톱 — 검색줄 + 표 머리행을 스크롤 중에도 고정 (검색이 손님마다 반복되는 동선이라) */
+  @media (min-width:841px){
+    #checkin .ck2bar{position:sticky;top:var(--headerh,52px);z-index:6;background:#fff;padding:10px 0 8px;margin-bottom:4px;}
+    #checkin .ck2tbl thead th{position:sticky;top:calc(var(--headerh,52px) + 66px);background:#fff;z-index:5;}
+  }
+  /* C-4: 우측 레일(요약 도넛 + 최근 체크인) 고정 — 목록 스크롤 중에도 현황 유지 */
+  @media (min-width:1101px){
+    #checkin .ck2rail{position:sticky;top:calc(var(--headerh,52px) + 14px);max-height:calc(100vh - var(--headerh,52px) - 26px);overflow:auto;}
+  }
+  /* D2: 키보드 포커스 링 — :focus-visible이라 마우스 클릭에는 안 보임 */
+  button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--primary);outline-offset:2px;}
+  #checkin .ck2tbl tbody tr:focus-visible{outline:2px solid var(--primary);outline-offset:-2px;}
+  /* D3: 일정 편집 셀 — 터치 기기에서 포커스 시 iOS 줌 방지 (16px 미만이 줌 트리거) */
+  @media (hover:none){
+    #schedule.editing [data-r][contenteditable]{font-size:16px;}
+  }
+  /* 폰: 유형 셀렉트 풀폭 + 16px (iOS 줌 방지); 필터 힌트는 호버가 없어 의미 없고 카드 폭만 밀어 숨김 */
+  @media (max-width:640px){
+    #checkin .ck2bar select{flex:1 1 100%;min-height:40px;font-size:16px;}
+    #checkin .ck2stat .fhint{display:none;}
+    #checkin .ck2stat .row1 .lbl{min-width:0;}
   }
   /* [세션 배정] 폰: 슬롯 피커 압축 — 날짜 라벨·슬롯 알약을 폰 폭에 맞게 */
   @media (max-width:640px){
@@ -1688,7 +1741,7 @@
 "use strict";
 // ⚑ index.html build version — shown bottom-right on the start screen. BUMP ON EACH DEPLOY.
 //   Format: vYYYY.MM.DD-N  (N = same-day build counter; reset to 1 on a new date).
-const APP_VERSION = "v2026.06.12-3";
+const APP_VERSION = "v2026.06.12-4";
 /* ============================================================
    ICMDA 2026 Operations Dashboard (single file)
    - reads the live master .xlsx (columns mapped by HEADER NAME)
@@ -2567,9 +2620,9 @@ function ckCard(entry){
   return `<div class="ckcard" style="--catc:${ci.c}">
     <div class="ckhead" style="background:${ci.c}"><h3>${title}</h3><div class="cksub">${sub}</div>${ids?`<div class="ckids">${ids}</div>`:""}</div>
     ${ckHtml}
-    <div class="cksec"><h4>등록 정보</h4>${grid(regRows)}</div>
-    <div class="cksec"><h4>숙소 배정</h4>${accHtml}</div>
-    <div class="cksec"><h4>세션 배정</h4>${sessHtml}</div>
+    <div class="cksec"><h4>등록 정보 <span class="en">Registration</span></h4>${grid(regRows)}</div>
+    <div class="cksec"><h4>숙소 배정 <span class="en">Accommodation</span></h4>${accHtml}</div>
+    <div class="cksec"><h4>세션 배정 <span class="en">Sessions</span></h4>${sessHtml}</div>
   </div>`;
 }
 // 상세 카드(기존 ckCard 그대로)를 모달로 표시; 토글 후에도 state._ckCur로 다시 그림
@@ -2590,34 +2643,37 @@ function renderCheckin(){
     const circ='<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/></svg>';
     wrap.innerHTML=`
     <div class="ck2stats">
-      <button type="button" class="ck2stat s1" data-f="all" title="전체 보기"><span class="row1"><span class="bico">${ico('users')}</span><span class="lbl">총 등록</span></span><span class="num" id="ck2Total">0</span></button>
-      <button type="button" class="ck2stat s2" data-f="in" title="체크인 완료만 보기"><span class="row1"><span class="bico">${ico('checkCircle')}</span><span class="lbl">체크인 완료</span></span><span class="num"><span id="ck2In">0</span><span class="pct g" id="ck2InP">0%</span></span></button>
-      <button type="button" class="ck2stat s3" data-f="out" title="미체크인만 보기"><span class="row1"><span class="bico">${circ}</span><span class="lbl">미체크인</span></span><span class="num"><span id="ck2Out">0</span><span class="pct b" id="ck2OutP">0%</span></span></button>
-      <button type="button" class="ck2stat s4" data-f="today" title="오늘 체크인한 사람만 보기"><span class="row1"><span class="bico">${ico('checkSquare')}</span><span class="lbl">오늘 체크인</span></span><span class="num"><span id="ck2Today">0</span><span class="pct a">자세히 →</span></span></button>
+      <button type="button" class="ck2stat s1" data-f="all" title="전체 보기 · Show all"><span class="row1"><span class="bico">${ico('users')}</span><span class="lbl">총 등록<span class="en">Total Registered</span></span><span class="fhint">전체 보기</span></span><span class="num" id="ck2Total">0</span></button>
+      <button type="button" class="ck2stat s2" data-f="in" title="체크인 완료만 보기 · Filter: checked-in"><span class="row1"><span class="bico">${ico('checkCircle')}</span><span class="lbl">체크인 완료<span class="en">Checked-in</span></span><span class="fhint">필터</span></span><span class="num"><span id="ck2In">0</span><span class="pct g" id="ck2InP">0%</span></span></button>
+      <button type="button" class="ck2stat s3" data-f="out" title="미체크인만 보기 · Filter: not checked-in"><span class="row1"><span class="bico">${circ}</span><span class="lbl">미체크인<span class="en">Not Checked-in</span></span><span class="fhint">필터</span></span><span class="num"><span id="ck2Out">0</span><span class="pct b" id="ck2OutP">0%</span></span></button>
+      <button type="button" class="ck2stat s4" data-f="today" title="오늘 체크인한 사람만 보기 · Filter: today"><span class="row1"><span class="bico">${ico('checkSquare')}</span><span class="lbl">오늘 체크인<span class="en">Today's Check-ins</span></span></span><span class="num"><span id="ck2Today">0</span><span class="pct a">자세히 →</span></span></button>
     </div>
     <div class="ck2lower">
       <div class="ck2panel">
-        <h2>체크인 참가자 <span class="fchip" id="ck2Chip" style="display:none"></span></h2>
-        <div class="ck2search"><span class="mag">${ico('search')}</span><input id="ck2Q" placeholder="이름, 이메일, 참가자ID로 검색…" autocomplete="off" aria-label="체크인 참가자 검색"><button type="button" class="clr2" id="ck2Clr" aria-label="검색어 지우기">×</button></div>
-        <table class="ck2tbl"><thead><tr><th>참가자</th><th>참가 유형</th><th>참가자ID</th><th>상태</th><th>체크인 시각</th></tr></thead><tbody id="ck2Rows"></tbody></table>
-        <div class="ck2nores" id="ck2NoRes" style="display:none">검색 결과가 없습니다</div>
-        <div class="ck2pg"><span class="info" id="ck2Info"></span><span class="ck2perw"><label for="ck2Per">페이지당</label><select id="ck2Per"><option value="50">50명씩 보기</option><option value="100">100명씩 보기</option><option value="0">전체 보기</option></select></span><span class="pages" id="ck2Pages"></span></div>
+        <h2>체크인 참가자 <span class="en">Participants</span> <span class="fchip" id="ck2Chip" style="display:none"></span></h2>
+        <div class="ck2bar">
+          <div class="ck2search"><span class="mag">${ico('search')}</span><input id="ck2Q" placeholder="이름, 이메일, 참가자ID로 검색 · Search name / email / ID…" autocomplete="off" aria-label="체크인 참가자 검색 · Search participants"><button type="button" class="clr2" id="ck2Clr" aria-label="검색어 지우기">×</button></div>
+          <select id="ck2Cat" aria-label="참가 유형 필터 · Filter by type"><option value="">전체 유형 · All</option></select>
+        </div>
+        <table class="ck2tbl"><thead><tr><th>참가자<span class="en">Participant</span></th><th>참가 유형<span class="en">Type</span></th><th>참가자ID<span class="en">ID</span></th><th>배정 숙소<span class="en">Room</span></th><th>상태<span class="en">Status</span></th><th>체크인 시각<span class="en">Checked at</span></th></tr></thead><tbody id="ck2Rows"></tbody></table>
+        <div class="ck2nores" id="ck2NoRes" style="display:none">검색 결과가 없습니다 · No results</div>
+        <div class="ck2pg"><span class="info" id="ck2Info"></span><span class="ck2perw"><label for="ck2Per" title="Per page">페이지당</label><select id="ck2Per"><option value="50">50명씩 보기</option><option value="100">100명씩 보기</option><option value="0">전체 보기</option></select></span><span class="pages" id="ck2Pages"></span></div>
       </div>
       <div class="ck2rail">
         <div class="ck2panel">
-          <h2>체크인 요약</h2>
+          <h2>체크인 요약 <span class="en">Summary</span></h2>
           <div class="donut2wrap"><div class="ck2donut">
-            <svg width="188" height="188" viewBox="0 0 188 188"><circle cx="94" cy="94" r="78" fill="none" stroke="#eef1f6" stroke-width="20"/><circle id="ck2Donut" cx="94" cy="94" r="78" fill="none" stroke="#1f9d4e" stroke-width="20" stroke-linecap="round" stroke-dasharray="490" stroke-dashoffset="490"/></svg>
-            <div class="ctr"><b id="ck2Pct">0%</b><span>체크인 완료</span></div>
+            <svg width="188" height="188" viewBox="0 0 188 188" aria-hidden="true"><circle cx="94" cy="94" r="78" fill="none" stroke="#eef1f6" stroke-width="20"/><circle id="ck2Donut" cx="94" cy="94" r="78" fill="none" stroke="#1f9d4e" stroke-width="20" stroke-linecap="round" stroke-dasharray="490" stroke-dashoffset="490"/></svg>
+            <div class="ctr"><b id="ck2Pct">0%</b><span class="cnt" id="ck2Cnt">0 / 0</span><span>체크인 완료 · Checked-in</span></div>
           </div></div>
           <div class="ck2legend">
-            <div class="li g"><span class="k"></span><span class="nm">체크인 완료</span><span class="v" id="ck2LgIn">0</span></div>
-            <div class="li o"><span class="k"></span><span class="nm">미체크인</span><span class="v" id="ck2LgOut">0</span></div>
+            <div class="li g"><span class="k"></span><span class="nm">체크인 완료 <small class="en2">Checked-in</small></span><span class="v" id="ck2LgIn">0</span></div>
+            <div class="li o"><span class="k"></span><span class="nm">미체크인 <small class="en2">Not yet</small></span><span class="v" id="ck2LgOut">0</span></div>
           </div>
-          <button type="button" class="ck2report" id="ck2Report">${ico('checkCircle')} 체크인 완료 명단 보기</button>
+          <button type="button" class="ck2report" id="ck2Report">${ico('checkCircle')} 체크인 완료 명단 보기 <small class="en2">Checked-in list</small></button>
         </div>
         <div class="ck2panel">
-          <h2>최근 체크인</h2>
+          <h2>최근 체크인 <span class="en">Recent</span></h2>
           <div id="ck2Recent"></div>
         </div>
       </div>
@@ -2625,6 +2681,21 @@ function renderCheckin(){
     const ui=state.ck2, q=$("#ck2Q"), clr=$("#ck2Clr");
     q.addEventListener("input",()=>{ ui.q=q.value; ui.page=1; clr.classList.toggle("show",!!q.value); ck2Refresh(); });
     clr.addEventListener("click",()=>{ q.value=""; ui.q=""; clr.classList.remove("show"); ui.page=1; ck2Refresh(); q.focus(); });
+    // Enter = 검색 결과가 정확히 1명일 때 체크인 (USB 바코드/QR 스캐너는 코드+Enter를 입력하므로 스캔 체크인이 그대로 동작).
+    // 이미 체크인된 사람은 Enter로 해제하지 않음 — 중복 스캔이 체크인을 풀어버리는 사고 방지.
+    q.addEventListener("keydown",ev=>{
+      if(ev.key!=="Enter" || !q.value.trim()) return;
+      const rows=ui._rows||[];
+      if(rows.length===1){
+        const e=rows[0];
+        if((state.checkedIn||{})[e.id]) toast(`이미 체크인된 참가자입니다 — ${e.name}`,"info");
+        else ckToggleCheckin(e.id);
+        q.select();                                   // 다음 스캔/입력이 바로 덮어쓰도록 전체 선택
+      } else if(rows.length>1) toast(`${rows.length}명이 일치합니다 — 검색어를 더 좁혀 주세요`,"info");
+      else toast("일치하는 참가자가 없습니다","err");
+    });
+    const catSel=$("#ck2Cat");
+    catSel.addEventListener("change",()=>{ ui.cat=catSel.value; ui.page=1; ck2Refresh(); });
     wrap.querySelectorAll(".ck2stat").forEach(s=>s.addEventListener("click",()=>{ const f=s.dataset.f;
       ui.f=(ui.f===f||f==="all")?"all":f; ui.page=1; ck2Refresh(); }));
     const perSel=$("#ck2Per"); perSel.value=String(ui.per);
@@ -2643,13 +2714,31 @@ function ck2Refresh(){
   const today=ck2TodayKey();
   const todayN=roster.filter(e=>typeof ci[e.id]==="string" && ci[e.id].slice(0,10)===today).length;
   const frac=total?inN/total:0;
-  const pctS=(frac*100).toFixed(1).replace(/\.0$/,"")+"%", outS=((1-frac)*100).toFixed(1).replace(/\.0$/,"")+"%";
+  // 가장자리 보정: 1/2504이 "0%", 2503/2504이 "100%"로 읽히는 잘못된 신호 방지 → <1% / >99%
+  const fmtPct=p=>p>0&&p<1?"<1%":(p>99&&p<100?">99%":p.toFixed(1).replace(/\.0$/,"")+"%");
+  const pctS=fmtPct(frac*100), outS=fmtPct((1-frac)*100);
   $("#ck2Total").textContent=total; $("#ck2In").textContent=inN; $("#ck2Out").textContent=outN; $("#ck2Today").textContent=todayN;
   $("#ck2InP").textContent=pctS; $("#ck2OutP").textContent=outS;
   $("#ck2Donut").setAttribute("stroke-dashoffset",String(490*(1-frac)));
   $("#ck2Pct").textContent=pctS;
+  $("#ck2Cnt").textContent=`${inN.toLocaleString()} / ${total.toLocaleString()}`;
   $("#ck2LgIn").textContent=`${inN} (${pctS})`; $("#ck2LgOut").textContent=`${outN} (${outS})`;
-  wrap.querySelectorAll(".ck2stat").forEach(s=>s.classList.toggle("fon", s.dataset.f===ui.f && ui.f!=="all"));
+  const dn=wrap.querySelector(".ck2donut");
+  if(dn){ dn.setAttribute("role","img"); dn.setAttribute("aria-label",`체크인 ${pctS} 완료 (${inN}/${total})`); }
+  // 참가 유형 필터 옵션 — 명단의 유형이 바뀐 경우에만 재구성 (마스터 교체 대응)
+  const catSel=$("#ck2Cat");
+  if(catSel){ const cats=[...new Set(roster.map(e=>e.cat).filter(Boolean))].sort();
+    const sig=cats.join("|");
+    if(catSel.dataset.sig!==sig){ catSel.dataset.sig=sig;
+      catSel.innerHTML=`<option value="">전체 유형 · All</option>`+cats.map(c=>`<option value="${esc(c)}">${esc(c)}</option>`).join("");
+      catSel.value=ui.cat||""; }
+  }
+  wrap.querySelectorAll(".ck2stat").forEach(s=>{
+    const on=s.dataset.f===ui.f && ui.f!=="all";
+    s.classList.toggle("fon",on);
+    s.setAttribute("aria-pressed",String(on));
+    const fh=s.querySelector(".fhint"); if(fh) fh.textContent = on?"✕ 해제":(s.dataset.f==="all"?"전체 보기":"필터");
+  });
   const chip=$("#ck2Chip");
   if(ui.f!=="all"){ chip.style.display=""; chip.textContent=({in:"체크인 완료만",out:"미체크인만",today:"오늘 체크인만"})[ui.f]+"  ✕ 해제"; }
   else chip.style.display="none";
@@ -2658,6 +2747,7 @@ function ck2Refresh(){
   const rows=roster.filter(e=>{
     if(q){ const hay=[e.name, e.kname, e.email, e.id].filter(Boolean).join(" ").toLowerCase();
       if(!hay.includes(q)) return false; }
+    if(ui.cat && (e.cat||"")!==ui.cat) return false;   // 참가 유형 필터
     const t=ci[e.id];
     if(ui.f==="in") return !!t;
     if(ui.f==="out") return !t;
@@ -2670,6 +2760,7 @@ function ck2Refresh(){
     if(ta&&tb&&ta!==tb) return ta<tb?1:-1;                // 최근 체크인 순
     return ((a.sess?a.sess._row:0)-(b.sess?b.sess._row:0)) || String(a.name||"").localeCompare(String(b.name||""));   // 시트 순
   });
+  ui._rows=rows;   // 검색창 Enter(스캐너) 체크인이 현재 필터 결과를 그대로 사용
   const per=ui.per>0?ui.per:(rows.length||1), npg=Math.max(1,Math.ceil(rows.length/per));
   if(ui.page>npg) ui.page=npg; if(ui.page<1) ui.page=1;
   const at=(ui.page-1)*per, page=rows.slice(at,at+per);
@@ -2679,15 +2770,21 @@ function ck2Refresh(){
   page.forEach(e=>{
     const t=ci[e.id], ft=ck2Time(t||"");
     const cat=e.cat||"—";   // 세션 카테고리(Seniors/Students/…)는 짧으므로 약어 없이 그대로 표시
+    const ri2=e.acc?partyRoomInfo(e.acc):null;             // 배정 숙소 — 프런트에서 체크인 직후 바로 안내
+    const roomTxt=ri2?(ri2.ven?`${ri2.vshort} ${ri2.rno}`:"미배정"):"—";
     const tr=el("tr");
     tr.innerHTML=
       `<td><div class="att"><span class="av" style="background:${ck2Color(e.id||e.name)}">${esc(ck2Init(e.name))}</span>`+
       `<span class="who2"><span class="nm">${esc(e.name||"(이름 없음)")}${e.kname?`<span class="kn">${esc(e.kname)}</span>`:""}</span>`+
       `<span class="em${e.email?"":" none"}">${e.email?esc(e.email):"이메일 미등록"}</span></span></div></td>`+
       `<td>${esc(cat)}</td><td class="tid">${esc(e.id)}</td>`+
-      `<td><button type="button" class="ckpill ${t?"in":"out"}" data-pid="${esc(e.id)}" title="${t?"클릭: 체크인 취소":"클릭: 체크인 완료"}">${t?ico('check')+" 체크인 완료":circ+" 미체크인"}</button></td>`+
+      `<td class="rm${(ri2&&ri2.ven)?"":" none"}">${esc(roomTxt)}</td>`+
+      `<td><button type="button" class="ckpill ${t?"in":"out"}" data-pid="${esc(e.id)}" aria-pressed="${t?"true":"false"}" title="${t?"클릭: 체크인 취소 · Click to undo":"클릭: 체크인 완료 · Click to check in"}">${t?ico('check')+" 체크인 완료":circ+" 미체크인"}</button></td>`+
       `<td class="${t?"citime":"none"}">${t?`${esc(ft.t)}<small>${esc(ft.d)}</small>`:"—"}</td>`;
     tr.addEventListener("click",ev=>{ if(ev.target.closest(".ckpill[data-pid]")) return; ckShowCard(e); });
+    tr.tabIndex=0;                                         // 키보드 탐색: Tab으로 행 이동, Enter/Space로 상세
+    tr.setAttribute("aria-label",`${e.name||e.id} 상세 보기`);
+    tr.addEventListener("keydown",ev=>{ if((ev.key==="Enter"||ev.key===" ") && !ev.target.closest(".ckpill")){ ev.preventDefault(); ckShowCard(e); } });
     const pill=tr.querySelector(".ckpill[data-pid]");
     if(pill) pill.addEventListener("click",ev=>{ ev.stopPropagation(); ckToggleCheckin(e.id); });
     tb.append(tr);
@@ -2711,9 +2808,13 @@ function ck2Refresh(){
   if(!recents.length) rec.append(el("div","noneyet","아직 체크인 기록이 없습니다"));
   recents.forEach(e=>{
     const ft=ck2Time(ci[e.id]);
+    const ri2=e.acc?partyRoomInfo(e.acc):null;
+    const meta=[e.cat||"", (ri2&&ri2.ven)?`${ri2.vshort} ${ri2.rno}`:""].filter(Boolean).join(" · ");   // 유형 · 객실 — 방금 도착한 사람을 어디로 보낼지 한눈에
     const d=el("div","ri");
-    d.innerHTML=`<span class="av" style="background:${ck2Color(e.id)}">${esc(ck2Init(e.name))}</span><span class="nm">${esc(e.name)}</span><span class="tm">${esc(ft.t||"✓")}</span>`;
+    d.innerHTML=`<span class="av" style="background:${ck2Color(e.id)}">${esc(ck2Init(e.name))}</span><span class="riw"><span class="nm">${esc(e.name)}</span>${meta?`<span class="rim">${esc(meta)}</span>`:""}</span><span class="tm">${esc(ft.t||"✓")}</span>`;
     d.onclick=()=>ckShowCard(e);
+    d.tabIndex=0; d.setAttribute("role","button"); d.setAttribute("aria-label",`${e.name} 상세 보기`);
+    d.addEventListener("keydown",ev=>{ if(ev.key==="Enter"||ev.key===" "){ ev.preventDefault(); ckShowCard(e); } });
     rec.append(d);
   });
 }
@@ -5975,6 +6076,10 @@ $("#btnClear").onclick=confirmClear;
 $("#btnExcel").onclick=()=>withLoading("배정 결과 저장 중…",exportExcel);
 $("#btnMaster").onclick=confirmMaster;
 $("#btnPrint").onclick=doPrint;
+// a11y: 사이드바 메뉴(href 없는 <a>)를 키보드로 — Tab 이동 + Enter/Space 선택
+document.querySelectorAll("#sidenav .nav a[data-view]").forEach(a=>{ a.tabIndex=0;
+  a.addEventListener("keydown",e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); a.click(); } });
+});
 // mobile bottom bar
 $("#mbFileMaster").addEventListener("change",onMasterFile);
 $("#mbAuto").onclick=confirmAuto;
