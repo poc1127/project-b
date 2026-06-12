@@ -1413,6 +1413,87 @@
   /* [체크인] 미체크인 = 중립 (시작 시 전원 빨강 → 오류처럼 보이던 것; 완료=초록 유지) */
   #checkin .ckpill.out{background:#eef1f4;color:#5b6875;}
   #checkin .ckpill.out:hover{background:#e2e7ec;}
+
+  /* ===================================================================
+     MOBILE PASS 2 (2026-06-12) — 일정·세션·체크인 뷰가 모바일 리빌드 이후에
+     추가되어 폰 대응이 빠져 있던 부분 보강. 표시 전용(기능 변경 없음).
+     =================================================================== */
+  /* [전 뷰] 폰 헤더 탭: 제목 옆 한 줄 강제(flex:none+nowrap)로 5개 탭이 잘려
+     화면 밖 탭을 누를 수 없던 문제 → 전체폭 2번째 줄 + 가로 스와이프 */
+  @media (max-width:640px){
+    .viewtabs{order:3;flex:1 1 100%;width:100%;margin:2px 0 0;display:flex;overflow-x:auto;
+              scrollbar-width:none;-webkit-overflow-scrolling:touch;}
+    .viewtabs::-webkit-scrollbar{display:none;}
+    .viewtabs .vtab{flex:none;}
+  }
+  /* [일정] 좁은 화면: 6개 날짜 칼럼이 ~40px로 짓눌리던 것 → 표에 최소폭을 주고
+     .schedscroll 안에서 가로 스크롤 (시간 칼럼은 기존 sticky left 유지) */
+  @media (max-width:880px){
+    table.schedtbl{min-width:860px;}
+  }
+  @media (max-width:640px){
+    #schedule{padding:8px;}
+    .sched-bar,.sched-legend{padding:8px 12px;gap:8px 14px;}
+    .sched-title{font-size:16px;margin:4px 0 10px;}
+    table.schedtbl th,table.schedtbl td{padding:6px 10px;}
+    table.schedtbl thead th{padding:9px 10px;}
+    table.schedtbl thead th:not(.timecol){padding-left:13px;}
+    table.schedtbl .timecol{width:80px;}
+  }
+  /* [체크인] 폰: 표 5칼럼 압착 → 참가 유형·참가자ID 칼럼은 숨김(행 탭 → 상세 모달에서 확인);
+     카드·패널 여백 압축 */
+  @media (max-width:760px){
+    #checkin .ck2panel{padding:16px 14px;}
+    #checkin .ck2panel h2{font-size:16px;margin-bottom:12px;}
+    #checkin .ck2stats{margin-bottom:14px;}
+    #checkin .ck2stat{padding:14px 16px;}
+    #checkin .ck2stat .num{font-size:24px;margin-top:8px;}
+    #checkin .ck2lower{gap:14px;}
+    #checkin .ck2tbl th:nth-child(2),#checkin .ck2tbl td:nth-child(2),
+    #checkin .ck2tbl th:nth-child(3),#checkin .ck2tbl td:nth-child(3){display:none;}
+    #checkin .ck2tbl thead th{padding:12px 7px 8px;word-break:keep-all;}   /* '체크인 시각'이 세로 한 글자씩 꺾이지 않게 (단어 단위로만 줄바꿈) */
+    #checkin .ck2tbl tbody td{padding:10px 7px;font-size:13px;}
+    /* 표의 최소 내용폭(긴 이메일이 안 끊김 ≈ 400px)이 패널을 뷰포트 밖으로 밀어
+       시각 칼럼이 잘려 보이던 것 → 고정 레이아웃 + 상태/시각 폭 지정, 이름·이메일은 말줄임 */
+    #checkin table.ck2tbl{table-layout:fixed;}
+    #checkin .ck2tbl th:nth-child(4){width:108px;}
+    #checkin .ck2tbl th:nth-child(5){width:74px;}
+    #checkin .att .who2{min-width:0;}
+    #checkin .att .nm,#checkin .att .em{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    #checkin .att .av{width:32px;height:32px;font-size:12px;}
+  }
+  /* [체크인] iOS 포커스 줌 방지: 검색·페이지당 셀렉트도 16px로 (≤640 공통 input 규칙이
+     #checkin ID 셀렉터 특이성에 밀리던 것) */
+  @media (max-width:640px){
+    #checkin .ck2search input{font-size:16px;}
+    #checkin .ck2pg .ck2perw select{font-size:16px;}
+  }
+  /* [일정] 범례 박스: flex-basis:auto(=내용 전체폭, ~714px)라 줄어들지 못해 화면 밖으로
+     잘리던 것 → 좁은 화면에선 줄어들 수 있게 해 내부 flex-wrap이 동작하도록 */
+  @media (max-width:880px){
+    .sched-legend{flex:1 1 320px;min-width:0;}
+  }
+  /* [전 뷰] 폰: 데이터 출처 푸터 — sticky bottom:0이 고정 액션바(54px) 뒤에 깔려
+     아이콘 한 줄만 보이던 것 → 폰에선 일반 흐름(페이지 끝)으로 */
+  @media (max-width:640px){
+    #srcfoot{position:static;box-shadow:none;}
+  }
+  /* [세션 배정] 폰: 슬롯 피커 압축 — 날짜 라벨·슬롯 알약을 폰 폭에 맞게 */
+  @media (max-width:640px){
+    .sbday{gap:6px;}
+    .sbdaylab{width:74px;padding:2px 5px;font-size:10.5px;}
+    .sbslots{grid-template-columns:repeat(auto-fill,minmax(128px,1fr));}
+    .sbslot{min-width:0;padding:2px 6px;font-size:11px;}
+    #sessslotbar h3,.sessdayhd h3{font-size:14px;}
+  }
+  /* 실기기 프로필(390px) 검증에서 나온 마감 3건 */
+  @media (max-width:640px){
+    #mobilebar .mbtn.more{flex:0 0 78px;}   /* '더보기'가 68px에서 두 줄로 꺾이던 것 */
+    #tlbar .searchwrap{flex:1 1 100%;}      /* 검색칸이 셀렉트들에 밀려 0px로 찌부되던 것 → 첫 줄 전체폭, 필터들은 다음 줄 */
+  }
+  @media (max-width:480px){
+    #checkin .ck2stats{grid-template-columns:repeat(2,1fr);}   /* 1열(카드 4장 세로 나열)은 스크롤 낭비 — 압축 패딩으로 390px에서도 2열이 충분 */
+  }
 </style>
 </head>
 <body>
@@ -1607,7 +1688,7 @@
 "use strict";
 // ⚑ index.html build version — shown bottom-right on the start screen. BUMP ON EACH DEPLOY.
 //   Format: vYYYY.MM.DD-N  (N = same-day build counter; reset to 1 on a new date).
-const APP_VERSION = "v2026.06.11-16";
+const APP_VERSION = "v2026.06.12-3";
 /* ============================================================
    ICMDA 2026 Operations Dashboard (single file)
    - reads the live master .xlsx (columns mapped by HEADER NAME)
@@ -2314,6 +2395,7 @@ function updateViewTabs(){                            // reflect state.view on t
     n.setAttribute("role","tab"); n.setAttribute("aria-selected",String(on));
   });
   document.querySelectorAll("#sidenav .nav a[data-view]").forEach(a=>a.classList.toggle("on", a.dataset.view===state.view));
+  const at=document.querySelector(".viewtabs .vtab.active"); if(at) at.scrollIntoView({block:"nearest",inline:"nearest"});   // 폰: 탭 줄이 가로 스크롤이라 활성 탭이 화면 밖일 수 있음
   applyStartCopy();                                  // 시작 화면 인트로 카피를 선택된 보기에 맞춤 (빈 상태에서만 보이지만 갱신은 항상)
 }
 // 시작 화면 좌측 인트로(제목·설명·3단계) — 선택된 보기별 카피. 숙소 배정·숙소 타임라인은 공통, 일정·세션 배정·현장 체크인은 각각 별도.
