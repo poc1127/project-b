@@ -710,6 +710,13 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
   .card .cbody.edit textarea{resize:vertical;}
   .card .cbody.edit input.idf,.card .cbody.edit textarea.idf{border-color:#e0a59c;background:#fffaf9;}   /* 세션 배정 식별자 — 바꾸면 배정이 재연결됨 */
   .card .cbody.edit .sec{margin-top:12px;}                    /* tighter section spacing in edit mode */
+  /* 수정 안내 배너 — 무엇이 바뀌고 어떻게 저장되는지 친절하게 */
+  .card .cbody.edit .editnote{grid-column:1/-1;display:flex;gap:10px;align-items:flex-start;margin:0 0 6px;padding:11px 13px;background:#f1f6fc;border:1px solid #d6e4f5;border-radius:10px;font-size:12px;line-height:1.55;color:#37475a;}
+  .card .cbody.edit .editnote .ico{flex:none;width:16px;height:16px;color:#3b82c4;margin-top:1px;}
+  .card .cbody.edit .editnote b{color:var(--ink);font-weight:700;}
+  .card .cbody.edit .editnote ul{margin:5px 0 0;padding-left:17px;}
+  .card .cbody.edit .editnote li{margin:2px 0;}
+  .card .cbody.edit .editnote .pill{display:inline-block;font-weight:700;color:#2b3a4a;background:#dfeafa;border-radius:5px;padding:0 6px;}
   .card .cfoot{display:flex;gap:8px;justify-content:flex-end;padding:12px 20px;border-top:1px solid #eef0f3;flex:none;background:#fff;border-radius:0 0 14px 14px;}
   .card .cfoot button{padding:8px 18px;border-radius:8px;}
   .card .cfoot .cdanger{margin-right:auto;background:#fff;color:var(--danger);border:1px solid #e3b4ae;}
@@ -1169,7 +1176,7 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
   /* print: render the paginated preview pages themselves (each .ppage = one A4 page) so the PDF matches the
      preview exactly. MUST stay after the base #printprev rules so these overrides win on source order. */
   @media print{
-    header,#statsbar,#main,#warnpanel,#srcfoot,#modal,#dlgbg{display:none !important;}
+    header,#statsbar,#main,#warnpanel,#srcfoot,#modal,#dlgbg,#viewhelp,#helpbg{display:none !important;}
     #printprev{position:static;display:block !important;background:none;padding:0;}
     #printprev .pp-box{box-shadow:none;border-radius:0;max-width:none;max-height:none;overflow:visible;}
     #printprev .pp-head,#printprev .pp-foot,#printprev .pp-num{display:none !important;}
@@ -1627,6 +1634,46 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
   @media (max-width:480px){
     #checkin .ck2stats{grid-template-columns:repeat(2,1fr);}   /* 1열(카드 4장 세로 나열)은 스크롤 낭비 — 압축 패딩으로 390px에서도 2열이 충분 */
   }
+
+  /* ===== 초보자 도움말: 화면별 안내 배너(#viewhelp) + 전체 가이드 모달(#helpbg) ===== */
+  #viewhelp{display:flex;align-items:flex-start;gap:11px;margin:10px 12px 0;padding:11px 14px;background:#f1f6fc;border:1px solid #d6e4f5;border-radius:11px;color:#37475a;font-size:12.5px;line-height:1.55;}
+  #viewhelp[hidden]{display:none;}
+  #viewhelp .vh-ic{flex:none;width:18px;height:18px;color:#3b82c4;margin-top:1px;}
+  #viewhelp .vh-body{flex:1 1 auto;min-width:0;}
+  #viewhelp .vh-title{font-weight:700;color:var(--ink);margin-bottom:2px;}
+  #viewhelp .vh-text b{color:#2b3a4a;font-weight:700;}
+  #viewhelp .vh-more{flex:none;font-size:11.5px;font-weight:600;color:#2f6fa8;background:#e4eefb;border:1px solid #cfe0f5;border-radius:7px;padding:5px 10px;cursor:pointer;white-space:nowrap;}
+  #viewhelp .vh-more:hover{background:#d8e7fa;}
+  #viewhelp .vh-collapse{flex:none;width:26px;height:26px;border:1px solid #d6e4f5;background:#fff;border-radius:7px;color:#5b6b7d;cursor:pointer;font-size:12px;line-height:1;}
+  #viewhelp.collapsed{padding-top:8px;padding-bottom:8px;}
+  #viewhelp.collapsed .vh-text,#viewhelp.collapsed .vh-more{display:none;}
+  #viewhelp.collapsed .vh-collapse{transform:rotate(180deg);}
+  @media(max-width:640px){ #viewhelp{margin:8px;flex-wrap:wrap;} }
+  /* 사이드바 도움말 버튼 */
+  #sidenav .navhelp{margin:6px 10px 0;padding:9px 11px;display:flex;align-items:center;gap:8px;width:calc(100% - 20px);text-align:left;background:#eef4fb;border:1px solid #d6e4f5;border-radius:9px;color:#2f6fa8;font-size:12.5px;font-weight:600;cursor:pointer;}
+  #sidenav .navhelp:hover{background:#e2edfa;}
+  /* 헤더 ? 버튼 */
+  .helpbtn{flex:none;width:28px;height:28px;border-radius:50%;border:1px solid #cfd9e4;background:#fff;color:#2f6fa8;font-weight:700;font-size:14px;cursor:pointer;line-height:1;}
+  .helpbtn:hover{background:#eef4fb;}
+  /* 전체 가이드 모달 */
+  #helpbg{position:fixed;inset:0;z-index:300;background:rgba(15,23,35,.5);display:none;align-items:center;justify-content:center;padding:20px;}
+  #helpbg.show{display:flex;}
+  #helpmodal{background:#fff;border-radius:16px;max-width:680px;width:100%;max-height:86vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.3);}
+  #helpmodal .hm-head{display:flex;align-items:center;gap:10px;padding:16px 22px;border-bottom:1px solid #eef0f3;}
+  #helpmodal .hm-head h2{margin:0;font-size:17px;color:var(--ink);}
+  #helpmodal .hm-head .hm-x{margin-left:auto;border:none;background:#f1f3f6;width:32px;height:32px;border-radius:8px;font-size:18px;cursor:pointer;color:#5b6b7d;line-height:1;}
+  #helpmodal .hm-body{padding:6px 22px 20px;overflow:auto;}
+  #helpmodal h3{font-size:13.5px;color:var(--ink);margin:18px 0 8px;display:flex;align-items:center;gap:7px;}
+  #helpmodal h3::before{content:"";width:4px;height:15px;border-radius:2px;background:var(--primary);}
+  #helpmodal .hm-steps{display:flex;flex-direction:column;gap:8px;}
+  #helpmodal .hm-step{display:flex;gap:10px;align-items:flex-start;background:#f7f9fc;border:1px solid #eef1f5;border-radius:9px;padding:9px 12px;font-size:12.5px;color:#46556a;line-height:1.5;}
+  #helpmodal .hm-step .n{flex:none;width:22px;height:22px;border-radius:50%;background:var(--primary);color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;margin-top:1px;}
+  #helpmodal .hm-step b{color:var(--ink);}
+  #helpmodal dl{margin:0;}
+  #helpmodal dt{font-weight:700;color:var(--ink);font-size:12.5px;margin-top:11px;}
+  #helpmodal dd{margin:2px 0 0;font-size:12.5px;color:#46556a;line-height:1.55;}
+  #helpmodal dd b{color:#2b3a4a;}
+  #helpmodal .key{display:inline-block;font-weight:700;color:#2b3a4a;background:#eef2f6;border:1px solid #e1e7ee;border-radius:5px;padding:0 6px;font-size:11.5px;}
 </style>
 </head>
 <body>
@@ -1643,6 +1690,7 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
     <a data-view="schedule" role="button" tabindex="0"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> 일정</a>
     <a data-view="session" role="button" tabindex="0"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg> 세션 배정</a>
   </nav>
+  <button id="helpBtnSide" class="navhelp" type="button" title="전체 사용법 보기">ⓘ 도움말 · 사용법 보기</button>
   <div class="snote"><b>ICMDA 2026 운영 대시보드</b><br>숙소 · 일정 · 세션 · 체크인 통합 관리<span class="ver" id="snVer"></span></div>
 </aside>
 <header>
@@ -1675,10 +1723,22 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
     <button id="tabSchedule" class="vtab" title="업로드한 엑셀 '일정' 탭의 2026 ICMDA 프로그램 일정표를 봅니다.">일정 보기</button>
     <button id="tabSession" class="vtab" title="브레이크아웃·스트림 세션에 참가자를 배정합니다. (정원 관리)">세션 배정 보기</button>
   </span>
+  <button id="helpBtn" class="helpbtn" type="button" title="도움말 — 전체 사용법 보기" aria-label="도움말">?</button>
   <span id="srcname" style="font-size:11px;opacity:.8;"></span>
 </header>
 
 <div id="statsbarwrap" class="hscroll-wrap"><div id="statsbar"><span class="empty-hint" style="padding:4px;">마스터 .xlsx 파일을 열어 시작하세요. (참가자 · 객실 탭 필요)</span></div></div>
+
+<!-- 화면별 사용법 안내 배너 (파일 로드 후, 보기별로 내용 갱신; 접기 가능) -->
+<div id="viewhelp" hidden>
+  <svg class="vh-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+  <div class="vh-body">
+    <div class="vh-title">이 화면 사용법 — <span id="vhName"></span></div>
+    <div class="vh-text" id="vhText"></div>
+  </div>
+  <button class="vh-more" id="vhMore" type="button">전체 도움말 ›</button>
+  <button class="vh-collapse" id="vhCollapse" type="button" aria-label="안내 접기/펼치기" title="접기/펼치기">▾</button>
+</div>
 
 <!-- import / start screen: shown until a master file is loaded -->
 <div id="startscreen" hidden>
@@ -1807,6 +1867,7 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
     <button class="sbtn" id="shExcel" disabled><span class="ic" data-ico="download"></span> 배정 결과 저장</button>
     <button class="sbtn" id="shMaster" disabled><span class="ic" data-ico="upload"></span> 마스터 업데이트 (v+1)</button>
     <button class="sbtn" id="shPrint" disabled><span class="ic" data-ico="printer"></span> 인쇄 / PDF</button>
+    <button class="sbtn" id="shHelp"><span class="ic" data-ico="info"></span> 도움말 · 사용법 보기</button>
   </div>
 </div>
 
@@ -1815,13 +1876,16 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
 
 <div id="modal" class="modal-bg" style="display:none;"><div id="card" class="card"></div></div>
 
+<!-- 전체 사용법 가이드 모달 (도움말 버튼으로 열림) -->
+<div id="helpbg"><div id="helpmodal" role="dialog" aria-modal="true" aria-labelledby="hmTitle"></div></div>
+
 <div id="loading" style="display:none;"><div class="spin"></div><div id="loadtxt">자동 배정 중…</div></div>
 
 <script>
 "use strict";
 // ⚑ index.html build version — shown bottom-right on the start screen. BUMP ON EACH DEPLOY.
 //   Format: vYYYY.MM.DD-N  (N = same-day build counter; reset to 1 on a new date).
-const APP_VERSION = "v2026.06.13-9";
+const APP_VERSION = "v2026.06.13-10";
 // 세션 배정 기본 '세션 불필요'(면제) 분류 — 스태프/팀/특수 그룹은 세션 배정 대상이 아님. 저장된 (면제분류) 설정이 없을 때만 시드.
 const DEFAULT_SESS_EXEMPT = ["AFF","NOC 위원","미디어팀","자원봉사팀","찬양팀","협력팀"];
 /* ============================================================
@@ -1937,6 +2001,7 @@ const ICONS={
   chevronUp:'<polyline points="18 15 12 9 6 15"/>',
   chevronDown:'<polyline points="6 9 12 15 18 9"/>',
   sort:'<polyline points="7 15 12 20 17 15"/><polyline points="7 9 12 4 17 9"/>',
+  info:'<circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>',
 };
 const ico = name => '<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+(ICONS[name]||"")+'</svg>';
 const norm = v => (v==null? "" : String(v).trim());
@@ -2547,6 +2612,7 @@ function updateViewTabs(){                            // reflect state.view on t
   document.querySelectorAll("#sidenav .nav a[data-view]").forEach(a=>a.classList.toggle("on", a.dataset.view===state.view));
   const at=document.querySelector(".viewtabs .vtab.active"); if(at) at.scrollIntoView({block:"nearest",inline:"nearest"});   // 폰: 탭 줄이 가로 스크롤이라 활성 탭이 화면 밖일 수 있음
   applyStartCopy();                                  // 시작 화면 인트로 카피를 선택된 보기에 맞춤 (빈 상태에서만 보이지만 갱신은 항상)
+  renderViewHelp();                                  // 화면별 사용법 배너 갱신 (파일 로드 시에만 표시)
 }
 // 시작 화면 좌측 인트로(제목·설명·3단계) — 선택된 보기별 카피. 숙소 배정·숙소 타임라인은 공통, 일정·세션 배정·현장 체크인은 각각 별도.
 const START_COPY = {
@@ -2569,6 +2635,67 @@ function applyStartCopy(){
   if(t) t.textContent=c.title;
   if(s) s.textContent=c.sub;
   if(f) f.innerHTML=c.steps.map((st,i)=>`<div class="ss-fitem"><span class="ss-fnum">${i+1}</span><div class="ss-ftext"><b>${esc(st[0])}</b><span>${esc(st[1])}</span></div></div>`).join("");
+}
+// ===== 초보자 도움말 =====
+// 화면별 한 줄 사용법 (배너). timeline도 별도 안내.
+const VIEW_HELP = {
+  rooms:    { name:"숙소 배정 보기", text:"방마다 사람을 배치하는 화면입니다. 왼쪽 <b>미배정</b> 목록에서 사람을 끌어다 방에 놓거나, 위의 <b>② 자동 배정</b>으로 규칙(성별·정원·온돌·묶음)에 맞춰 한 번에 채웁니다. 사람 칩을 <b>클릭</b>하면 상세·수정, <b>자물쇠</b>를 누르면 자동배정에서 제외됩니다." },
+  timeline: { name:"숙소 타임라인 보기", text:"사람별 <b>숙박 기간</b>을 막대로 보는 화면입니다. 막대 양끝을 끌어 기간을 늘리고/줄이며, 가운데를 끌어 날짜를 옮기고, 행 손잡이(⠿)로 객실을 바꿉니다. 위 <b>날짜 +/−</b>로 숙박 가능일 자체를 늘리거나 줄일 수 있어요." },
+  checkin:  { name:"숙소 체크인", text:"행사 현장에서 쓰는 화면입니다. <b>이름·이메일</b>로 검색해 그 사람의 배정 숙소·객실을 확인하고, <b>체크인</b>(도착)·<b>체크아웃</b>(퇴실)을 눌러 기록합니다. 시각은 자동으로 찍히고, 상세 모달에서 고칠 수 있어요." },
+  schedule: { name:"일정 보기", text:"마스터 ‘일정’ 탭의 2026 프로그램 시간표입니다. 칸을 눌러 시간·내용을 고칠 수 있고, 칸 색은 프로그램 종류(학생·프리컨퍼런스·콩그레스)를 뜻합니다. 바꾼 내용은 <b>마스터 업데이트</b>로 저장돼요." },
+  session:  { name:"세션 배정 보기", text:"참가자를 브레이크아웃·스트림 세션에 <b>정원</b>에 맞춰 배정하는 화면입니다. 왼쪽 풀에서 사람을 세션 카드로 보냅니다. 정원 초과·시간 겹침·중복 등록은 자동으로 표시돼요." },
+};
+function renderViewHelp(){
+  const box=$("#viewhelp"); if(!box) return;
+  if(!state.masterBuf){ box.hidden=true; return; }
+  const h = VIEW_HELP[state.view] || VIEW_HELP.rooms;
+  $("#vhName").textContent=h.name;
+  $("#vhText").innerHTML=h.text;
+  box.classList.toggle("collapsed", localStorage.getItem("icmda_vh")==="1");
+  box.hidden=false;
+}
+// 전체 사용법 가이드 모달 — 정적 내용(참가자 데이터 없음).
+function openHelp(){
+  const step=(n,t,d)=>`<div class="hm-step"><span class="n">${n}</span><div><b>${t}</b> — ${d}</div></div>`;
+  const dd=(t,d)=>`<dt>${t}</dt><dd>${d}</dd>`;
+  $("#helpmodal").innerHTML=
+    `<div class="hm-head"><h2 id="hmTitle">도움말 · 대시보드 사용법</h2><button class="hm-x" id="hmX" aria-label="닫기">×</button></div>
+     <div class="hm-body">
+       <h3>처음 시작하기 (3단계)</h3>
+       <div class="hm-steps">
+         ${step(1,"마스터 파일 열기","참가자·객실 탭이 든 .xlsx를 <span class='key'>① 마스터 열기</span>로 불러옵니다. (화면에 끌어다 놓아도 됩니다.)")}
+         ${step(2,"배정 · 편집","자동으로 배정하거나, 사람을 끌어 배치하고, 카드를 눌러 정보를 수정합니다.")}
+         ${step(3,"마스터 업데이트","<span class='key'>마스터 업데이트 (v+1)</span>를 누르면 변경 내용이 새 버전 파일로 저장됩니다. 이 버튼을 눌러야 파일에 기록돼요.")}
+       </div>
+       <h3>화면별 안내</h3>
+       <dl>
+         ${dd("숙소 배정 보기","방 단위로 사람을 배치합니다. 끌어 놓기 또는 ② 자동 배정. 칩 클릭 = 상세·수정, 자물쇠 = 자동배정 제외.")}
+         ${dd("숙소 타임라인 보기","사람별 숙박 기간을 막대로 조정합니다. 양끝=기간, 가운데=이동, ⠿=객실 변경, 날짜 +/− = 숙박일 추가/삭제.")}
+         ${dd("숙소 체크인","현장용. 이름·이메일로 찾아 도착(체크인)·퇴실(체크아웃)을 기록합니다.")}
+         ${dd("일정 보기","‘일정’ 탭 시간표를 보고 편집합니다. 색 = 프로그램 종류.")}
+         ${dd("세션 배정 보기","참가자를 정원에 맞춰 세션에 배정합니다. 초과·겹침은 자동 표시.")}
+       </dl>
+       <h3>주요 버튼</h3>
+       <dl>
+         ${dd("② 자동 배정","성별·정원·온돌·묶음 규칙에 따라 <b>미배정 인원</b>을 방에 자동 배치합니다. (잠긴 인원은 제외)")}
+         ${dd("배정 초기화","잠그지 않은 배정을 모두 미배정으로 되돌립니다. 잠긴 인원·방·호텔은 유지.")}
+         ${dd("배정 결과 저장","현재 배정을 <b>보기용</b> Excel로 내려받습니다. (원본 마스터는 바뀌지 않음)")}
+         ${dd("인쇄 / PDF","방 배치표를 인쇄하거나 PDF로 저장합니다.")}
+         ${dd("마스터 업데이트 (v+1)","배정·수정·체크인을 모두 반영해 <b>새 버전 파일</b>로 내보냅니다. 최종 저장은 이 버튼으로.")}
+       </dl>
+       <h3>알아두면 편해요</h3>
+       <dl>
+         ${dd("카드 수정","사람 카드의 <span class='key'>수정</span>은 마스터 ‘참가자’ 탭을 바꿉니다. 도착·출발·숙박일수·총인원은 자동 계산이라 손대지 않아도 돼요.")}
+         ${dd("저장 vs 마스터 업데이트","카드의 <span class='key'>저장</span>은 화면에만 반영, <span class='key'>마스터 업데이트</span>를 눌러야 파일에 기록됩니다.")}
+         ${dd("데이터 출처","각 상세 모달의 섹션 제목 옆 회색 뱃지가 그 값이 어느 마스터 탭에서 온 것인지 알려줍니다.")}
+       </dl>
+     </div>`;
+  const bg=$("#helpbg"); bg.classList.add("show");
+  const close=()=>{ bg.classList.remove("show"); document.removeEventListener("keydown",onKey,true); };
+  const onKey=e=>{ if(e.key==="Escape"){ e.stopPropagation(); close(); } };
+  document.addEventListener("keydown",onKey,true);
+  bg.onclick=e=>{ if(e.target===bg) close(); };
+  $("#hmX").onclick=close;
 }
 // view switch works before a file loads too — at the empty state it just pre-selects the landing view (start screen stays)
 function setView(v){ state.view=v; state.picks.clear(); saveUI(); if(state.masterBuf) render(); else updateViewTabs(); }
@@ -5617,7 +5744,15 @@ function editCard(p){
   ];
   // full-width fields. 본인/자녀 included so their paired row spans the full width on mobile (one pair per line).
   const WIDE=new Set(["이메일","소속","현재 배정 · 숙소","현재 배정 · 객실","동반자요약","비고","본인","자녀"]);
-  let body="";
+  let body=
+    `<div class="editnote">${ico('info')}<div>
+       <b>마스터 데이터 ‘참가자’ 탭을 수정합니다.</b> 여기서 바꾼 값은 그 사람의 참가자 정보에 그대로 반영돼요.
+       <ul>
+         <li>도착일·출발일·숙박일수·총인원은 <b>자동 계산</b>되는 칸이라 직접 고치지 않아도 됩니다 — <b>숙박 기간</b>과 <b>인원(본인·배우자·자녀·기타)</b>만 정확히 넣어 주세요.</li>
+         <li>숙소·객실을 바꾸면 배정 현황도 함께 업데이트됩니다.</li>
+         <li>다 고치셨으면 <span class="pill">저장</span>을 눌러 화면에 반영하고, 마지막에 <span class="pill">마스터 업데이트</span>로 파일에 저장하세요. (저장만 하면 파일에는 아직 기록되지 않아요.)</li>
+       </ul>
+     </div></div>`;
   F.forEach(([k,v,src])=>{
     if(k==="sec"){body+=secHTML(v,src);return;}
     const w=WIDE.has(k)?" wide":"";
@@ -5638,9 +5773,23 @@ function editCard(p){
 }
 // remove a participant entirely: from the live view now, and (on export) blank its row in the master
 function deleteCard(p){
+  const assignedCount=Object.values(state.sessionAssign||{}).filter(s=>s&&s.has(p.id)).length;
+  const body=
+    `'${p.name||p.id}' (ID ${p.id}${p.email?` · ${p.email}`:""}) 기록을 '참가자'(숙소) 데이터에서 완전히 삭제합니다.\n\n`+
+    `[확인하면 실행되는 작업]\n`+
+    `· 숙소 배정·타임라인·체크인 화면과 왼쪽 목록에서 이 사람이 사라집니다.\n`+
+    `· 현재 방 배정·방 잠금·동반/인원 정보가 모두 제거됩니다.\n`+
+    `· 세션 배정 풀도 같은 '참가자' 데이터를 쓰므로 거기서도 사라지며, 배정돼 있던 세션(${assignedCount}개)에서도 자동으로 빠집니다.\n\n`+
+    `[마스터 파일에 적용되는 방식]\n`+
+    `· '마스터 업데이트'로 내보낼 때, '참가자' 탭에서 이 레코드가 있던 행의 모든 칸 내용이 지워집니다.\n`+
+    `· 행 자체를 삭제하거나 아래 행을 끌어올리지 않습니다 — 해당 행의 셀 값만 비우고 빈 행으로 남깁니다. 따라서 다른 사람들의 행 위치·번호는 그대로 유지되고, 셀 서식·수식 등 나머지 시트 내용도 보존됩니다.\n`+
+    `· 빈 행은 마스터를 다시 불러올 때 자동으로 무시됩니다(유효한 참가자ID가 없는 행이라서).\n\n`+
+    `[영향 범위]\n`+
+    `· 숙소 배정에 쓰이는 '참가자'(숙소) 명단에 적용됩니다. 세션 배정 전용 '세션 참가자' 탭은 바뀌지 않습니다 — 그 탭의 레코드를 지우려면 세션 배정 보기에서 해당 인원의 '기록 삭제'를 사용하세요.\n\n`+
+    `되돌릴 수 없습니다. (아직 마스터를 내보내기 전이라면, 원본 파일을 다시 열어 처음 상태로 되돌릴 수 있습니다.)`;
   dialog({
     title:"기록 삭제",
-    body:`'${p.name||p.id}' (${p.id}) 기록을 완전히 삭제합니다.\n배정·동반 정보가 모두 제거되며, 마스터 내보내기 시 해당 행이 비워집니다. 되돌릴 수 없습니다.`,
+    body,
     okText:"삭제", cancelText:"취소", danger:true,
     onOk:()=>{
       if(p._row!=null){ state.deletedRows=state.deletedRows||[]; state.deletedRows.push(p._row); }
@@ -5648,6 +5797,8 @@ function deleteCard(p){
       state.orderList=state.orderList.filter(id=>id!==p.id);
       delete state.byId[p.id]; delete state.assign[p.id]; delete state.locked[p.id];
       state.tlSel.delete(p.id);
+      Object.values(state.sessionAssign||{}).forEach(set=>set&&set.delete(p.id));   // 완전 삭제 → 배정된 세션에서도 제거(대롱대롱 남지 않게)
+      if(state.sessPicks) state.sessPicks.delete(p.id);
       closeCard(); render();
       toast(`'${p.name||p.id}' 기록을 삭제했습니다. (내보내기 시 마스터에 반영)`,"ok",4000);
     }
@@ -5723,6 +5874,15 @@ function saveCard(p){
   p._edits=p._edits||new Set();
   Object.entries(FIELD_HDR).forEach(([k,h])=>{ if(String(p[k]??"")!==String(before[k])) p._edits.add(h); });
   ["본인","배우자","자녀","기타"].forEach(k=>{ if((p.party[k]||0)!==(bparty[k]||0)) p._edits.add(k); });
+  // re-link load-derived metadata (나이대·sessMeta·참가유형·지역) — these are joined from the '세션 참가자' 탭 by
+  // email at load (parseMaster), so an 이메일/국적 edit here must refresh them or other views show a stale 지역/나이대.
+  if(String(p.email??"")!==String(before.email??"")) state._ckAccByEmail=null;   // 이메일→숙소 레코드 메모이즈 무효화(새 이메일로 다시 매칭)
+  const sp=ckMatchByEmail(p.email, ckSessByEmail());
+  p.sessMeta=sp||null;
+  p.band=(sp&&sp.band)||"";
+  p.pcat=(sp&&sp.pcat)||"";
+  p.admType=(sp&&sp.admType)||"";
+  p.region=(p.nat||"").trim()||(sp&&sp.region)||"";   // 국가: 참가자 국적 우선, 폴백 세션 지역
   state.edited=true;
   render();
   openCard(p);
@@ -6442,6 +6602,13 @@ $("#shClear").onclick=()=>{ closeSheet(); confirmClear(); };
 $("#shExcel").onclick=()=>{ closeSheet(); withLoading("배정 결과 저장 중…",exportExcel); };
 $("#shMaster").onclick=()=>{ closeSheet(); confirmMaster(); };
 $("#shPrint").onclick=()=>{ closeSheet(); doPrint(); };
+$("#shHelp").onclick=()=>{ closeSheet(); openHelp(); };
+// 도움말 — 헤더 ? · 사이드바 버튼 · 배너 '전체 도움말'
+$("#helpBtn").onclick=openHelp;
+$("#helpBtnSide").onclick=openHelp;
+$("#vhMore").onclick=openHelp;
+$("#vhCollapse").onclick=()=>{ const box=$("#viewhelp"); const collapse=!box.classList.contains("collapsed");
+  box.classList.toggle("collapsed",collapse); if(collapse) localStorage.setItem("icmda_vh","1"); else localStorage.removeItem("icmda_vh"); };
 
 // search: live filter + clear (×) button (shows when non-empty)
 function wireSearchClear(inputSel, clrSel, onChange){
