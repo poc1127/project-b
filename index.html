@@ -1817,7 +1817,7 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
 "use strict";
 // ⚑ index.html build version — shown bottom-right on the start screen. BUMP ON EACH DEPLOY.
 //   Format: vYYYY.MM.DD-N  (N = same-day build counter; reset to 1 on a new date).
-const APP_VERSION = "v2026.06.13-7";
+const APP_VERSION = "v2026.06.13-8";
 // 세션 배정 기본 '세션 불필요'(면제) 분류 — 스태프/팀/특수 그룹은 세션 배정 대상이 아님. 저장된 (면제분류) 설정이 없을 때만 시드.
 const DEFAULT_SESS_EXEMPT = ["AFF","NOC 위원","미디어팀","자원봉사팀","찬양팀","협력팀"];
 /* ============================================================
@@ -3897,7 +3897,23 @@ function renderSession(){
     const inScope=new Set(); scopeKeysNow().forEach(k=>{ const st=state.sessionAssign[k]; if(st) st.forEach(id=>inScope.add(id)); });
     const asgCount={}; Object.values(state.sessionAssign).forEach(set=>set&&set.forEach(id=>{ asgCount[id]=(asgCount[id]||0)+1; }));
     const match=p=>!inScope.has(p.id)&&(!q||p.name.toLowerCase().includes(q)||p.id.toLowerCase().includes(q)||(p.kname||"").toLowerCase().includes(q)||(p.aff||"").toLowerCase().includes(q)||(p.region||"").toLowerCase().includes(q));
-    const GB=state.sessGroupBy||"cat";   // 풀 그룹 기준: 분류 / 나이대 / 성별
+    const GB=state.sessGroupBy||"cat";   // 풀 그룹 기준: 분류 / 나이대 / 성별 / 참가유형 / 국가 / 확인필요
+    // ----- 그룹 키 함수 (풀 묶음 + '세션 배정 상황' 요약 공용) -----
+    const ageKeyOf=p=>{ const ab=(p.band!=null&&p.band!=="")?p.band:ageBand(p.dob); return ab||"나이대 미상"; };
+    const sexKeyOf=p=>p.partySex==="M"?"남성":p.partySex==="F"?"여성":p.partySex==="MIX"?"혼성":"성별 미상";
+    // 확인필요: 칩에 빨간/주황 ⚠ 경고가 붙는 사람만 묶음 — 시간 중복 배정 > 이메일 중복 레코드 > 이름 중복 레코드. 경고 없으면 null → 제외.
+    const warnKeyOf=p=>{ if(state._sessConflict && state._sessConflict.pids.has(p.id)) return "시간 중복 배정"; const d=sessPoolDup(p); if(d) return d.severity==="danger"?"중복 레코드(이메일)":"중복 레코드(이름)"; return null; };
+    // 국가: 지역(이미 "Country/…"의 앞 국가명으로 정제됨)으로 묶음, 빈 값은 "Unknown".
+    const countryKeyOf=p=>{ const c=(p.region||"").trim(); return c||"Unknown"; };
+    // 참가유형: 세션 참가자 col Z 'Participation Category' 값 그대로(이메일 매칭). 빈 값은 "(미지정)".
+    const pcatKeyOf=p=>{ const c=(p.pcat||"").trim(); return c||"(미지정)"; };
+    const AGE_ORDER=["10세 미만","10대","20대","30대","40대","50대","60대","70대","80대","90대","나이대 미상"];
+    const SEX_ORDER=["남성","여성","혼성","성별 미상"];
+    const WARN_ORDER=["시간 중복 배정","중복 레코드(이메일)","중복 레코드(이름)"];
+    const PCAT_ORDER=["Seniors","Junior","Students","Children","Accompanies","Booth Staff","(미지정)"];
+    const keyOf=GB==="age"?ageKeyOf:GB==="sex"?sexKeyOf:GB==="country"?countryKeyOf:GB==="pcat"?pcatKeyOf:warnKeyOf, ORDER=GB==="age"?AGE_ORDER:GB==="sex"?SEX_ORDER:GB==="pcat"?PCAT_ORDER:GB==="country"?[]:WARN_ORDER;
+    const sortKeys=ks=>ks.slice().sort((a,b)=>{ if(GB==="country"){ const au=a==="Unknown",bu=b==="Unknown"; if(au!==bu) return au?1:-1; return a.localeCompare(b); }   // 국가: 알파벳순, Unknown은 맨 뒤
+      let ia=ORDER.indexOf(a), ib=ORDER.indexOf(b); if(ia<0)ia=99; if(ib<0)ib=99; return ia-ib || a.localeCompare(b); });
     // append a pool chip (with its 다중배정 badge) to a group container — shared by every grouping mode
     const addChip=(grp,p)=>{
       const ch=sessChip(p,null,null);
@@ -3937,25 +3953,11 @@ function renderSession(){
       });
     } else {
       // ----- 나이대 / 성별 / 참가유형 / 확인필요 / 국가 그룹 보기: 분류 exempt(세션 불필요)는 그대로 숨기되, 나머지를 선택한 기준으로 묶음 (체크박스 없음) -----
-      const ageKeyOf=p=>{ const ab=(p.band!=null&&p.band!=="")?p.band:ageBand(p.dob); return ab||"나이대 미상"; };
-      const sexKeyOf=p=>p.partySex==="M"?"남성":p.partySex==="F"?"여성":p.partySex==="MIX"?"혼성":"성별 미상";
-      // 확인필요: 칩에 빨간/주황 ⚠ 경고가 붙는 사람만 묶음 — 시간 중복 배정 > 이메일 중복 레코드 > 이름 중복 레코드 (한 명은 가장 심각한 한 그룹에만). 경고 없으면 null → 제외.
-      const warnKeyOf=p=>{ if(state._sessConflict && state._sessConflict.pids.has(p.id)) return "시간 중복 배정"; const d=sessPoolDup(p); if(d) return d.severity==="danger"?"중복 레코드(이메일)":"중복 레코드(이름)"; return null; };
-      // 국가: 지역(이미 "Country/…"의 앞 국가명으로 정제됨)으로 묶음, 빈 값은 "Unknown". 소스가 이미 표준 국가명이라 별도 정규화 불필요.
-      const countryKeyOf=p=>{ const c=(p.region||"").trim(); return c||"Unknown"; };
-      // 참가유형: 세션 참가자 col Z 'Participation Category' 값 그대로(이메일 매칭). 빈 값은 "(미지정)".
-      const pcatKeyOf=p=>{ const c=(p.pcat||"").trim(); return c||"(미지정)"; };
-      const AGE_ORDER=["10세 미만","10대","20대","30대","40대","50대","60대","70대","80대","90대","나이대 미상"];
-      const SEX_ORDER=["남성","여성","혼성","성별 미상"];
-      const WARN_ORDER=["시간 중복 배정","중복 레코드(이메일)","중복 레코드(이름)"];
-      const PCAT_ORDER=["Seniors","Junior","Students","Children","Accompanies","Booth Staff","(미지정)"];
-      const keyOf=GB==="age"?ageKeyOf:GB==="sex"?sexKeyOf:GB==="country"?countryKeyOf:GB==="pcat"?pcatKeyOf:warnKeyOf, ORDER=GB==="age"?AGE_ORDER:GB==="sex"?SEX_ORDER:GB==="pcat"?PCAT_ORDER:GB==="country"?[]:WARN_ORDER;
       const sexBadge=k=>k==="남성"?{c:"#3f7fbf",t:"남"}:k==="여성"?{c:"#c85d8e",t:"여"}:k==="혼성"?{c:"#8a6fc0",t:"혼"}:{c:"#9aa6b2",t:"?"};
       const warnBadge=k=>k==="중복 레코드(이름)"?{c:"var(--warning-fill)",t:"⚠"}:{c:"var(--warn)",t:"⚠"};   // 이름 중복만 주황, 나머지(시간중복·이메일중복) 빨강
       const g2=new Map();
       POOL.forEach(p=>{ if(state.sessExempt.has(p.cat||"(분류 없음)")) return; const k=keyOf(p); if(k==null) return; (g2.get(k)||g2.set(k,[]).get(k)).push(p); });
-      const keys=[...g2.keys()].sort((a,b)=>{ if(GB==="country"){ const au=a==="Unknown",bu=b==="Unknown"; if(au!==bu) return au?1:-1; return a.localeCompare(b); }   // 국가: 알파벳순, Unknown은 맨 뒤
-        let ia=ORDER.indexOf(a), ib=ORDER.indexOf(b); if(ia<0)ia=99; if(ib<0)ib=99; return ia-ib || a.localeCompare(b); });
+      const keys=sortKeys([...g2.keys()]);
       keys.forEach(k=>{
         const vis=g2.get(k).slice().sort((a,b)=>a.name.localeCompare(b.name)).filter(match);
         if(!vis.length) return;   // hide empty bands (and, while searching, groups with no match)
@@ -3973,25 +3975,46 @@ function renderSession(){
     }
     if(!any){ const eh=el("div","empty-hint"); eh.textContent=q?`'${search.value}' 검색 결과가 없습니다`:(GB==="warn"?"확인이 필요한 인원이 없습니다 ✓":(dayMode?"이 날 배정할 인원이 없습니다":"이 시간대에 배정할 인원이 없습니다")); plist.append(eh); }
     const v=$("#sessright"); if(v) v.classList.toggle("picking", !!state.sessPicks.size);
-    // --- 배정 상황 요약: per category, how many are booked in ≥1 session across the WHOLE program (scope-independent) ---
+    // --- 배정 상황 요약: 현재 토글(GB) 기준으로 1개 이상 세션에 배정된 인원 / 전체 (프로그램 전체 기준) ---
+    // 분류(cat) 모드만 '세션 불필요' 토글 가능; 그 외(나이대/성별/참가유형/국가/확인필요)는 토글 그룹대로 진행률만 표시.
     if(csumBody){
       csumBody.innerHTML=""; let totAsg=0, totAll=0;
-      catKeys.forEach(c=>{
-        const ppl=groups.get(c), exempt=state.sessExempt.has(c);
-        const all=ppl.length, asg=ppl.filter(p=>asgCount[p.id]).length;
-        if(!exempt){ totAsg+=asg; totAll+=all; }
-        const ci=catInfo(c), pct=all?Math.round(asg/all*100):0;
-        const row=el("div","sesssumrow"+(exempt?" exempt":""));
-        row.title=exempt?`'${c}' — 세션 불필요 (클릭해 해제)`:`'${c}' — 클릭해 세션 불필요로 표시`;
-        row.onclick=()=>{ if(state.sessExempt.has(c)){ state.sessExempt.delete(c); } else { state.sessExempt.add(c); groups.get(c).forEach(p=>state.sessPicks.delete(p.id)); } fillPool(); };
-        const dot=el("span","dot"); dot.style.background=ci.c;
-        const nm=el("span","nm",c);
-        const nums=el("span","nums"); nums.innerHTML=exempt?"세션 불필요":`<b>${asg}</b>/${all}`;
-        row.append(dot,nm);
-        if(!exempt){ const bar=el("span","bar"); bar.title=`${pct}% 배정`; const bi=el("i"); bi.style.width=pct+"%"; bar.append(bi); row.append(bar); }
-        row.append(nums);
-        csumBody.append(row);
-      });
+      if(GB==="cat"){
+        catKeys.forEach(c=>{
+          const ppl=groups.get(c), exempt=state.sessExempt.has(c);
+          const all=ppl.length, asg=ppl.filter(p=>asgCount[p.id]).length;
+          if(!exempt){ totAsg+=asg; totAll+=all; }
+          const ci=catInfo(c), pct=all?Math.round(asg/all*100):0;
+          const row=el("div","sesssumrow"+(exempt?" exempt":""));
+          row.title=exempt?`'${c}' — 세션 불필요 (클릭해 해제)`:`'${c}' — 클릭해 세션 불필요로 표시`;
+          row.onclick=()=>{ if(state.sessExempt.has(c)){ state.sessExempt.delete(c); } else { state.sessExempt.add(c); groups.get(c).forEach(p=>state.sessPicks.delete(p.id)); } fillPool(); };
+          const dot=el("span","dot"); dot.style.background=ci.c;
+          const nm=el("span","nm",c);
+          const nums=el("span","nums"); nums.innerHTML=exempt?"세션 불필요":`<b>${asg}</b>/${all}`;
+          row.append(dot,nm);
+          if(!exempt){ const bar=el("span","bar"); bar.title=`${pct}% 배정`; const bi=el("i"); bi.style.width=pct+"%"; bar.append(bi); row.append(bar); }
+          row.append(nums);
+          csumBody.append(row);
+        });
+      } else {
+        // 토글 그룹별 진행률 — 풀과 동일하게 세션 불필요(분류) 제외 인원만 집계
+        const gs=new Map();
+        POOL.forEach(p=>{ if(state.sessExempt.has(p.cat||"(분류 없음)")) return; const k=keyOf(p); if(k==null) return; (gs.get(k)||gs.set(k,[]).get(k)).push(p); });
+        sortKeys([...gs.keys()]).forEach(k=>{
+          const ppl=gs.get(k), all=ppl.length, asg=ppl.filter(p=>asgCount[p.id]).length;
+          totAsg+=asg; totAll+=all;
+          const pct=all?Math.round(asg/all*100):0;
+          const dotc=GB==="sex"?(k==="남성"?"#3f7fbf":k==="여성"?"#c85d8e":k==="혼성"?"#8a6fc0":"#9aa6b2"):"#7c8aa0";
+          const row=el("div","sesssumrow"); row.title=`'${k}' — ${asg}/${all} 배정 (${pct}%)`;
+          const dot=el("span","dot"); dot.style.background=dotc;
+          const nm=el("span","nm",k);
+          const nums=el("span","nums"); nums.innerHTML=`<b>${asg}</b>/${all}`;
+          row.append(dot,nm);
+          const bar=el("span","bar"); bar.title=`${pct}% 배정`; const bi=el("i"); bi.style.width=pct+"%"; bar.append(bi); row.append(bar);
+          row.append(nums);
+          csumBody.append(row);
+        });
+      }
       if(csumTot) csumTot.textContent=totAll?`전체 ${totAll}명 중 ${totAsg}명`:"";
     }
   }
@@ -6129,7 +6152,8 @@ async function exportMaster(){
 /* ---------- print ---------- */
 // actual=true → 숙소 체크인 명단: 방 배치표와 동일 레이아웃 + 실제 체크인/체크아웃 시각 2칼럼 추가.
 function buildPrint(actual=false){
-  const ckCell=t=>t==="✓"?"✓":(t||"");            // 실제 체크인/아웃 셀 — 옛 "✓" 센티넬은 ✓, 빈값은 공란
+  const ckCell=t=>{ if(t==="✓") return "✓"; if(!t) return ""; const f=ck2Time(t); return f.d?`${f.d} ${f.t}`:f.t; };  // 실제 체크인/아웃 셀 — 날짜 먼저, 시각 나중("6월 13일 05:23 PM"); 옛 "✓" 센티넬은 ✓, 빈값은 공란
+  if(actual) actual=state.parties.some(p=>ckInTime(p.id)||ckOutTime(p.id));  // 실제 체크인/아웃 기록이 하나도 없으면 빈 칼럼은 넣지 않음
   const pa=$("#printarea"); pa.innerHTML="";
   _occ=buildOcc();                                 // O(occupants) room lookups while building the printout
   inventoryHotels().forEach(hotel=>{
