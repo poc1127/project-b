@@ -1817,7 +1817,9 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
 "use strict";
 // ⚑ index.html build version — shown bottom-right on the start screen. BUMP ON EACH DEPLOY.
 //   Format: vYYYY.MM.DD-N  (N = same-day build counter; reset to 1 on a new date).
-const APP_VERSION = "v2026.06.13-5";
+const APP_VERSION = "v2026.06.13-7";
+// 세션 배정 기본 '세션 불필요'(면제) 분류 — 스태프/팀/특수 그룹은 세션 배정 대상이 아님. 저장된 (면제분류) 설정이 없을 때만 시드.
+const DEFAULT_SESS_EXEMPT = ["AFF","NOC 위원","미디어팀","자원봉사팀","찬양팀","협력팀"];
 /* ============================================================
    ICMDA 2026 Operations Dashboard (single file)
    - reads the live master .xlsx (columns mapped by HEADER NAME)
@@ -1884,7 +1886,7 @@ const state = {
   sessSlot: null,       // 세션 보기 슬롯 보드: focused time-slot key ("day||time"); null → show all slots of sessDay
   sessPoolCollapsed: false, // 세션 보기 pool collapse on tablet/phone (mirrors #pool.collapsed)
   sessSumCollapsed: false, // 세션 보기: 카테고리 배정 상황 요약 박스 접힘 여부
-  sessGroupBy: "cat", // 세션 보기 풀 그룹 기준: "cat"(분류) | "age"(나이대) | "sex"(성별) | "pcat"(참가유형) | "warn"(확인필요) | "country"(국가)
+  sessGroupBy: "pcat", // 세션 보기 풀 그룹 기준(기본=참가유형): "cat"(분류) | "age"(나이대) | "sex"(성별) | "pcat"(참가유형) | "warn"(확인필요) | "country"(국가)
   sessPoolW: null, // 세션 보기 참가자 풀 패널 너비(px) — 드래그 조절, 저장됨 (null=기본 260)
   poolHidden: false, // 숙소 배정 보기: 미배정 패널 접힘 여부(좌측 핸들 토글), 저장됨
   tlFilter: {q:"", venue:"", cat:""},
@@ -2314,6 +2316,8 @@ function parseParticipants(aoa, wb){
       norm(row[pickCol]).split(";").map(s=>s.trim()).filter(Boolean).forEach(k=>{ (state.sessionAssign[k]=state.sessionAssign[k]||new Set()).add(tag); });
     }
   }
+  // 저장된 (면제분류)가 하나도 없으면(새 마스터/미설정) 기본 면제 분류를 시드. 저장된 설정이 있으면 그대로 존중(덮어쓰지 않음).
+  if(state.sessExempt.size===0) DEFAULT_SESS_EXEMPT.forEach(c=>state.sessExempt.add(c));
 }
 // stay helpers --------------------------------------------------------
 function stayNights(p){ return p.stay ? (p.stay.e-p.stay.s+1) : 0; }
@@ -6123,7 +6127,9 @@ async function exportMaster(){
 }
 
 /* ---------- print ---------- */
-function buildPrint(){
+// actual=true → 숙소 체크인 명단: 방 배치표와 동일 레이아웃 + 실제 체크인/체크아웃 시각 2칼럼 추가.
+function buildPrint(actual=false){
+  const ckCell=t=>t==="✓"?"✓":(t||"");            // 실제 체크인/아웃 셀 — 옛 "✓" 센티넬은 ✓, 빈값은 공란
   const pa=$("#printarea"); pa.innerHTML="";
   _occ=buildOcc();                                 // O(occupants) room lookups while building the printout
   inventoryHotels().forEach(hotel=>{
@@ -6139,7 +6145,7 @@ function buildPrint(){
     Object.keys(groups).sort().forEach(gk=>{
       g.append(el("h3",null,gk));
       const t=el("table","proom");
-      t.innerHTML="<tr><th>호실</th><th>유형 / 성별</th><th>정원</th><th class='cnt'>총배정인원</th><th>투숙자</th><th>체크인</th><th>체크아웃</th></tr>";
+      t.innerHTML="<tr><th>호실</th><th>유형 / 성별</th><th>정원</th><th class='cnt'>총배정인원</th><th>투숙자</th><th>체크인</th><th>체크아웃</th>"+(actual?"<th class='dt'>실제 체크인</th><th class='dt'>실제 체크아웃</th>":"")+"</tr>";
       groups[gk].sort((a,b)=>(a.rno||"").localeCompare(b.rno||"",undefined,{numeric:true})).forEach(r=>{
         const occ=roomOccupants(r.key);
         const span=Math.max(occ.length,1);           // room cells merge down across one row per occupant
@@ -6151,6 +6157,7 @@ function buildPrint(){
         };
         if(!occ.length){                              // empty room → single placeholder row
           const tr=el("tr"); tr.append(...head(), el("td","occ","—"), el("td","dt",""), el("td","dt",""));
+          if(actual) tr.append(el("td","dt",""), el("td","dt",""));
           t.append(tr);
         } else occ.forEach((o,i)=>{
           const tr=el("tr");
@@ -6158,6 +6165,7 @@ function buildPrint(){
           tr.append(el("td","occ",`${o.name}${o.hc>1?`(${o.hc})`:""}`));
           tr.append(el("td","dt",dateWD(o.arr)));
           tr.append(el("td","dt",dateWD(o.dep)));
+          if(actual) tr.append(el("td","dt",ckCell(ckInTime(o.id))), el("td","dt",ckCell(ckOutTime(o.id))));
           t.append(tr);
         });
       });
@@ -6169,9 +6177,11 @@ function buildPrint(){
   const booy=state.parties.filter(p=>state.assign[p.id]==="BOOY");
   if(booy.length){
     const g=el("div","pgroup"); g.append(el("h2",null,`${VEN.BOOY} (개별 예약 · ${booy.reduce((s,p)=>s+p.hc,0)}명)`));
-    const t=el("table","proom"); t.innerHTML="<tr><th>이름</th><th>인원</th><th>체크인</th><th>체크아웃</th><th>비고</th></tr>";
+    const t=el("table","proom"); t.innerHTML="<tr><th>이름</th><th>인원</th><th>체크인</th><th>체크아웃</th>"+(actual?"<th class='dt'>실제 체크인</th><th class='dt'>실제 체크아웃</th>":"")+"<th>비고</th></tr>";
     booy.sort((a,b)=>a.name.localeCompare(b.name)).forEach(p=>{
-      const tr=el("tr"); tr.append(el("td",null,p.name),el("td","num",String(p.hc)),el("td","dt",dateWD(p.arr)),el("td","dt",dateWD(p.dep)),el("td",null,p.note||""));
+      const tr=el("tr"); tr.append(el("td",null,p.name),el("td","num",String(p.hc)),el("td","dt",dateWD(p.arr)),el("td","dt",dateWD(p.dep)));
+      if(actual) tr.append(el("td","dt",ckCell(ckInTime(p.id))), el("td","dt",ckCell(ckOutTime(p.id))));
+      tr.append(el("td",null,p.note||""));
       t.append(tr);
     });
     g.append(t); pa.append(g);
@@ -6179,41 +6189,20 @@ function buildPrint(){
   const temp=state.parties.filter(p=>state.assign[p.id]==="TEMP");
   if(temp.length){
     const g=el("div","pgroup"); g.append(el("h2",null,`${VEN.TEMP} · ${temp.reduce((s,p)=>s+p.hc,0)}명`));
-    const t=el("table","proom"); t.innerHTML="<tr><th>이름</th><th>인원</th><th>체크인</th><th>체크아웃</th><th>비고</th></tr>";
+    const t=el("table","proom"); t.innerHTML="<tr><th>이름</th><th>인원</th><th>체크인</th><th>체크아웃</th>"+(actual?"<th class='dt'>실제 체크인</th><th class='dt'>실제 체크아웃</th>":"")+"<th>비고</th></tr>";
     temp.sort((a,b)=>a.name.localeCompare(b.name)).forEach(p=>{
-      const tr=el("tr"); tr.append(el("td",null,p.name),el("td","num",String(p.hc)),el("td","dt",dateWD(p.arr)),el("td","dt",dateWD(p.dep)),el("td",null,p.note||""));
+      const tr=el("tr"); tr.append(el("td",null,p.name),el("td","num",String(p.hc)),el("td","dt",dateWD(p.arr)),el("td","dt",dateWD(p.dep)));
+      if(actual) tr.append(el("td","dt",ckCell(ckInTime(p.id))), el("td","dt",ckCell(ckOutTime(p.id))));
+      tr.append(el("td",null,p.note||""));
       t.append(tr);
     });
     g.append(t); pa.append(g);
   }
 }
-// 체크인 완료 명단 인쇄 — 방 배치표와 같은 인쇄 파이프라인(#printarea → A4 미리보기 → 인쇄/PDF) 재사용.
-// 보안·운영팀 인계용: 체크인 시각 순, 이름·유형·ID·배정 숙소·시각.
-function buildCkPrint(){
-  const pa=$("#printarea"); pa.innerHTML="";
-  const roster=ckRoster();
-  const done=roster.filter(e=>ckInTime(e.id))
-    .sort((a,b)=>{ const ta=ckInTime(a.id), tb=ckInTime(b.id); return ta<tb?-1:ta>tb?1:String(a.name||"").localeCompare(String(b.name||"")); });
-  const g=el("div","pgroup");
-  g.append(el("h2",null,`숙소 체크인 명단 (체크인 ${done.length} / ${roster.length}명 · ${ckNowStamp()} 기준)`));
-  const t=el("table","proom");
-  t.innerHTML="<tr><th class='num'>#</th><th>이름</th><th>참가 유형</th><th>참가자ID</th><th>배정 숙소</th><th class='dt'>체크인</th><th class='dt'>체크아웃</th></tr>";
-  done.forEach((e,i)=>{
-    const ri2=e.acc?partyRoomInfo(e.acc):null;
-    const room=ri2?(ri2.ven?`${ri2.vshort} ${ri2.rno}`:"미배정"):"—";
-    const tin=ckInTime(e.id), tout=ckOutTime(e.id);
-    const tr=el("tr");
-    tr.append(el("td","num",String(i+1)), el("td",null,e.name||String(e.id)), el("td",null,e.cat||""),
-              el("td",null,String(e.id)), el("td",null,room),
-              el("td","dt",tin==="✓"?"✓":tin), el("td","dt",tout||"—"));
-    t.append(tr);
-  });
-  g.append(t); pa.append(g);
-}
-function ck2PrintRoster(){
-  if(!Object.keys(state.checkedIn||{}).length){ toast("아직 체크인 기록이 없습니다 — 인쇄할 명단이 없습니다.","info"); return; }
-  buildCkPrint(); openPrintPrev("숙소 체크인 명단 · A4 세로");
-}
+// 숙소 체크인 명단 인쇄 — 방 배치표(buildPrint)와 동일한 레이아웃 + 실제 체크인/체크아웃 시각 2칼럼.
+// 같은 인쇄 파이프라인(#printarea → A4 미리보기 → 인쇄/PDF) 재사용.
+function buildCkPrint(){ buildPrint(true); }
+function ck2PrintRoster(){ buildCkPrint(); openPrintPrev("숙소 체크인 명단 · A4 세로"); }
 
 /* ---------- wire up ---------- */
 // shared action handlers (reused by desktop toolbar, mobile bar, and 더보기 sheet)
