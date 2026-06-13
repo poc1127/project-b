@@ -503,6 +503,9 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
   .ckstate.done{border-color:#bfe6cd;background:#f3fbf6;}
   .ckstate .cklab{font-size:12px;font-weight:700;color:#26323f;}
   .ckstate .cktime{font-size:12.5px;font-weight:700;color:#1d7a45;font-variant-numeric:tabular-nums;}
+  .ckstate .cktime-ed{font-size:12px;font-weight:700;color:#1d7a45;font-variant-numeric:tabular-nums;border:1px solid #cfe6d8;border-radius:7px;padding:3px 6px;background:#fff;width:100%;max-width:190px;}
+  .ckstate .cktime-ed[data-cke="out"]{color:#1f5fa0;border-color:#cdddf0;}
+  .ckstate .cktime-ed:focus{outline:2px solid var(--accent,#2f6fb0);outline-offset:1px;}
   .ckstate .ckno{font-size:12px;color:var(--text-muted);}
   .ckbtn{align-self:stretch;font:inherit;font-size:13px;font-weight:700;padding:8px 14px;border-radius:8px;border:1px solid;cursor:pointer;text-align:center;}
   .ckbtn.go{background:#2c9d5f;border-color:#2c9d5f;color:#fff;}
@@ -1814,7 +1817,7 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
 "use strict";
 // ⚑ index.html build version — shown bottom-right on the start screen. BUMP ON EACH DEPLOY.
 //   Format: vYYYY.MM.DD-N  (N = same-day build counter; reset to 1 on a new date).
-const APP_VERSION = "v2026.06.13-2";
+const APP_VERSION = "v2026.06.13-5";
 /* ============================================================
    ICMDA 2026 Operations Dashboard (single file)
    - reads the live master .xlsx (columns mapped by HEADER NAME)
@@ -1881,7 +1884,7 @@ const state = {
   sessSlot: null,       // 세션 보기 슬롯 보드: focused time-slot key ("day||time"); null → show all slots of sessDay
   sessPoolCollapsed: false, // 세션 보기 pool collapse on tablet/phone (mirrors #pool.collapsed)
   sessSumCollapsed: false, // 세션 보기: 카테고리 배정 상황 요약 박스 접힘 여부
-  sessGroupBy: "cat", // 세션 보기 풀 그룹 기준: "cat"(분류) | "age"(나이대) | "sex"(성별) | "warn"(확인필요) | "country"(국가)
+  sessGroupBy: "cat", // 세션 보기 풀 그룹 기준: "cat"(분류) | "age"(나이대) | "sex"(성별) | "pcat"(참가유형) | "warn"(확인필요) | "country"(국가)
   sessPoolW: null, // 세션 보기 참가자 풀 패널 너비(px) — 드래그 조절, 저장됨 (null=기본 260)
   poolHidden: false, // 숙소 배정 보기: 미배정 패널 접힘 여부(좌측 핸들 토글), 저장됨
   tlFilter: {q:"", venue:"", cat:""},
@@ -2200,6 +2203,8 @@ function loadMaster(arrbuf){
     state.parties.forEach(p=>{ const sp=ckMatchByEmail(p.email, sm);
       p.sessMeta=sp||null;
       p.band=(sp&&sp.band)||"";                          // 나이대 (참가자 탭에 없음 → 세션 참가자)
+      p.pcat=(sp&&sp.pcat)||"";                          // 참가유형 (col Z) — 세션 배정 풀 '참가유형' 그룹용
+      p.admType=(sp&&sp.admType)||"";                    // 입장 유형 (col X) — 세션 배정 상세 모달용
       p.region=(p.nat||"").trim()||(sp&&sp.region)||"";  // 국가: 참가자 국적 우선, 폴백 세션 지역
     }); }
   parseRooms(rA);
@@ -2591,6 +2596,18 @@ function ckSetOut(id,on){ state.checkedIn=state.checkedIn||{}; const c=ckGet(id)
   if(on){ if(!c||!c.in){ toast("먼저 체크인을 해야 체크아웃할 수 있습니다.","warn"); return false; } c.out=ckNowStamp(); state.checkedIn[id]=c; }
   else if(c){ c.out=""; state.checkedIn[id]=c; }
   return true; }
+// 저장 형식 "YYYY-MM-DD HH:MM" ↔ <input type=datetime-local> 값 "YYYY-MM-DDTHH:MM" 변환 (옛 "✓" 센티넬/빈값은 값 없음).
+function ckToInput(s){ return (!s||s==="✓") ? "" : String(s).replace(" ","T").slice(0,16); }
+function ckFromInput(v){ return v ? String(v).replace("T"," ").slice(0,16) : ""; }
+function ckCmp(a,b){ const re=/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/; return (re.test(a)&&re.test(b)) ? (a<b?-1:a>b?1:0) : 0; }   // 문자열이 곧 시간순; 유효 datetime이 아니면 비교 생략
+// 체크인/체크아웃 시각을 명시값으로 덮어쓰기 (상세 모달의 datetime 편집). which="in"|"out".
+function ckSetTime(id, which, val){
+  const c=ckGet(id); if(!c){ toast("먼저 체크인을 해야 시각을 설정할 수 있습니다.","warn"); return false; }
+  const v=ckFromInput(val); if(!v){ toast("올바른 날짜·시간을 입력하세요.","warn"); return false; }
+  if(which==="out" && !c.in){ toast("먼저 체크인을 해야 체크아웃 시각을 설정할 수 있습니다.","warn"); return false; }
+  c[which]=v; state.checkedIn[id]=c;
+  if(c.in && c.out && ckCmp(c.out,c.in)<0) toast("체크아웃이 체크인보다 빠릅니다 — 확인하세요.","warn");   // 막지 않고 경고만
+  return true; }
 // toggle a person's accommodation arrival (체크인) by 숙소 P-code and refresh the open card
 function ckToggleCheckin(pid){
   const was=!!ckInTime(pid);
@@ -2714,8 +2731,8 @@ function ckCard(entry){
     ckHtml=`<div class="ckcheck ${tin?'on':''}">
       <div class="ckroom"><span class="ckroomk">배정 숙소</span> <span class="ckroomv">${esc(roomLine||"미배정")}</span>${arrLine?` <span class="ckarr">· 도착예정 ${esc(arrLine)}</span>`:""}</div>
       <div class="ckstates">
-        <div class="ckstate ${tin?'done':''}"><span class="cklab">체크인 <small class="en2">In</small></span>${tin?`<b class="cktime">${esc(tin==='✓'?'완료':tin)}</b>`:`<span class="ckno">미도착</span>`}<button class="ckbtn ${tin?'undo':'go'}" data-ck="in" data-pid="${esc(ckId)}">${tin?"취소":"체크인"}</button></div>
-        <div class="ckstate ${tout?'done':''}"><span class="cklab">체크아웃 <small class="en2">Out</small></span>${tout?`<b class="cktime">${esc(tout)}</b>`:`<span class="ckno">${tin?'재실 중':'-'}</span>`}<button class="ckbtn ${tout?'undo':'go'}" data-ck="out" data-pid="${esc(ckId)}"${tin?'':' disabled'}>${tout?"취소":"체크아웃"}</button></div>
+        <div class="ckstate ${tin?'done':''}"><span class="cklab">체크인 <small class="en2">In</small></span>${tin?`<input type="datetime-local" class="cktime-ed" data-cke="in" data-pid="${esc(ckId)}" value="${esc(ckToInput(tin))}" aria-label="체크인 시각 수정">`:`<span class="ckno">미도착</span>`}<button class="ckbtn ${tin?'undo':'go'}" data-ck="in" data-pid="${esc(ckId)}">${tin?"취소":"체크인"}</button></div>
+        <div class="ckstate ${tout?'done':''}"><span class="cklab">체크아웃 <small class="en2">Out</small></span>${tout?`<input type="datetime-local" class="cktime-ed" data-cke="out" data-pid="${esc(ckId)}" value="${esc(ckToInput(tout))}" aria-label="체크아웃 시각 수정">`:`<span class="ckno">${tin?'재실 중':'-'}</span>`}<button class="ckbtn ${tout?'undo':'go'}" data-ck="out" data-pid="${esc(ckId)}"${tin?'':' disabled'}>${tout?"취소":"체크아웃"}</button></div>
       </div>
     </div>`;
   } else ckHtml=`<div class="ckcheck na">체크인 식별자가 없습니다.</div>`;
@@ -2734,6 +2751,10 @@ function ckShowCard(entry){
   card.innerHTML=`<div class="ckmodal">${ckCard(entry)}<button class="cx ckx" onclick="closeCard()" aria-label="닫기">×</button></div>`;
   card.querySelectorAll(".ckbtn[data-pid]").forEach(b=>{
     b.onclick=()=> b.dataset.ck==="out" ? ckToggleCheckout(b.dataset.pid) : ckToggleCheckin(b.dataset.pid);
+  });
+  card.querySelectorAll(".cktime-ed[data-pid]").forEach(inp=>{                          // 체크인/체크아웃 시각 직접 수정(덮어쓰기)
+    inp.onchange=()=>{ if(!ckSetTime(inp.dataset.pid, inp.dataset.cke, inp.value)){ inp.value=ckToInput(inp.dataset.cke==="out"?ckOutTime(inp.dataset.pid):ckInTime(inp.dataset.pid)); return; }
+      state.edited=true; if(state.view==="checkin") ck2Refresh(); ckShowCard(state._ckCur); };
   });
   $("#modal").style.display="flex";
 }
@@ -3313,6 +3334,8 @@ function parseSessParticipants(aoa){
     const region=(col(row,"지역").split("/")[0]||"").trim();                              // "South Africa/" / "Korea…/Korea…" → "South Africa" / "Korea…"
     out.push({ _sess:true, _row:r, id, name:col(row,"참가자 이름")||id, cat:col(row,"참가자 카테고리")||"(분류 없음)",   // _row → source row in '세션 참가자' for surgical delete on export
       band, sex:(sx==="M"?"M":sx==="F"?"F":"?"), partySex:(sx==="M"?"M":sx==="F"?"F":"?"),
+      pcat:col(row,"Participation Category"),   // col Z 'Participation Category' (Seniors/Students/Junior/Accompanies/Children/Booth Staff) — 풀 '참가유형' 그룹용
+      admType:col(row,"Admission Type"),        // col X 'Admission Type' (Pre + Main / Main Only) — 세션 배정 상세 모달 '입장 유형'
       region, email:col(row,"이메일"), pay:col(row,"결제여부"), kname:"", aff:"" });
   }
   return out.length?out:null;
@@ -3846,7 +3869,7 @@ function renderSession(){
 
   // ----- 풀 그룹 보기 토글: 참가자를 분류 / 나이대 / 성별 / 확인필요 / 국가 중 하나로 묶어 보기 -----
   const gbWrap=el("div","sessgbtog"); gbWrap.setAttribute("role","group"); gbWrap.setAttribute("aria-label","참가자 그룹 보기 기준");
-  [["cat","분류"],["age","나이대"],["sex","성별"],["country","국가"],["warn","확인필요"]].forEach(([v,lbl])=>{
+  [["cat","분류"],["age","나이대"],["sex","성별"],["pcat","참가유형"],["country","국가"],["warn","확인필요"]].forEach(([v,lbl])=>{
     const b=el("button","sessgb"+((state.sessGroupBy||"cat")===v?" on":"")); b.type="button"; b.textContent=lbl;
     b.setAttribute("aria-pressed",(state.sessGroupBy||"cat")===v?"true":"false");
     b.onclick=()=>{ if((state.sessGroupBy||"cat")===v) return; state.sessGroupBy=v;
@@ -3856,7 +3879,7 @@ function renderSession(){
   });
 
   { const ph=el("details","sess-poolhint");   // long how-to folded behind a summary (was a permanent 5-line paragraph)
-    ph.innerHTML=`<summary>ⓘ 사용법 안내</summary><div>위에서 시간대를 고르면 그 시간대의 병렬 세션이 칼럼으로 나타납니다. 이 시간대에 아직 배정되지 않은 사람만 풀에 보입니다. 풀은 분류·나이대·성별·국가 또는 확인필요 기준으로 묶어 볼 수 있습니다. 클릭해 선택(Shift+클릭: 범위 선택) → 세션 칼럼을 누르거나 끌어서 배정 · 칼럼 간 드래그로 이동 · 풀로 끌면 제외</div>`;
+    ph.innerHTML=`<summary>ⓘ 사용법 안내</summary><div>위에서 시간대를 고르면 그 시간대의 병렬 세션이 칼럼으로 나타납니다. 이 시간대에 아직 배정되지 않은 사람만 풀에 보입니다. 풀은 분류·나이대·성별·참가유형·국가 또는 확인필요 기준으로 묶어 볼 수 있습니다. 클릭해 선택(Shift+클릭: 범위 선택) → 세션 칼럼을 누르거나 끌어서 배정 · 칼럼 간 드래그로 이동 · 풀로 끌면 제외</div>`;
     pool.append(ph); }
   pool.append(gbWrap);   // 그룹 보기 토글 — 안내문 바로 아래
 
@@ -3909,17 +3932,20 @@ function renderSession(){
         plist.append(grp);
       });
     } else {
-      // ----- 나이대 / 성별 / 확인필요 / 국가 그룹 보기: 분류 exempt(세션 불필요)는 그대로 숨기되, 나머지를 선택한 기준으로 묶음 (체크박스 없음) -----
+      // ----- 나이대 / 성별 / 참가유형 / 확인필요 / 국가 그룹 보기: 분류 exempt(세션 불필요)는 그대로 숨기되, 나머지를 선택한 기준으로 묶음 (체크박스 없음) -----
       const ageKeyOf=p=>{ const ab=(p.band!=null&&p.band!=="")?p.band:ageBand(p.dob); return ab||"나이대 미상"; };
       const sexKeyOf=p=>p.partySex==="M"?"남성":p.partySex==="F"?"여성":p.partySex==="MIX"?"혼성":"성별 미상";
       // 확인필요: 칩에 빨간/주황 ⚠ 경고가 붙는 사람만 묶음 — 시간 중복 배정 > 이메일 중복 레코드 > 이름 중복 레코드 (한 명은 가장 심각한 한 그룹에만). 경고 없으면 null → 제외.
       const warnKeyOf=p=>{ if(state._sessConflict && state._sessConflict.pids.has(p.id)) return "시간 중복 배정"; const d=sessPoolDup(p); if(d) return d.severity==="danger"?"중복 레코드(이메일)":"중복 레코드(이름)"; return null; };
       // 국가: 지역(이미 "Country/…"의 앞 국가명으로 정제됨)으로 묶음, 빈 값은 "Unknown". 소스가 이미 표준 국가명이라 별도 정규화 불필요.
       const countryKeyOf=p=>{ const c=(p.region||"").trim(); return c||"Unknown"; };
+      // 참가유형: 세션 참가자 col Z 'Participation Category' 값 그대로(이메일 매칭). 빈 값은 "(미지정)".
+      const pcatKeyOf=p=>{ const c=(p.pcat||"").trim(); return c||"(미지정)"; };
       const AGE_ORDER=["10세 미만","10대","20대","30대","40대","50대","60대","70대","80대","90대","나이대 미상"];
       const SEX_ORDER=["남성","여성","혼성","성별 미상"];
       const WARN_ORDER=["시간 중복 배정","중복 레코드(이메일)","중복 레코드(이름)"];
-      const keyOf=GB==="age"?ageKeyOf:GB==="sex"?sexKeyOf:GB==="country"?countryKeyOf:warnKeyOf, ORDER=GB==="age"?AGE_ORDER:GB==="sex"?SEX_ORDER:GB==="country"?[]:WARN_ORDER;
+      const PCAT_ORDER=["Seniors","Junior","Students","Children","Accompanies","Booth Staff","(미지정)"];
+      const keyOf=GB==="age"?ageKeyOf:GB==="sex"?sexKeyOf:GB==="country"?countryKeyOf:GB==="pcat"?pcatKeyOf:warnKeyOf, ORDER=GB==="age"?AGE_ORDER:GB==="sex"?SEX_ORDER:GB==="pcat"?PCAT_ORDER:GB==="country"?[]:WARN_ORDER;
       const sexBadge=k=>k==="남성"?{c:"#3f7fbf",t:"남"}:k==="여성"?{c:"#c85d8e",t:"여"}:k==="혼성"?{c:"#8a6fc0",t:"혼"}:{c:"#9aa6b2",t:"?"};
       const warnBadge=k=>k==="중복 레코드(이름)"?{c:"var(--warning-fill)",t:"⚠"}:{c:"var(--warn)",t:"⚠"};   // 이름 중복만 주황, 나머지(시간중복·이메일중복) 빨강
       const g2=new Map();
@@ -5385,7 +5411,7 @@ function openCard(p){
   const card=$("#card"); card.className="card"; const ci=catInfo(p.cat); card.style.setProperty("--catc",ci.c);
   if(p._sess){                                         // 세션 참가자 pool member → session-relevant fields only (no 숙소 data, no 수정 — it has no 참가자-tab row)
     const sx={M:"남",F:"여","?":"미상"}[p.sex]||p.sex;
-    const srows=[["참가자 카테고리",p.cat],["나이대",p.band],["성별",sx],["지역",p.region],["이메일",p.email],["결제여부",p.pay]];
+    const srows=[["참가자 카테고리",p.cat],["나이대",p.band],["성별",sx],["입장 유형",p.admType],["지역",p.region],["이메일",p.email],["결제여부",p.pay]];
     let sb=""; srows.forEach(([k,v])=>{ if(v==null||v==="") return;
       sb+=`<div class="field"><div class="k">${k}</div><div class="v">${String(v).replace(/&/g,"&amp;").replace(/</g,"&lt;")}</div></div>`; });
     const dup=sessPoolDup(p);
@@ -5409,6 +5435,7 @@ function openCard(p){
     ["성별",{M:"남",F:"여","?":"미상"}[p.sex]||p.sex],["생년월일",p.dob],["국적",p.nat],
     ["이메일",p.email],["소속",p.aff],["직책",p.title],
     ["WB등급",p.wb],["결제상태",p.pay],
+    ...(state.view==="session" && p.admType ? [["입장 유형",p.admType]] : []),   // 세션 배정 모달에서만 노출 (col X Admission Type, 세션 참가자에서 이메일 매칭)
     ["sec","숙박"],
     ["도착일",p.arr],["출발일(체크아웃)",p.dep],["숙박",p.stay?`${stayNights(p)}박`:"없음"],
     ["방 필요",p.need],["사전 배정(원본)",p.pre],["현재 배정",roomTxt],
