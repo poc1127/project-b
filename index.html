@@ -433,6 +433,7 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
   /* ④ category badge on chips */
   .chip .cat{font-size:10px;font-weight:700;color:#fff;padding:0 6px;border-radius:999px;flex:none;letter-spacing:.2px;}
   .chip .sx{flex:none;font-size:10px;font-weight:700;padding:0 4px;border-radius:999px;background:#fff;border:1px solid #ccc;}
+  .chip .agep{flex:none;font-size:9.5px;font-weight:700;padding:0 5px;border-radius:999px;background:#eef2f7;color:#516079;border:1px solid #dde4ee;letter-spacing:.2px;}
   .chip.sex-M .sx{color:#2c5a8c;border-color:#aac4e0;} .chip.sex-F .sx{color:#a8456c;border-color:#e0aac4;}
   .chip.mix .sx{color:#6a8a3a;border-color:#c0d49a;} .chip.sex-q .sx{color:#777;}
   /* 세션 배정 보기 pool: age-decade pill (age matters for session balancing) */
@@ -489,32 +490,31 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
   .cksessitem .when{font-size:11.5px;color:var(--text-muted);font-variant-numeric:tabular-nums;white-space:nowrap;flex:none;min-width:104px;}
   .cksessitem .what{font-weight:600;color:#26323f;font-size:13px;word-break:break-word;}
   .cksessitem .code{font-size:11px;color:var(--text-faint);margin-left:auto;flex:none;white-space:nowrap;}
-  /* 현장 체크인 banner inside the card */
-  .ckcheck{display:flex;align-items:center;gap:14px;padding:15px 20px;background:#fbfdff;border-top:1px solid #eef0f3;border-bottom:1px solid #eef0f3;}
+  /* 숙소 체크인/체크아웃 banner inside the card */
+  .ckcheck{display:flex;flex-direction:column;gap:12px;padding:15px 20px;background:#fbfdff;border-top:1px solid #eef0f3;border-bottom:1px solid #eef0f3;}
   .ckcheck.on{background:#eef9f1;}
   .ckcheck.na{color:var(--text-muted);font-size:12.5px;font-style:italic;}
-  .ckcheckmain{flex:1;min-width:0;display:flex;flex-direction:column;gap:5px;}
-  .ckcheckstat{display:flex;align-items:center;gap:8px;font-size:16px;color:#26323f;}
-  .ckcheckstat b{font-weight:700;}
-  .ckcheck.on .ckcheckstat{color:#1d7a45;}
-  .ckcheckstat svg{width:19px;height:19px;}
-  .ckcheckstat .cktime{color:var(--text-muted);font-size:12.5px;font-variant-numeric:tabular-nums;font-weight:600;}
-  .ckcheckstat .cksubtxt{font-size:12.5px;color:var(--text-muted);font-weight:400;}
-  .ckcheckstat .ckdot{width:11px;height:11px;border-radius:50%;background:#e0a23a;flex:none;}
   .ckroom{font-size:13px;color:#3a4654;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .ckroom .ckroomk{color:var(--text-muted);font-size:11.5px;margin-right:2px;}
   .ckroom .ckroomv{font-weight:700;color:#26323f;}
   .ckroom .ckarr{color:var(--text-muted);}
-  .ckbtn{flex:none;font:inherit;font-size:14px;font-weight:700;padding:11px 22px;border-radius:9px;border:1px solid;cursor:pointer;}
+  .ckstates{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .ckstate{display:flex;flex-direction:column;align-items:flex-start;gap:5px;padding:11px 13px;border:1px solid #e7ebf0;border-radius:10px;background:#fff;}
+  .ckstate.done{border-color:#bfe6cd;background:#f3fbf6;}
+  .ckstate .cklab{font-size:12px;font-weight:700;color:#26323f;}
+  .ckstate .cktime{font-size:12.5px;font-weight:700;color:#1d7a45;font-variant-numeric:tabular-nums;}
+  .ckstate .ckno{font-size:12px;color:var(--text-muted);}
+  .ckbtn{align-self:stretch;font:inherit;font-size:13px;font-weight:700;padding:8px 14px;border-radius:8px;border:1px solid;cursor:pointer;text-align:center;}
   .ckbtn.go{background:#2c9d5f;border-color:#2c9d5f;color:#fff;}
   .ckbtn.go:hover{background:#258a52;}
   .ckbtn.undo{background:#fff;border-color:#d9b3ad;color:#9c3b2c;}
   .ckbtn.undo:hover{background:#fdf3f1;}
+  .ckbtn[disabled]{opacity:.5;cursor:not-allowed;}
   /* 체크인 완료 chip in 숙소 배정 (B.6) */
   .chip.checkedin{background:#eafaf1;border-left-color:#2c9d5f !important;}
   .chip .chk{flex:none;display:inline-flex;align-items:center;justify-content:center;width:15px;height:15px;border-radius:50%;background:#2c9d5f;color:#fff;}
   .chip .chk svg{width:11px;height:11px;}
-  @media(max-width:640px){ .ckgrid{grid-template-columns:72px 1fr;gap:6px 12px;} .ckpair{grid-column:1 / -1;} .cksessitem{flex-direction:column;gap:2px;} .cksessitem .code{margin-left:0;} .ckcheck{flex-wrap:wrap;} .ckbtn{width:100%;} }
+  @media(max-width:640px){ .ckgrid{grid-template-columns:72px 1fr;gap:6px 12px;} .ckpair{grid-column:1 / -1;} .cksessitem{flex-direction:column;gap:2px;} .cksessitem .code{margin-left:0;} .ckstates{grid-template-columns:1fr;} }
   /* import / start screen (shown until a master loads) */
   #startscreen{display:flex;align-items:center;justify-content:center;box-sizing:border-box;position:relative;
     min-height:calc(100vh - var(--headerh,56px));padding:32px 24px;user-select:none;}
@@ -1267,6 +1267,14 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
   #checkin .ckpill.out{background:#fee2e2;color:#dc2626;}
   #checkin .ckpill.out:hover{background:#fbcfcf;}
   #checkin .ckpill.sessonly{background:#eef4fb;color:#2a5d8c;cursor:default;}
+  #checkin .ckpill.pend{background:#eef1f6;color:#6b7787;}
+  #checkin .ckpill.pend:hover{background:#e4e9f0;}
+  #checkin .ckpill[disabled]{opacity:.45;cursor:not-allowed;}
+  #checkin td.ckcell{white-space:nowrap;}
+  #checkin td.ckcell .ct{display:block;margin-top:3px;font-size:11.5px;color:#7a879c;font-variant-numeric:tabular-nums;}
+  #checkin td.ckcell .ct .cd{color:#9aa6b8;}
+  #checkin td.age{font-size:12.5px;color:#5a6675;white-space:nowrap;}
+  #checkin .ck2legend .li.bl .k{background:#3b82f6;}
   #checkin .citime{font-variant-numeric:tabular-nums;white-space:nowrap;line-height:1.3;}
   #checkin .citime small{display:block;color:#7a879c;font-size:12px;}
   #checkin td.none{color:#b3bdcb;}
@@ -1481,19 +1489,18 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
     #checkin .ck2stat{padding:14px 16px;}
     #checkin .ck2stat .num{font-size:24px;margin-top:8px;}
     #checkin .ck2lower{gap:14px;}
-    /* 7칼럼 중 폰에선 참가자·배정 숙소·상태만 — 유형/성별/ID/시각은 행 탭 → 상세 모달에서 확인
+    /* 6칼럼 중 폰에선 참가자·배정 숙소·체크인·체크아웃만 — 유형/나이대는 행 탭 → 상세 모달에서 확인
        (숙소는 체크인 직후 현장 안내에 바로 필요해 유지) */
-    #checkin .ck2tbl th:nth-child(2),#checkin .ck2tbl td:nth-child(2),
-    #checkin .ck2tbl th:nth-child(3),#checkin .ck2tbl td:nth-child(3),
-    #checkin .ck2tbl th:nth-child(4),#checkin .ck2tbl td:nth-child(4),
-    #checkin .ck2tbl th:nth-child(7),#checkin .ck2tbl td:nth-child(7){display:none;}
+    #checkin .ck2tbl6 th:nth-child(2),#checkin .ck2tbl6 td:nth-child(2),
+    #checkin .ck2tbl6 th:nth-child(3),#checkin .ck2tbl6 td:nth-child(3){display:none;}
     #checkin .ck2tbl thead th{padding:12px 7px 8px;word-break:keep-all;}   /* 머리글이 세로 한 글자씩 꺾이지 않게 (단어 단위로만 줄바꿈) */
     #checkin .ck2tbl tbody td{padding:10px 7px;font-size:13px;}
     /* 표의 최소 내용폭(긴 이메일이 안 끊김 ≈ 400px)이 패널을 뷰포트 밖으로 밀어
-       칼럼이 잘려 보이던 것 → 고정 레이아웃 + 숙소/상태 폭 지정, 이름·이메일은 말줄임 */
-    #checkin table.ck2tbl{table-layout:fixed;}
-    #checkin .ck2tbl th:nth-child(5){width:92px;}    /* 배정 숙소 */
-    #checkin .ck2tbl th:nth-child(6){width:104px;}   /* 상태 */
+       칼럼이 잘려 보이던 것 → 고정 레이아웃 + 숙소/체크인/체크아웃 폭 지정, 이름·이메일은 말줄임 */
+    #checkin table.ck2tbl6{table-layout:fixed;}
+    #checkin .ck2tbl6 th:nth-child(4){width:80px;}    /* 배정 숙소 */
+    #checkin .ck2tbl6 th:nth-child(5){width:84px;}    /* 체크인 */
+    #checkin .ck2tbl6 th:nth-child(6){width:84px;}    /* 체크아웃 */
     #checkin .att .who2{min-width:0;}
     #checkin .att .nm,#checkin .att .em{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
     #checkin .att .av{width:32px;height:32px;font-size:12px;}
@@ -1625,9 +1632,9 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
   <nav class="nav">
     <a data-view="rooms" role="button" tabindex="0"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 4v16"/><path d="M2 8h18a2 2 0 0 1 2 2v10"/><path d="M2 17h20"/><path d="M6 8v4"/></svg> 숙소 배정</a>
     <a data-view="timeline" role="button" tabindex="0"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg> 숙소 타임라인</a>
+    <a data-view="checkin" role="button" tabindex="0"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 11 12 14 20 6"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg> 숙소 체크인</a>
     <a data-view="schedule" role="button" tabindex="0"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> 일정</a>
     <a data-view="session" role="button" tabindex="0"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg> 세션 배정</a>
-    <a data-view="checkin" role="button" tabindex="0"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 11 12 14 20 6"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg> 현장 체크인</a>
   </nav>
   <div class="snote"><b>ICMDA 2026 운영 대시보드</b><br>숙소 · 일정 · 세션 · 체크인 통합 관리<span class="ver" id="snVer"></span></div>
 </aside>
@@ -1657,9 +1664,9 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
   <span class="viewtabs">
     <button id="tabRooms" class="vtab active" title="방 단위 보기 — 방마다 인원을 끌어다 놓아 배정/수정합니다.">숙소 배정 보기</button>
     <button id="tabTimeline" class="vtab" title="참가자 단위 보기 — 숙박 기간과 배정 현황을 한눈에 보고 막대로 조정합니다.">숙소 타임라인 보기</button>
+    <button id="tabCheckin" class="vtab" title="숙소 체크인 — 참가자의 숙소 도착(체크인)·퇴실(체크아웃)을 표시·추적합니다.">숙소 체크인</button>
     <button id="tabSchedule" class="vtab" title="업로드한 엑셀 '일정' 탭의 2026 ICMDA 프로그램 일정표를 봅니다.">일정 보기</button>
     <button id="tabSession" class="vtab" title="브레이크아웃·스트림 세션에 참가자를 배정합니다. (정원 관리)">세션 배정 보기</button>
-    <button id="tabCheckin" class="vtab" title="체크인 — (세부 기능은 추후 추가)">행사 현장 체크인</button>
   </span>
   <span id="srcname" style="font-size:11px;opacity:.8;"></span>
 </header>
@@ -1726,7 +1733,7 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
     <select id="tlcat" aria-label="카테고리 필터"><option value="">전체 카테고리</option></select>
     <span class="tldates" role="group" aria-label="타임라인 날짜 추가/삭제">
       <button id="tlDateDel" type="button" title="타임라인 끝의 마지막 날짜를 삭제합니다 (앱에서 추가한 날짜만 가능)">날짜 −</button>
-      <button id="tlDateAdd" type="button" title="타임라인 끝에 날짜를 추가합니다 (마스터 업데이트 시 새 날짜 열로 저장)">날짜 +</button>
+      <button id="tlDateAdd" type="button" title="타임라인 끝에 날짜를 추가합니다 (마스터 업데이트 시 참가자 탭 숙박일수 앞에 새 열로 삽입)">날짜 +</button>
     </span>
     <span id="tlcount" class="muted" aria-live="polite"></span>
     <span class="muted" id="tlhint" title="막대 양끝을 끌어 숙박기간 조정 · 가운데를 끌어 이동 · 행 손잡이(⠿)로 객실 이동">ⓘ 사용법</span>
@@ -1807,7 +1814,7 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
 "use strict";
 // ⚑ index.html build version — shown bottom-right on the start screen. BUMP ON EACH DEPLOY.
 //   Format: vYYYY.MM.DD-N  (N = same-day build counter; reset to 1 on a new date).
-const APP_VERSION = "v2026.06.12-8";
+const APP_VERSION = "v2026.06.13-2";
 /* ============================================================
    ICMDA 2026 Operations Dashboard (single file)
    - reads the live master .xlsx (columns mapped by HEADER NAME)
@@ -1869,7 +1876,7 @@ const state = {
   sessAnchor: null,     // 세션 보기 pool: last plainly-clicked pid → pivot for Shift+click range selection
   sessFilter: {q:""},
   sessExempt: new Set(), // 세션 보기: 카테고리(분류) names marked "세션 불필요" → hidden from the pool
-  checkedIn: {},        // 체크인 보기: 숙소 참가자 P-code → 체크인 시각 문자열 ("YYYY-MM-DD HH:MM"). presence = 도착 체크인 완료. saved to the '체크인' tab.
+  checkedIn: {},        // 숙소 체크인: 참가자 P-code → {in,out} 시각 문자열. in=숙소 도착(체크인), out=퇴실(체크아웃). saved to the '체크인' 탭(참가자ID·이름·체크인시각·체크아웃시각).
   sessDay: null,        // 세션 보기 슬롯 보드: focused day; when sessSlot is null the whole day's slots are shown
   sessSlot: null,       // 세션 보기 슬롯 보드: focused time-slot key ("day||time"); null → show all slots of sessDay
   sessPoolCollapsed: false, // 세션 보기 pool collapse on tablet/phone (mirrors #pool.collapsed)
@@ -2187,6 +2194,14 @@ function loadMaster(arrbuf){
   state.edited=false;
 
   parseParticipants(pA, wb);
+  // attach 세션 참가자 metadata (나이대·국가 참조) to each 참가자 by email — 세션 배정·숙소 체크인·숙소 배정 칩 공용.
+  // 참가자 탭엔 나이대가 없어 세션 참가자에서 가져온다(이메일 매칭). 국가는 참가자 국적 우선, 없으면 세션 지역.
+  { const sm=ckSessByEmail();
+    state.parties.forEach(p=>{ const sp=ckMatchByEmail(p.email, sm);
+      p.sessMeta=sp||null;
+      p.band=(sp&&sp.band)||"";                          // 나이대 (참가자 탭에 없음 → 세션 참가자)
+      p.region=(p.nat||"").trim()||(sp&&sp.region)||"";  // 국가: 참가자 국적 우선, 폴백 세션 지역
+    }); }
   parseRooms(rA);
   // surface any room whose 객실ID isn't tied to a single hotel (data-integrity warning)
   if(state.roomDupIds && state.roomDupIds.length){
@@ -2529,9 +2544,9 @@ const START_COPY = {
   session:  { title:"세션 배정",
     sub:"참가자를 브레이크아웃 · 스트림 세션에 정원 규칙에 맞춰 배정하고, 배정 결과를 마스터 파일에 저장합니다.",
     steps:[["마스터 파일 열기","참가자 · 일정 탭이 있는 .xlsx"],["세션 배정","정원에 맞춰 참가자를 세션에 배치"],["마스터 업데이트","배정 결과를 새 버전으로 저장"]] },
-  checkin:  { title:"현장 체크인",
-    sub:"이름이나 이메일로 참가자를 검색해 숙소 · 세션 · 등록 정보를 확인하고, 현장 도착을 체크인한 뒤 마스터 파일에 저장합니다.",
-    steps:[["마스터 파일 열기","세션 참가자 탭이 있는 .xlsx"],["검색 · 체크인","이름 · 이메일로 찾아 도착 확인"],["마스터 업데이트","체크인 결과를 새 버전으로 저장"]] },
+  checkin:  { title:"숙소 체크인",
+    sub:"이름이나 이메일로 참가자를 검색해 배정 숙소·객실을 확인하고, 숙소 도착(체크인)과 퇴실(체크아웃)을 표시·추적한 뒤 마스터 파일에 저장합니다.",
+    steps:[["마스터 파일 열기","참가자 탭이 있는 .xlsx"],["검색 · 체크인/체크아웃","이름 · 이메일로 찾아 도착·퇴실 표시"],["마스터 업데이트","체크인·체크아웃 기록을 새 버전으로 저장"]] },
 };
 function applyStartCopy(){
   const c = START_COPY[state.view==="timeline"?"rooms":state.view] || START_COPY.rooms;
@@ -2554,38 +2569,58 @@ function parseCheckin(aoa){
   const H={}; (aoa[hi]||[]).forEach((h,i)=>{ const k=nz(h); if(k&&H[k]==null) H[k]=i; });
   if(H["참가자ID"]==null) return out;
   for(let r=hi+1;r<aoa.length;r++){ const row=aoa[r]||[]; const id=nz(row[H["참가자ID"]]); if(!id) continue;
-    if(!((state.sessById&&state.sessById[id]) || (state.byId&&state.byId[id]))) continue;   // drop check-ins for ids no longer in the 세션/숙소 roster
-    out[id]=(H["체크인시각"]!=null?nz(row[H["체크인시각"]]):"")||"✓"; }
+    if(!((state.byId&&state.byId[id]) || (state.sessById&&state.sessById[id]))) continue;   // drop check-ins for ids no longer in the 숙소/세션 roster
+    const tin=H["체크인시각"]!=null?nz(row[H["체크인시각"]]):"";
+    const tout=H["체크아웃시각"]!=null?nz(row[H["체크아웃시각"]]):"";
+    out[id]={in:tin||"✓", out:tout};   // 행이 있으면 최소 체크인 상태; 시각 없으면 ✓로 표기
+  }
   return out;
 }
 // local timestamp "YYYY-MM-DD HH:MM" (text, so Excel never reformats it into a date serial)
 function ckNowStamp(){ const d=new Date(), p=n=>String(n).padStart(2,"0");
   return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`; }
-// toggle a person's arrival check-in (by 숙소 P-code) and refresh the open card
+// 체크인 상태 모델: state.checkedIn[id] = {in:"YYYY-MM-DD HH:MM", out:""} — in 있으면 숙소 도착(체크인), out 있으면 퇴실(체크아웃).
+// 옛 문자열 형식(체크인 시각만)도 허용하여 {in,out}로 정규화.
+function ckGet(id){ const c=state.checkedIn&&state.checkedIn[id]; if(!c) return null; return typeof c==="object"?c:{in:(c==="✓"?"✓":String(c)),out:""}; }
+function ckInTime(id){ const c=ckGet(id); return c?c.in||"":""; }
+function ckOutTime(id){ const c=ckGet(id); return c?c.out||"":""; }
+function ckSetIn(id,on){ state.checkedIn=state.checkedIn||{};
+  if(on){ const c=ckGet(id)||{in:"",out:""}; c.in=ckNowStamp(); state.checkedIn[id]=c; }
+  else delete state.checkedIn[id]; }   // 체크인 해제 → 기록 전체 삭제(체크아웃도 함께)
+function ckSetOut(id,on){ state.checkedIn=state.checkedIn||{}; const c=ckGet(id);
+  if(on){ if(!c||!c.in){ toast("먼저 체크인을 해야 체크아웃할 수 있습니다.","warn"); return false; } c.out=ckNowStamp(); state.checkedIn[id]=c; }
+  else if(c){ c.out=""; state.checkedIn[id]=c; }
+  return true; }
+// toggle a person's accommodation arrival (체크인) by 숙소 P-code and refresh the open card
 function ckToggleCheckin(pid){
-  state.checkedIn=state.checkedIn||{};
-  const was=!!state.checkedIn[pid];
-  if(was) delete state.checkedIn[pid]; else state.checkedIn[pid]=ckNowStamp();
+  const was=!!ckInTime(pid);
+  ckSetIn(pid,!was);
   state.edited=true;                                     // workSig() now includes state.checkedIn → unsaved-changes guard fires
   if(state._ckCur && $("#modal").style.display!=="none") ckShowCard(state._ckCur);   // 모달이 열려 있으면 배너·시각 갱신
   if(state.view==="checkin") ck2Refresh();               // 대시보드 통계·표·도넛 갱신
-  toast(was?`체크인을 해제했습니다.`:`체크인 완료 — ${state.checkedIn[pid]}`,"ok");
+  toast(was?`체크인을 해제했습니다.`:`체크인 — ${ckInTime(pid)}`,"ok");
+}
+// toggle a person's accommodation departure (체크아웃); requires an existing 체크인
+function ckToggleCheckout(pid){
+  const was=!!ckOutTime(pid);
+  if(!ckSetOut(pid,!was)) return;                        // 체크인 없이 체크아웃 시도 → ckSetOut가 toast 후 무시
+  state.edited=true;
+  if(state._ckCur && $("#modal").style.display!=="none") ckShowCard(state._ckCur);
+  if(state.view==="checkin") ck2Refresh();
+  toast(was?`체크아웃을 해제했습니다.`:`체크아웃 — ${ckOutTime(pid)}`,"ok");
 }
 // 현장 체크인 명단 = '세션 참가자' 탭 — 1행 = 1명 = 1 체크인 단위 (키 = 세션 참가자ID).
 // '참가자'(숙소) 탭은 숙소 전용이므로, 세션 참가자에 이메일로 연결해 숙소 정보(.acc)만 표시용으로 붙인다.
 // '세션 참가자' 탭이 없는 옛 마스터는 숙소 명단으로 폴백(키 = P-code)해 기존 동작을 유지.
 const ckEmails=s=>String(s||"").toLowerCase().split(/[\s,;]+/).map(x=>x.trim()).filter(Boolean);
 function ckMatchByEmail(email,map){ for(const k of ckEmails(email)){ if(map.has(k)) return map.get(k); } return null; }
+// 숙소 체크인 명단 = '참가자'(숙소) 탭 — 1행 = 1명 = 1 체크인 단위 (키 = 참가자ID/P-code).
+// 메타데이터(나이대/성별/국가/분류)는 로드 시 세션 참가자에서 이메일로 붙여둔 p.sessMeta/p.band를 사용.
 function ckRoster(){
-  if(!state.sessParticipants || !state.sessParticipants.length){
-    return (state.parties||[]).map(p=>({sess:null, acc:p, id:p.id, name:p.name||p.id, email:p.email||"", cat:p.cat||"", kname:p.kname||""}));
-  }
-  const accByEmail=ckAccByEmail();
-  return state.sessParticipants.map(sp=>{
-    const acc=ckMatchByEmail(sp.email,accByEmail);
-    return {sess:sp, acc, id:sp.id, name:sp.name||sp.id,
-      email:sp.email||(acc&&acc.email)||"", cat:sp.cat||(acc&&acc.cat)||"", kname:(acc&&acc.kname)||""};
-  });
+  return (state.parties||[]).map(p=>({
+    acc:p, sess:p.sessMeta||null, id:p.id, name:p.name||p.id, email:p.email||"",
+    cat:p.cat||"", band:p.band||"", sex:p.sex||(p.sessMeta&&p.sessMeta.sex)||"", kname:p.kname||""
+  }));
 }
 // 이메일 → 숙소(참가자) 레코드 — 세션 참가자 카드에 숙소 정보를 붙이는 용도 (parties 식별자 기준 메모이즈)
 function ckAccByEmail(){
@@ -2603,10 +2638,10 @@ function ckSessByEmail(){
 }
 // 숙소 party의 현장 체크인 시각 — 체크인은 세션 참가자ID 기준이라 이메일로 연결해 조회. P-code 직접 키(폴백)도 인정.
 function ckPartyCheckin(p){
-  const ci=state.checkedIn; if(!ci) return null;
-  if(ci[p.id]) return ci[p.id];
-  const m=ckSessByEmail();
-  for(const k of ckEmails(p.email)){ const sp=m.get(k); if(sp && ci[sp.id]) return ci[sp.id]; }
+  if(!state.checkedIn) return null;
+  const t=ckInTime(p.id); if(t) return t;                 // 체크인은 참가자ID(P-code) 기준 — 직접 조회
+  const m=ckSessByEmail();                                // 옛 마스터(세션ID 키) 폴백
+  for(const k of ckEmails(p.email)){ const sp=m.get(k); if(sp && ckInTime(sp.id)) return ckInTime(sp.id); }
   return null;
 }
 // sessions a person is assigned to, sorted by day then start time. Assignments may be keyed by EITHER the
@@ -2644,11 +2679,11 @@ function ckCard(entry){
     if(!items.length) return `<div class="cknone">정보 없음</div>`;
     const inner=items.map(([k,v])=>`<div class="ckpair${WIDEK.has(k)?" wide":""}"><span class="k">${esc(k)}</span><span class="v">${esc(String(v)).replace(/\n/g,"<br>")}</span></div>`).join("");
     return `<div class="ckgrid">${inner}</div>`; };
-  // 등록 정보 — richer from the 숙소 party; fall back to the 세션 record's fields
-  const regRows = acc
-    ? [["참가행사",acc.event],["성별",CK_SEXK[acc.sex]||acc.sex],["생년월일",acc.dob],["국적",acc.nat],
-       ["소속",acc.aff],["직책",acc.title],["WB등급",acc.wb],["결제상태",acc.pay]]
-    : [["나이대",sess.band],["성별",CK_SEXK[sess.sex]||sess.sex],["지역",sess.region],["결제여부",sess.pay]];
+  // 등록 정보 — 숙소(참가자) 기준 + 나이대는 세션 참가자에서 참조(이메일 매칭)
+  const sxv=(acc&&acc.sex)||(sess&&sess.sex)||"";
+  const regRows = [["참가행사",acc&&acc.event],["분류",acc&&acc.cat],["나이대",sess&&sess.band],
+     ["성별",CK_SEXK[sxv]||sxv],["생년월일",acc&&acc.dob],["국적",(acc&&acc.nat)||(sess&&sess.region)],
+     ["소속",acc&&acc.aff],["직책",acc&&acc.title],["WB등급",acc&&acc.wb],["결제상태",acc&&acc.pay]];
   // 숙소 배정 — room summary lifted up so the hero banner (#2) can show it
   let accHtml, roomLine="", arrLine="";
   if(acc){
@@ -2672,16 +2707,16 @@ function ckCard(entry){
   const title=esc(acc&&acc.name||sess&&sess.name||entry.name||"(이름 없음)")+(acc&&acc.kname?` <span style="font-weight:400">(${esc(acc.kname)})</span>`:"");
   const ids=[acc?`숙소 ${esc(acc.id)}`:"",sess?`세션 ${esc(sess.id)}`:""].filter(Boolean).join(" · ");   // #4 demoted to faint line
   const sub=`${entry.email?esc(entry.email):"이메일 없음"}${entry.cat?" · "+esc(entry.cat):""}`;
-  // 현장 체크인 — 세션 참가자ID 기준(모든 세션 참가자가 체크인 대상). 옛 마스터(세션 탭 없음)는 P-code 폴백.
+  // 숙소 체크인/체크아웃 — 참가자ID(P-code) 기준. 체크아웃은 체크인 이후에만 가능.
   let ckHtml;
-  const ckId = sess ? sess.id : (acc ? acc.id : null);
-  if(ckId){ const t=state.checkedIn&&state.checkedIn[ckId];
-    ckHtml=`<div class="ckcheck ${t?'on':''}">
-      <div class="ckcheckmain">
-        <div class="ckcheckstat">${t?`${ico('check')} <b>체크인 완료</b>${t!=='✓'?` <span class="cktime">${esc(t)}</span>`:""}`:`<span class="ckdot"></span><b>미체크인</b> <span class="cksubtxt">현장 미도착</span>`}</div>
-        <div class="ckroom"><span class="ckroomk">배정 숙소</span> <span class="ckroomv">${esc(roomLine||"미배정")}</span>${arrLine?` <span class="ckarr">· 도착 ${esc(arrLine)}</span>`:""}</div>
+  const ckId = acc ? acc.id : (sess ? sess.id : null);
+  if(ckId){ const tin=ckInTime(ckId), tout=ckOutTime(ckId);
+    ckHtml=`<div class="ckcheck ${tin?'on':''}">
+      <div class="ckroom"><span class="ckroomk">배정 숙소</span> <span class="ckroomv">${esc(roomLine||"미배정")}</span>${arrLine?` <span class="ckarr">· 도착예정 ${esc(arrLine)}</span>`:""}</div>
+      <div class="ckstates">
+        <div class="ckstate ${tin?'done':''}"><span class="cklab">체크인 <small class="en2">In</small></span>${tin?`<b class="cktime">${esc(tin==='✓'?'완료':tin)}</b>`:`<span class="ckno">미도착</span>`}<button class="ckbtn ${tin?'undo':'go'}" data-ck="in" data-pid="${esc(ckId)}">${tin?"취소":"체크인"}</button></div>
+        <div class="ckstate ${tout?'done':''}"><span class="cklab">체크아웃 <small class="en2">Out</small></span>${tout?`<b class="cktime">${esc(tout)}</b>`:`<span class="ckno">${tin?'재실 중':'-'}</span>`}<button class="ckbtn ${tout?'undo':'go'}" data-ck="out" data-pid="${esc(ckId)}"${tin?'':' disabled'}>${tout?"취소":"체크아웃"}</button></div>
       </div>
-      <button class="ckbtn ${t?'undo':'go'}" data-pid="${esc(ckId)}">${t?"체크인 취소":"체크인 완료"}</button>
     </div>`;
   } else ckHtml=`<div class="ckcheck na">체크인 식별자가 없습니다.</div>`;
   return `<div class="ckcard" style="--catc:${ci.c}">
@@ -2697,8 +2732,9 @@ function ckShowCard(entry){
   state._ckCur=entry;
   const card=$("#card"); card.className="card";
   card.innerHTML=`<div class="ckmodal">${ckCard(entry)}<button class="cx ckx" onclick="closeCard()" aria-label="닫기">×</button></div>`;
-  const btn=card.querySelector(".ckbtn[data-pid]");
-  if(btn) btn.onclick=()=>ckToggleCheckin(btn.dataset.pid);
+  card.querySelectorAll(".ckbtn[data-pid]").forEach(b=>{
+    b.onclick=()=> b.dataset.ck==="out" ? ckToggleCheckout(b.dataset.pid) : ckToggleCheckin(b.dataset.pid);
+  });
   $("#modal").style.display="flex";
 }
 // 체크인 보기 (새 디자인): 통계 카드 + 검색·페이지 테이블 + 도넛 요약 + 최근 체크인.
@@ -2710,10 +2746,10 @@ function renderCheckin(){
     const circ='<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/></svg>';
     wrap.innerHTML=`
     <div class="ck2stats">
-      <button type="button" class="ck2stat s1" data-f="all" title="전체 보기 · Show all"><span class="row1"><span class="bico">${ico('users')}</span><span class="lbl">총 등록<span class="en">Total Registered</span></span><span class="fhint">전체 보기</span></span><span class="num" id="ck2Total">0</span></button>
-      <button type="button" class="ck2stat s2" data-f="in" title="체크인 완료만 보기 · Filter: checked-in"><span class="row1"><span class="bico">${ico('checkCircle')}</span><span class="lbl">체크인 완료<span class="en">Checked-in</span></span><span class="fhint">필터</span></span><span class="num"><span id="ck2In">0</span><span class="pct g" id="ck2InP">0%</span></span></button>
-      <button type="button" class="ck2stat s3" data-f="out" title="미체크인만 보기 · Filter: not checked-in"><span class="row1"><span class="bico">${circ}</span><span class="lbl">미체크인<span class="en">Not Checked-in</span></span><span class="fhint">필터</span></span><span class="num"><span id="ck2Out">0</span><span class="pct b" id="ck2OutP">0%</span></span></button>
-      <button type="button" class="ck2stat s4" data-f="today" title="오늘 체크인한 사람만 보기 · Filter: today"><span class="row1"><span class="bico">${ico('checkSquare')}</span><span class="lbl">오늘 체크인<span class="en">Today's Check-ins</span></span></span><span class="num"><span id="ck2Today">0</span><span class="pct a">자세히 →</span></span></button>
+      <button type="button" class="ck2stat s1" data-f="all" title="전체 보기 · Show all"><span class="row1"><span class="bico">${ico('users')}</span><span class="lbl">총 인원<span class="en">Total</span></span><span class="fhint">전체 보기</span></span><span class="num" id="ck2Total">0</span></button>
+      <button type="button" class="ck2stat s2" data-f="in" title="체크인(도착)만 보기 · Filter: checked-in"><span class="row1"><span class="bico">${ico('checkCircle')}</span><span class="lbl">체크인<span class="en">Checked-in</span></span><span class="fhint">필터</span></span><span class="num"><span id="ck2In">0</span><span class="pct g" id="ck2InP">0%</span></span></button>
+      <button type="button" class="ck2stat s3" data-f="out" title="체크아웃(퇴실)만 보기 · Filter: checked-out"><span class="row1"><span class="bico">${ico('checkSquare')}</span><span class="lbl">체크아웃<span class="en">Checked-out</span></span><span class="fhint">필터</span></span><span class="num"><span id="ck2Out">0</span><span class="pct b" id="ck2OutP">0%</span></span></button>
+      <button type="button" class="ck2stat s4" data-f="none" title="미도착(체크인 안 함)만 보기 · Filter: not arrived"><span class="row1"><span class="bico">${circ}</span><span class="lbl">미도착<span class="en">Not arrived</span></span><span class="fhint">필터</span></span><span class="num"><span id="ck2None">0</span><span class="pct a" id="ck2NoneP">0%</span></span></button>
     </div>
     <div class="ck2lower">
       <div class="ck2panel">
@@ -2722,7 +2758,7 @@ function renderCheckin(){
           <div class="ck2search"><span class="mag">${ico('search')}</span><input id="ck2Q" placeholder="${matchMedia("(max-width:640px)").matches?"이름·이메일·ID 검색 · Search…":"이름, 이메일, 참가자ID로 검색 · Search name / email / ID…"}" autocomplete="off" aria-label="체크인 참가자 검색 · Search participants"><button type="button" class="clr2" id="ck2Clr" aria-label="검색어 지우기">×</button></div>
           <select id="ck2Cat" aria-label="참가 유형 필터 · Filter by type"><option value="">전체 유형 · All</option></select>
         </div>
-        <table class="ck2tbl"><thead><tr><th>참가자<span class="en">Participant</span></th><th>참가 유형<span class="en">Type</span></th><th>성별<span class="en">Sex</span></th><th>참가자ID<span class="en">ID</span></th><th>배정 숙소<span class="en">Room</span></th><th>상태<span class="en">Status</span></th><th>체크인 시각<span class="en">Checked at</span></th></tr></thead><tbody id="ck2Rows"></tbody></table>
+        <table class="ck2tbl ck2tbl6"><thead><tr><th>참가자<span class="en">Participant</span></th><th>유형<span class="en">Type</span></th><th>나이대<span class="en">Age</span></th><th>배정 숙소<span class="en">Room</span></th><th>체크인<span class="en">Check-in</span></th><th>체크아웃<span class="en">Check-out</span></th></tr></thead><tbody id="ck2Rows"></tbody></table>
         <div class="ck2nores" id="ck2NoRes" style="display:none">검색 결과가 없습니다 · No results</div>
         <div class="ck2pg"><span class="info" id="ck2Info"></span><span class="ck2perw"><label for="ck2Per" title="Per page">페이지당</label><select id="ck2Per"><option value="50">50명씩 보기</option><option value="100">100명씩 보기</option><option value="0">전체 보기</option></select></span><span class="pages" id="ck2Pages"></span></div>
       </div>
@@ -2734,10 +2770,11 @@ function renderCheckin(){
             <div class="ctr"><b id="ck2Pct">0%</b><span class="cnt" id="ck2Cnt">0 / 0</span><span>체크인 완료 · Checked-in</span></div>
           </div></div>
           <div class="ck2legend">
-            <div class="li g"><span class="k"></span><span class="nm">체크인 완료 <small class="en2">Checked-in</small></span><span class="v" id="ck2LgIn">0</span></div>
-            <div class="li o"><span class="k"></span><span class="nm">미체크인 <small class="en2">Not yet</small></span><span class="v" id="ck2LgOut">0</span></div>
+            <div class="li g"><span class="k"></span><span class="nm">체크인 <small class="en2">Checked-in</small></span><span class="v" id="ck2LgIn">0</span></div>
+            <div class="li bl"><span class="k"></span><span class="nm">체크아웃 <small class="en2">Checked-out</small></span><span class="v" id="ck2LgOut">0</span></div>
+            <div class="li o"><span class="k"></span><span class="nm">미도착 <small class="en2">Not arrived</small></span><span class="v" id="ck2LgNone">0</span></div>
           </div>
-          <button type="button" class="ck2report" id="ck2Report">${ico('checkCircle')} 체크인 완료 명단 보기 <small class="en2">Checked-in list</small></button>
+          <button type="button" class="ck2report" id="ck2Report">${ico('checkCircle')} 체크인 명단 보기 <small class="en2">Checked-in list</small></button>
           <button type="button" class="ck2report ck2printbtn" id="ck2Print">${ico('printer')} 명단 인쇄 / PDF <small class="en2">Print roster</small></button>
         </div>
         <div class="ck2panel">
@@ -2756,7 +2793,7 @@ function renderCheckin(){
       const rows=ui._rows||[];
       if(rows.length===1){
         const e=rows[0];
-        if((state.checkedIn||{})[e.id]) toast(`이미 체크인된 참가자입니다 — ${e.name}`,"info");
+        if(ckInTime(e.id)) toast(`이미 체크인된 참가자입니다 — ${e.name}`,"info");
         else ckToggleCheckin(e.id);
         q.select();                                   // 다음 스캔/입력이 바로 덮어쓰도록 전체 선택
       } else if(rows.length>1) toast(`${rows.length}명이 일치합니다 — 검색어를 더 좁혀 주세요`,"info");
@@ -2777,23 +2814,22 @@ function renderCheckin(){
 }
 function ck2Refresh(){
   const wrap=$("#checkin"); if(!wrap||!wrap.dataset.built) return;
-  const ui=state.ck2, ci=state.checkedIn||{}, roster=ckRoster();   // 명단 = '세션 참가자' (1행=1명), 키 = 세션 참가자ID
+  const ui=state.ck2, roster=ckRoster();   // 명단 = '참가자'(숙소) (1행=1명), 키 = 참가자ID(P-code)
   const total=roster.length;
-  const inN=roster.filter(e=>ci[e.id]).length, outN=total-inN;
-  const today=ck2TodayKey();
-  const todayN=roster.filter(e=>typeof ci[e.id]==="string" && ci[e.id].slice(0,10)===today).length;
+  const inN=roster.filter(e=>ckInTime(e.id)).length;     // 체크인(도착)
+  const outN=roster.filter(e=>ckOutTime(e.id)).length;   // 체크아웃(퇴실)
+  const noneN=total-inN;                                  // 미도착
   const frac=total?inN/total:0;
-  // 가장자리 보정: 1/2504이 "0%", 2503/2504이 "100%"로 읽히는 잘못된 신호 방지 → <1% / >99%
   const fmtPct=p=>p>0&&p<1?"<1%":(p>99&&p<100?">99%":p.toFixed(1).replace(/\.0$/,"")+"%");
-  const pctS=fmtPct(frac*100), outS=fmtPct((1-frac)*100);
-  $("#ck2Total").textContent=total; $("#ck2In").textContent=inN; $("#ck2Out").textContent=outN; $("#ck2Today").textContent=todayN;
-  $("#ck2InP").textContent=pctS; $("#ck2OutP").textContent=outS;
+  const pctS=fmtPct(frac*100), outS=fmtPct(total?outN/total*100:0), noneS=fmtPct(total?noneN/total*100:0);
+  $("#ck2Total").textContent=total; $("#ck2In").textContent=inN; $("#ck2Out").textContent=outN; $("#ck2None").textContent=noneN;
+  $("#ck2InP").textContent=pctS; $("#ck2OutP").textContent=outS; $("#ck2NoneP").textContent=noneS;
   $("#ck2Donut").setAttribute("stroke-dashoffset",String(490*(1-frac)));
   $("#ck2Pct").textContent=pctS;
   $("#ck2Cnt").textContent=`${inN.toLocaleString()} / ${total.toLocaleString()}`;
-  $("#ck2LgIn").textContent=`${inN} (${pctS})`; $("#ck2LgOut").textContent=`${outN} (${outS})`;
+  $("#ck2LgIn").textContent=`${inN} (${pctS})`; $("#ck2LgOut").textContent=`${outN} (${outS})`; const lgN=$("#ck2LgNone"); if(lgN) lgN.textContent=`${noneN} (${noneS})`;
   const dn=wrap.querySelector(".ck2donut");
-  if(dn){ dn.setAttribute("role","img"); dn.setAttribute("aria-label",`체크인 ${pctS} 완료 (${inN}/${total})`); }
+  if(dn){ dn.setAttribute("role","img"); dn.setAttribute("aria-label",`체크인 ${pctS} (${inN}/${total})`); }
   // 참가 유형 필터 옵션 — 명단의 유형이 바뀐 경우에만 재구성 (마스터 교체 대응)
   const catSel=$("#ck2Cat");
   if(catSel){ const cats=[...new Set(roster.map(e=>e.cat).filter(Boolean))].sort();
@@ -2809,25 +2845,25 @@ function ck2Refresh(){
     const fh=s.querySelector(".fhint"); if(fh) fh.textContent = on?"✕ 해제":(s.dataset.f==="all"?"전체 보기":"필터");
   });
   const chip=$("#ck2Chip");
-  if(ui.f!=="all"){ chip.style.display=""; chip.textContent=({in:"체크인 완료만",out:"미체크인만",today:"오늘 체크인만"})[ui.f]+"  ✕ 해제"; }
+  if(ui.f!=="all"){ chip.style.display=""; chip.textContent=({in:"체크인만",out:"체크아웃만",none:"미도착만"})[ui.f]+"  ✕ 해제"; }
   else chip.style.display="none";
-  // 행 = '세션 참가자' 1명 (체크인 단위). 숙소 정보는 이메일로 연결해 카드에서만 사용.
+  // 행 = '참가자'(숙소) 1명 (체크인/체크아웃 단위).
   const q=(ui.q||"").trim().toLowerCase();
   const rows=roster.filter(e=>{
     if(q){ const hay=[e.name, e.kname, e.email, e.id].filter(Boolean).join(" ").toLowerCase();
       if(!hay.includes(q)) return false; }
     if(ui.cat && (e.cat||"")!==ui.cat) return false;   // 참가 유형 필터
-    const t=ci[e.id];
-    if(ui.f==="in") return !!t;
-    if(ui.f==="out") return !t;
-    if(ui.f==="today") return !!t && String(t).slice(0,10)===today;
+    const tin=ckInTime(e.id), tout=ckOutTime(e.id);
+    if(ui.f==="in") return !!tin;
+    if(ui.f==="out") return !!tout;
+    if(ui.f==="none") return !tin;
     return true;
   });
   rows.sort((a,b)=>{
-    const ta=ci[a.id]||"", tb=ci[b.id]||"";
+    const ta=ckInTime(a.id), tb=ckInTime(b.id);
     if(!!ta!==!!tb) return ta?-1:1;                       // 체크인 완료 먼저
     if(ta&&tb&&ta!==tb) return ta<tb?1:-1;                // 최근 체크인 순
-    return ((a.sess?a.sess._row:0)-(b.sess?b.sess._row:0)) || String(a.name||"").localeCompare(String(b.name||""));   // 시트 순
+    return ((a.acc?a.acc._row:0)-(b.acc?b.acc._row:0)) || String(a.name||"").localeCompare(String(b.name||""));   // 시트 순
   });
   ui._rows=rows;   // 검색창 Enter(스캐너) 체크인이 현재 필터 결과를 그대로 사용
   const per=ui.per>0?ui.per:(rows.length||1), npg=Math.max(1,Math.ceil(rows.length/per));
@@ -2835,30 +2871,26 @@ function ck2Refresh(){
   const at=(ui.page-1)*per, page=rows.slice(at,at+per);
   const tb=$("#ck2Rows"); tb.innerHTML="";
   $("#ck2NoRes").style.display=rows.length?"none":"";
-  const circ='<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/></svg>';
   page.forEach(e=>{
-    const t=ci[e.id], ft=ck2Time(t||"");
-    const cat=e.cat||"—";   // 세션 카테고리(Seniors/Students/…)는 짧으므로 약어 없이 그대로 표시
+    const tin=ckInTime(e.id), tout=ckOutTime(e.id), fin=ck2Time(tin||""), fout=ck2Time(tout||"");
+    const cat=e.cat||"—", band=e.band||"—";
     const ri2=e.acc?partyRoomInfo(e.acc):null;             // 배정 숙소 — 프런트에서 체크인 직후 바로 안내
     const roomTxt=ri2?(ri2.ven?`${ri2.vshort} ${ri2.rno}`:"미배정"):"—";
-    const sx=(e.acc&&e.acc.sex)||(e.sess&&e.sess.sex)||"";   // 성별: 숙소 레코드 우선, 없으면 세션 참가자 기록
     const tr=el("tr");
     tr.innerHTML=
       `<td><div class="att"><span class="av" style="background:${ck2Color(e.id||e.name)}">${esc(ck2Init(e.name))}</span>`+
       `<span class="who2"><span class="nm">${esc(e.name||"(이름 없음)")}${e.kname?`<span class="kn">${esc(e.kname)}</span>`:""}</span>`+
       `<span class="em${e.email?"":" none"}">${e.email?esc(e.email):"이메일 미등록"}</span></span></div></td>`+
       `<td>${esc(cat)}</td>`+
-      `<td class="sx2 ${sx==="M"?"m":sx==="F"?"f":"none"}">${esc(CK_SEXK[sx]||sx||"—")}</td>`+
-      `<td class="tid">${esc(e.id)}</td>`+
+      `<td class="age">${esc(band)}</td>`+
       `<td class="rm${(ri2&&ri2.ven)?"":" none"}">${esc(roomTxt)}</td>`+
-      `<td><button type="button" class="ckpill ${t?"in":"out"}" data-pid="${esc(e.id)}" aria-pressed="${t?"true":"false"}" title="${t?"클릭: 체크인 취소 · Click to undo":"클릭: 체크인 완료 · Click to check in"}">${t?ico('check')+" 체크인 완료":circ+" 미체크인"}</button></td>`+
-      `<td class="${t?"citime":"none"}">${t?`${esc(ft.t)}<small>${esc(ft.d)}</small>`:"—"}</td>`;
+      `<td class="ckcell"><button type="button" class="ckpill ${tin?"in":"out"}" data-ck="in" data-pid="${esc(e.id)}" aria-pressed="${tin?"true":"false"}" title="${tin?"클릭: 체크인 취소":"클릭: 체크인"}">${tin?ico('check')+" 체크인":"체크인"}</button>${tin&&tin!=="✓"?`<small class="ct">${esc(fin.t)} <span class="cd">${esc(fin.d)}</span></small>`:""}</td>`+
+      `<td class="ckcell"><button type="button" class="ckpill ${tout?"in":"pend"}" data-ck="out" data-pid="${esc(e.id)}" aria-pressed="${tout?"true":"false"}"${tin?"":" disabled"} title="${tin?(tout?"클릭: 체크아웃 취소":"클릭: 체크아웃"):"먼저 체크인 필요"}">${tout?ico('check')+" 체크아웃":"체크아웃"}</button>${tout?`<small class="ct">${esc(fout.t)} <span class="cd">${esc(fout.d)}</span></small>`:""}</td>`;
     tr.addEventListener("click",ev=>{ if(ev.target.closest(".ckpill[data-pid]")) return; ckShowCard(e); });
     tr.tabIndex=0;                                         // 키보드 탐색: Tab으로 행 이동, Enter/Space로 상세
     tr.setAttribute("aria-label",`${e.name||e.id} 상세 보기`);
     tr.addEventListener("keydown",ev=>{ if((ev.key==="Enter"||ev.key===" ") && !ev.target.closest(".ckpill")){ ev.preventDefault(); ckShowCard(e); } });
-    const pill=tr.querySelector(".ckpill[data-pid]");
-    if(pill) pill.addEventListener("click",ev=>{ ev.stopPropagation(); ckToggleCheckin(e.id); });
+    tr.querySelectorAll(".ckpill[data-pid]").forEach(pill=>pill.addEventListener("click",ev=>{ ev.stopPropagation(); pill.dataset.ck==="out"?ckToggleCheckout(e.id):ckToggleCheckin(e.id); }));
     tb.append(tr);
   });
   $("#ck2Info").textContent=rows.length?`${rows.length}명 중 ${at+1}–${Math.min(at+per,rows.length)}명 표시`:"";
@@ -2876,10 +2908,10 @@ function ck2Refresh(){
   mkb("›",false,ui.page>=npg,()=>{ ui.page++; ck2Refresh(); });
   // 최근 체크인 (최근 5명, 시각 역순)
   const rec=$("#ck2Recent"); rec.innerHTML="";
-  const recents=roster.filter(e=>ci[e.id]).sort((x,y)=>(ci[x.id]<ci[y.id]?1:-1)).slice(0,5);
+  const recents=roster.filter(e=>ckInTime(e.id)).sort((x,y)=>(ckInTime(x.id)<ckInTime(y.id)?1:-1)).slice(0,5);
   if(!recents.length) rec.append(el("div","noneyet","아직 체크인 기록이 없습니다"));
   recents.forEach(e=>{
-    const ft=ck2Time(ci[e.id]);
+    const ft=ck2Time(ckInTime(e.id));
     const ri2=e.acc?partyRoomInfo(e.acc):null;
     const meta=[e.cat||"", (ri2&&ri2.ven)?`${ri2.vshort} ${ri2.rno}`:""].filter(Boolean).join(" · ");   // 유형 · 객실 — 방금 도착한 사람을 어디로 보낼지 한눈에
     const d=el("div","ri");
@@ -3762,7 +3794,7 @@ function renderSession(){
   // (C) POOL DUPLICATES (left pane): the same human listed more than once in the participant pool — same name OR email,
   //     DIFFERENT IDs. Flagged on the pool chip so the user can reconcile source data. Read by sessPoolDup → sessChip.
   { const poolDup=new Map();
-    const POOL=(state.sessParticipants&&state.sessParticipants.length)?state.sessParticipants:state.parties;
+    const POOL=state.parties;   // 세션 배정 풀 = '참가자'(숙소) 698명 (P-code); 나이대/국가는 로드 시 세션 참가자에서 붙임
     const byName=new Map(), byEmail=new Map();
     (POOL||[]).forEach(p=>{ const nk=(p.name||"").trim().toUpperCase(), ek=(p.email||"").trim().toLowerCase();
       if(nk)(byName.get(nk)||byName.set(nk,[]).get(nk)).push(p);
@@ -3798,7 +3830,7 @@ function renderSession(){
   const phdr=el("div","sesspoolhdr"); phdr.append(h2); pool.append(phdr);
 
   const sw=el("div","searchwrap");
-  const search=el("input","search"); search.id="sesssearch"; search.placeholder=(state.sessParticipants&&state.sessParticipants.length)?"이름/ID/지역 검색…":"이름/ID/소속 검색…"; search.setAttribute("autocomplete","off"); search.value=state.sessFilter.q||"";
+  const search=el("input","search"); search.id="sesssearch"; search.placeholder="이름/ID/지역/소속 검색…"; search.setAttribute("autocomplete","off"); search.value=state.sessFilter.q||"";
   const clr=el("button","clr"); clr.type="button"; clr.textContent="×"; clr.title="지우기"; clr.setAttribute("aria-label","검색어 지우기");
   sw.append(search,clr); phdr.append(sw);
 
@@ -3849,7 +3881,7 @@ function renderSession(){
       grp.append(ch);
     };
     const groups=new Map();
-    const POOL=(state.sessParticipants&&state.sessParticipants.length)?state.sessParticipants:state.parties;   // 세션 참가자 tab drives this pool; fall back to 참가자 for masters without the tab
+    const POOL=state.parties;   // 세션 배정 풀 = '참가자'(숙소) 698명 (P-code); 메타데이터(나이대/국가/성별)는 로드 시 세션 참가자에서 이메일로 붙임
     POOL.forEach(p=>{ const c=p.cat||"(분류 없음)"; (groups.get(c)||groups.set(c,[]).get(c)).push(p); });
     const catKeys=[...groups.keys()].sort((a,b)=>a.localeCompare(b));
     let shown=0; catKeys.forEach(c=>{ if(!state.sessExempt.has(c)) shown+=groups.get(c).filter(match).length; });
@@ -4290,7 +4322,9 @@ function chip(p){
     announce(`${p.name} ${state.locked[p.id]?"잠금":"잠금 해제"}`); render(); };
   lk.onclick=toggleLock;
   lk.addEventListener("keydown",e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); toggleLock(e); } });
-  c.append(grip,cat,sx,nm,hc);
+  c.append(grip,cat,sx,nm);
+  if(p.band){ const ageb=el("span","agep",p.band); ageb.title="나이대: "+p.band+" (세션 참가자 기준)"; ageb.setAttribute("aria-hidden","true"); c.append(ageb); }   // 나이대 pill — 세션 참가자 탭에서 이메일로 매칭
+  c.append(hc);
   if(bm){ const wm=el("span","wmk","⚠"); wm.title="⚠ "+bm; wm.setAttribute("aria-hidden","true"); c.append(wm); }
   if(ckTime){ const ck=el("span","chk"); ck.innerHTML=ico('check'); ck.setAttribute("aria-hidden","true");
     ck.title=`현장 체크인 완료${ckTime!=='✓'?` · ${ckTime}`:""}`; c.append(ck); }   // 체크인 완료 표시 (초록 체크 배지)
@@ -4739,8 +4773,8 @@ const SOURCE_NOTE={
   rooms:    [["객실","객실 목록·정원"],["참가자","참가자 정보·숙소 배정"]],
   timeline: [["객실","객실 목록·정원"],["참가자","참가자 정보·숙소 배정"]],
   schedule: [["일정","ICMDA 프로그램 시간표"]],
-  session:  [["세션 참가자","세션 참가자 풀"],["세션 배정","세션 목록·정원"],["세션 장소 세부","세션 장소"],["세션배정","저장된 세션 배정"]],
-  checkin:  [["세션 참가자","체크인 명단(전체 등록자)"],["참가자","숙소 정보 연결(이메일)"],["체크인","체크인 기록"]],
+  session:  [["참가자","세션 배정 풀(숙소 명단)"],["세션 참가자","나이대·국가·성별 참조(이메일)"],["세션 배정","세션 목록·정원"],["세션 장소 세부","세션 장소"],["세션배정","저장된 세션 배정"]],
+  checkin:  [["참가자","체크인 명단·숙소 객실"],["세션 참가자","나이대 등 메타데이터 참조(이메일)"],["체크인","체크인·체크아웃 기록"]],
 };
 function renderSrcFoot(){
   const f=$("#srcfoot"); if(!f) return;
@@ -5738,6 +5772,42 @@ function sheetWriter(doc,path){
   const setDim=(lastC,lastR)=>{ const d=doc.getElementsByTagName("dimension")[0]; if(d) d.setAttribute("ref",XLSX.utils.encode_range({s:{r:0,c:0},e:{r:lastR,c:lastC}})); };
   return {doc,path,set,setF,setDim};
 }
+// Insert `n` blank columns into a worksheet DOM at 0-based column `fromC`: shift every cell at col>=fromC right by n
+// (rewrite its r ref, in place — same-amount shift keeps cells column-ordered), and bump <cols> widths + <dimension>.
+// Caller must rewrite any formula whose cell refs cross the insert (done explicitly for 참가자/요약 in exportMaster).
+function insertSheetCols(doc, fromC, n){
+  const sd=doc.getElementsByTagName("sheetData")[0]; if(!sd) return;
+  Array.from(sd.getElementsByTagName("c")).forEach(ce=>{
+    const ref=ce.getAttribute("r"); if(!ref) return;
+    const ad=XLSX.utils.decode_cell(ref);
+    if(ad.c>=fromC){ ad.c+=n; ce.setAttribute("r",XLSX.utils.encode_cell(ad)); }
+  });
+  const colsEl=doc.getElementsByTagName("cols")[0];
+  if(colsEl) Array.from(colsEl.getElementsByTagName("col")).forEach(co=>{
+    const mn=+co.getAttribute("min"), mx=+co.getAttribute("max");   // <col> min/max are 1-based
+    if(mn>=fromC+1) co.setAttribute("min",String(mn+n));
+    if(mx>=fromC+1) co.setAttribute("max",String(mx+n));
+  });
+  const dim=doc.getElementsByTagName("dimension")[0];
+  if(dim){ const rg=XLSX.utils.decode_range(dim.getAttribute("ref")); rg.e.c+=n; dim.setAttribute("ref",XLSX.utils.encode_range(rg)); }
+}
+// Shift cross-sheet references to `sheet` (e.g. 참가자!AG3:AG715) inside another sheet's formulas: any column >= fromC (0-based) += n.
+// Handles both endpoints of a range (the 2nd carries no sheet prefix) and $-anchored / single-cell refs.
+function shiftCrossRefs(doc, sheet, fromC, n){
+  const sd=doc.getElementsByTagName("sheetData")[0]; if(!sd) return;
+  const q=sheet.replace(/[.*+?^${}()|[\]\\]/g,"\\$&"), dc=XLSX.utils.decode_col, ec=XLSX.utils.encode_col;
+  const re=new RegExp("((?:'"+q+"'|"+q+")!)(\\$?)([A-Z]{1,3})(\\$?)(\\d+)(?::(\\$?)([A-Z]{1,3})(\\$?)(\\d+))?","g");
+  Array.from(sd.getElementsByTagName("f")).forEach(fe=>{
+    const t=fe.textContent; if(!t || t.indexOf(sheet)<0) return;
+    const nt=t.replace(re,(m,pfx,a1,c1,a2,r1,b1,c2,b2,r2)=>{
+      let i1=dc(c1); if(i1>=fromC) i1+=n;
+      let out=pfx+a1+ec(i1)+a2+r1;
+      if(c2!=null){ let i2=dc(c2); if(i2>=fromC) i2+=n; out+=":"+(b1||"")+ec(i2)+(b2||"")+r2; }
+      return out;
+    });
+    if(nt!==t) fe.textContent=nt;
+  });
+}
 // build a minimal worksheet XML from an array-of-arrays (inlineStr / number cells)
 function buildSheetXml(aoa){
   const x=s=>String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
@@ -5827,16 +5897,20 @@ async function exportMaster(){
   const ws=wb.Sheets["참가자"]; const H=state.pH; const HR=1;     // header row = 2nd row
   const range=XLSX.utils.decode_range(ws['!ref']);
   const origEndC=range.e.c;                 // last original column (before we append room-detail cols)
-  // room-detail columns: REUSE the file's existing 배정동/배정층/배정호실/배정객실ID when present (every prior
-  // 마스터 업데이트 wrote them). Only append when truly absent — so repeated exports never pile up duplicate column sets.
-  let c=range.e.c+1; const NC={}, NCnew=new Set();
-  [["동","배정동"],["층","배정층"],["호실","배정호실"],["객실ID","배정객실ID"]].forEach(([k,h])=>{
-    if(H[h]!=null) NC[k]=H[h]; else { NC[k]=c++; NCnew.add(k); }
-  });
-  // app-added nights → save as NEW date columns at the far right (reload detects them as night columns via isDate)
+  // app-added nights → INSERT new date columns right after the last original night col (just before 숙박일수),
+  // so the night block stays contiguous and the stay formulas extend over ONE range (no far-right patch).
   const addedStart=state.origNightCount ?? state.nightCols.length;
-  const addNightCols=[];                    // sheet column per added night, parallel to nightCols[addedStart..]
-  for(let k=addedStart;k<state.nightCols.length;k++) addNightCols.push(c++);
+  const N=Math.max(0, state.nightCols.length - addedStart);            // # of added nights to insert
+  const insertC=(N && state.nightIdx.length) ? state.nightIdx[state.nightIdx.length-1].i+1 : -1;   // 0-based insert col (= 숙박일수)
+  const shiftOf=ci=>(N>0 && insertC>=0 && ci>=insertC) ? ci+N : ci;    // ORIGINAL col index → post-insert index
+  const Hs={}; for(const k in H) Hs[k]=shiftOf(H[k]);                  // header map AFTER the insert (use for WRITES to 참가자)
+  const addNightCols=[]; if(insertC>=0) for(let j=0;j<N;j++) addNightCols.push(insertC+j);   // inserted date columns (contiguous, in place)
+  // room-detail columns: REUSE the file's existing 배정동/배정층/배정호실/배정객실ID (shifted) when present;
+  // only append (post-insert far right) when truly absent — so repeated exports never pile up duplicate column sets.
+  let c=origEndC+N+1; const NC={}, NCnew=new Set();
+  [["동","배정동"],["층","배정층"],["호실","배정호실"],["객실ID","배정객실ID"]].forEach(([k,h])=>{
+    if(H[h]!=null) NC[k]=Hs[h]; else { NC[k]=c++; NCnew.add(k); }
+  });
   // open the ORIGINAL bytes as a zip and edit cells in place → all fills/fonts/colors/borders/formulas/other sheets preserved
   const files=fflate.unzipSync(new Uint8Array(state.masterBuf));
   const paths=xlsxSheetPaths(files), writers={};
@@ -5846,9 +5920,17 @@ async function exportMaster(){
     return writers[name]=sheetWriter(new DOMParser().parseFromString(new TextDecoder().decode(files[path]),"application/xml"),path);
   };
   const P=writerFor("참가자");
+  // physically insert the N new date columns into the 참가자 doc (shift cells/cols/dimension right from insertC),
+  // and shift the 요약 tab's cross-sheet 참가자! refs the same way — BEFORE any cell writes below.
+  if(N>0 && insertC>=0){
+    insertSheetCols(P.doc, insertC, N);
+    if(paths["요약"]) shiftCrossRefs(writerFor("요약").doc, "참가자", insertC, N);
+  }
   const set=(r,cc,v,t)=>P.set(r,cc,v,t);
-  const setNC=(r,cc,v)=>P.set(r,cc,v,null,origEndC);     // new columns inherit the same-row last-original-column style
-  const putRoom=(r,k,v)=> NCnew.has(k) ? P.set(r,NC[k],v,null,origEndC) : P.set(r,NC[k],v);   // appended col → seed style; reused col → keep its own
+  const lastOrigShifted=origEndC+N;                       // last original column AFTER the insert
+  const dateSeed=insertC>=0?insertC-1:origEndC;           // inserted date cells inherit the adjacent night column's style
+  const setNC=(r,cc,v)=>P.set(r,cc,v,null,dateSeed);      // inserted date columns inherit the night-column style
+  const putRoom=(r,k,v)=> NCnew.has(k) ? P.set(r,NC[k],v,null,lastOrigShifted) : P.set(r,NC[k],v);   // appended col → seed style; reused col → keep its own
   putRoom(HR,"동","배정동"); putRoom(HR,"층","배정층"); putRoom(HR,"호실","배정호실"); putRoom(HR,"객실ID","배정객실ID");
   state.nightCols.slice(addedStart).forEach((lab,j)=>setNC(HR,addNightCols[j],lab));   // date header → counted as a night on reload
   const nrm=v=>v==null?"":String(v).trim();
@@ -5857,20 +5939,20 @@ async function exportMaster(){
   state.parties.forEach(p=>{
     const r=p._row, ed=p._edits||new Set();
     // detail fields — write only what the user edited in the modal
-    Object.entries(FIELD_HDR).forEach(([k,h])=>{ if(ed.has(h)&&H[h]!=null){ set(r,H[h],nrm(p[k])); changed++; } });
-    ["본인","배우자","자녀","기타"].forEach(k=>{ if(ed.has(k)&&H[k]!=null){ set(r,H[k],p.party[k]||0,"n"); changed++; } });
+    Object.entries(FIELD_HDR).forEach(([k,h])=>{ if(ed.has(h)&&H[h]!=null){ set(r,Hs[h],nrm(p[k])); changed++; } });
+    ["본인","배우자","자녀","기타"].forEach(k=>{ if(ed.has(k)&&H[k]!=null){ set(r,Hs[k],p.party[k]||0,"n"); changed++; } });
     // assignment → 배정숙소 (venue) + room-detail columns
     const a=state.assign[p.id];
     if(a){
       const ven=partyVenue(p);
-      if(H["배정숙소"]!=null && nrm(ven)!==nrm(xCell(ws,r,H["배정숙소"]))){ set(r,H["배정숙소"],ven); changed++; }
+      if(H["배정숙소"]!=null && nrm(ven)!==nrm(xCell(ws,r,H["배정숙소"]))){ set(r,Hs["배정숙소"],ven); changed++; }
       let bd="",fl="",rn="",rid="";
       if(a==="BOOY"){ rid="개별예약(부영호텔)"; }
       else if(state.roomById[a]){ const rm=state.roomById[a]; bd=rm.bldg||""; fl=rm.floor||""; rn=rm.rno||rm.id; rid=rm.id; }
       putRoom(r,"동",bd); putRoom(r,"층",fl); putRoom(r,"호실",rn); putRoom(r,"객실ID",rid);
     }
     else if(state.assign0 && state.assign0[p.id]!=null){   // was assigned at load, now UN-assigned → wipe the venue + room-detail the prior export wrote (leave untouched pre-locks alone)
-      if(H["배정숙소"]!=null && nrm(xCell(ws,r,H["배정숙소"]))!==""){ set(r,H["배정숙소"],""); }
+      if(H["배정숙소"]!=null && nrm(xCell(ws,r,H["배정숙소"]))!==""){ set(r,Hs["배정숙소"],""); }
       putRoom(r,"동",""); putRoom(r,"층",""); putRoom(r,"호실",""); putRoom(r,"객실ID","");
       changed++;
     }
@@ -5887,23 +5969,23 @@ async function exportMaster(){
       changed++;
     }
   });
-  // app-added dates land in far-right columns OUTSIDE the original S:AA range that 도착일/출발일/숙박일수 count →
-  // extend those 3 formulas (per row that carries them) to also cover the contiguous appended block, so new dates flow into them.
+  // the insert made the night block contiguous (S..lastNight) → rewrite the stay formulas over that ONE range, and
+  // re-point 총인원's SUM at the shifted person columns. Per row that actually carries each formula. Only when dates added.
   let formulaExt=0;
-  if(addNightCols.length && state.nightIdx.length){
+  if(N>0 && state.nightIdx.length && insertC>=0){
     const col=XLSX.utils.encode_col, hr2=HR+1;          // header row in 1-based A1 terms
     const delSet=new Set(state.deletedRows||[]);
-    const oF=col(state.nightIdx[0].i), oL=col(state.nightIdx[state.nightIdx.length-1].i);   // original night range (e.g. S..AA)
-    const aF=col(addNightCols[0]), aL=col(addNightCols[addNightCols.length-1]);             // appended block (contiguous, far right)
-    const labelArr="{"+state.nightCols.slice(addedStart).map(lab=>`"${nextDay(lab)}"`).join(",")+"}";  // checkout label per appended night
+    const nF=col(state.nightIdx[0].i), nL=col(insertC+N-1);    // full contiguous night range after the insert (e.g. S..AB)
+    const pF=col(Hs["본인"]), pL=col(Hs["기타"]);              // shifted person-count range for 총인원
+    const labelArr="{"+state.nightCols.map(lab=>`"${nextDay(lab)}"`).join(",")+"}";   // checkout label per night (all nights)
+    const has=(r,k)=>{ const cell=H[k]!=null && ws[XLSX.utils.encode_cell({r,c:H[k]})]; return cell&&cell.f; };
     for(let r=HR+1;r<=range.e.r;r++){
       if(delSet.has(r)) continue;
-      const depCell=ws[XLSX.utils.encode_cell({r,c:H["출발일"]})];
-      if(!depCell||!depCell.f) continue;                 // only rows that actually carry the stay formulas
-      const r1=r+1, oR=`${oF}${r1}:${oL}${r1}`, aR=`${aF}${r1}:${aL}${r1}`;
-      P.setF(r,H["도착일"],`IFERROR(INDEX($${oF}$${hr2}:$${oL}$${hr2},MATCH("*",${oR},0)),IFERROR(INDEX($${aF}$${hr2}:$${aL}$${hr2},MATCH("*",${aR},0)),""))`);
-      P.setF(r,H["출발일"],`IF(COUNTA(${aR})=0,${depCell.f},LOOKUP(2,1/(${aR}<>""),${labelArr}))`);   // keep original LOOKUP body unless the appended block is used
-      P.setF(r,H["숙박일수"],`IF(COUNTA(${oR},${aR})=0,"",COUNTA(${oR},${aR})&"박")`);
+      const r1=r+1, nR=`${nF}${r1}:${nL}${r1}`;
+      if(has(r,"도착일")) P.setF(r,Hs["도착일"],`IFERROR(INDEX($${nF}$${hr2}:$${nL}$${hr2},MATCH("*",${nR},0)),"")`);
+      if(has(r,"출발일")) P.setF(r,Hs["출발일"],`IFERROR(LOOKUP(2,1/(${nR}<>""),${labelArr}),"")`);
+      if(has(r,"숙박일수")) P.setF(r,Hs["숙박일수"],`IF(COUNTA(${nR})=0,"",COUNTA(${nR})&"박")`);
+      if(has(r,"총인원")) P.setF(r,Hs["총인원"],`SUM(${pF}${r1}:${pL}${r1})`);
       formulaExt++;
     }
   }
@@ -5911,7 +5993,7 @@ async function exportMaster(){
   let delCount=0;
   if(state.deletedRows && state.deletedRows.length){
     [...new Set(state.deletedRows)].forEach(r=>{
-      for(let cc=range.s.c; cc<=origEndC; cc++) set(r,cc,"");
+      for(let cc=range.s.c; cc<c; cc++) set(r,cc,"");   // blank the whole row, incl inserted date cols + any appended room-detail
       delCount++; changed++;
     });
   }
@@ -5925,7 +6007,7 @@ async function exportMaster(){
       sessDelCount++; changed++;
     });
   }
-  const lastNewCol=addNightCols.length?addNightCols[addNightCols.length-1]:NC.객실ID;
+  const lastNewCol=c-1;   // rightmost column written (inserted dates are mid-sheet; appended room-detail, if any, are far right)
   P.setDim(Math.max(range.e.c,lastNewCol), range.e.r);     // extend the sheet dimension to cover the new columns
   // write edited room capacities back to the '객실' tab (추가인원·총가능인원). Surgical: only changed rooms.
   let capChanged=0; const RH=state.rH;
@@ -5962,12 +6044,13 @@ async function exportMaster(){
   let sessRows=0;
   const sessAoa=sessionSheetAoa();
   if(sessAoa){ writeManagedSheet(files,"세션배정",sessAoa); sessRows=sessAoa.filter((r,i)=>i>0 && !String(r[0]||"").startsWith("(")).length; }   // count participant rows (skip header + tag rows)
-  // 체크인 보기 → write/refresh the app-managed '체크인' tab (full rewrite). header: 참가자ID·이름·체크인시각
+  // 숙소 체크인 보기 → write/refresh the app-managed '체크인' tab (full rewrite). header: 참가자ID·이름·체크인시각·체크아웃시각
   let checkinRows=0;
   { const ci=state.checkedIn||{};
     const ids=Object.keys(ci).sort((a,b)=>String((sessPartyById(a)||{}).name||a).localeCompare(String((sessPartyById(b)||{}).name||b)));
     if(ids.length || xlsxSheetPaths(files)["체크인"]){   // write if there are check-ins OR a prior '체크인' tab needs refreshing (e.g. all cleared)
-      const aoa=[["참가자ID","이름","체크인시각"], ...ids.map(id=>[id,(sessPartyById(id)||{}).name||"",ci[id]==="✓"?"":ci[id]])];
+      const aoa=[["참가자ID","이름","체크인시각","체크아웃시각"],
+        ...ids.map(id=>{ const c=ckGet(id)||{in:"",out:""}; return [id,(sessPartyById(id)||{}).name||"", c.in==="✓"?"":(c.in||""), c.out||""]; })];
       writeManagedSheet(files,"체크인",aoa); checkinRows=ids.length;
     }
   }
@@ -6004,8 +6087,8 @@ async function exportMaster(){
   if(sessRows) msg+=`\n· 세션 배정(참가자 ${sessRows}명)을 '세션배정' 탭에 저장했습니다.`;
   if(checkinRows) msg+=`\n· 현장 체크인 ${checkinRows}명을 '체크인' 탭에 저장했습니다.`;
   if(verNoteChanged) msg+=`\n· 요약 시트의 버전 표기를 v${newVer}로 갱신했습니다.`;
-  if(addNightCols.length) msg+=`\n· 추가한 날짜 ${addNightCols.length}개(${state.nightCols.slice(addedStart).join(", ")})를 '참가자' 탭에 새 날짜 열로 저장했습니다.`;
-  if(formulaExt) msg+=`\n· 추가 날짜를 반영하도록 도착일·출발일·숙박일수 수식 ${formulaExt}행을 확장했습니다(엑셀에서 열 때 자동 재계산).`;
+  if(addNightCols.length) msg+=`\n· 추가한 날짜 ${addNightCols.length}개(${state.nightCols.slice(addedStart).join(", ")})를 '참가자' 탭 숙박일수 열 앞에 새 열로 삽입했습니다.`;
+  if(formulaExt) msg+=`\n· 추가 날짜를 반영하도록 도착일·출발일·숙박일수·총인원 수식 ${formulaExt}행과 요약 시트 참조를 갱신했습니다(엑셀에서 열 때 자동 재계산).`;
   if(beyond.length) msg+=`\n\n마스터 박 범위를 벗어난 연장 숙박은 기록할 칸이 없어 누락: ${beyond.join(", ")}`;
   msg+=`\n\n※ 원본 .xlsx의 셀 서식·색상·테두리·수식은 그대로 보존됩니다(변경한 칸만 다시 씁니다). 버전 규칙: 이전 파일은 history/ 폴더로 옮기고 기록하세요(브라우저에서 자동 이동 불가).`;
   toast(`마스터 업데이트 완료 — '${outName}' (변경 ${changed}건)`,"ok",5000);
@@ -6081,28 +6164,28 @@ function buildPrint(){
 // 보안·운영팀 인계용: 체크인 시각 순, 이름·유형·ID·배정 숙소·시각.
 function buildCkPrint(){
   const pa=$("#printarea"); pa.innerHTML="";
-  const ci=state.checkedIn||{}, roster=ckRoster();
-  const done=roster.filter(e=>ci[e.id])
-    .sort((a,b)=> ci[a.id]<ci[b.id]?-1:ci[a.id]>ci[b.id]?1:String(a.name||"").localeCompare(String(b.name||"")));
+  const roster=ckRoster();
+  const done=roster.filter(e=>ckInTime(e.id))
+    .sort((a,b)=>{ const ta=ckInTime(a.id), tb=ckInTime(b.id); return ta<tb?-1:ta>tb?1:String(a.name||"").localeCompare(String(b.name||"")); });
   const g=el("div","pgroup");
-  g.append(el("h2",null,`현장 체크인 완료 명단 (${done.length} / ${roster.length}명 · ${ckNowStamp()} 기준)`));
+  g.append(el("h2",null,`숙소 체크인 명단 (체크인 ${done.length} / ${roster.length}명 · ${ckNowStamp()} 기준)`));
   const t=el("table","proom");
-  t.innerHTML="<tr><th class='num'>#</th><th>이름</th><th>참가 유형</th><th>참가자ID</th><th>국가</th><th>이메일</th><th>배정 숙소</th><th class='dt'>체크인 시각</th></tr>";
+  t.innerHTML="<tr><th class='num'>#</th><th>이름</th><th>참가 유형</th><th>참가자ID</th><th>배정 숙소</th><th class='dt'>체크인</th><th class='dt'>체크아웃</th></tr>";
   done.forEach((e,i)=>{
     const ri2=e.acc?partyRoomInfo(e.acc):null;
     const room=ri2?(ri2.ven?`${ri2.vshort} ${ri2.rno}`:"미배정"):"—";
-    const nat=(e.acc&&e.acc.nat)||(e.sess&&e.sess.region)||"";   // 국가: 숙소 레코드의 국적, 없으면 세션 참가자의 지역
+    const tin=ckInTime(e.id), tout=ckOutTime(e.id);
     const tr=el("tr");
     tr.append(el("td","num",String(i+1)), el("td",null,e.name||String(e.id)), el("td",null,e.cat||""),
-              el("td",null,String(e.id)), el("td",null,nat), el("td",null,e.email||""),
-              el("td",null,room), el("td","dt",ci[e.id]==="✓"?"✓":String(ci[e.id])));
+              el("td",null,String(e.id)), el("td",null,room),
+              el("td","dt",tin==="✓"?"✓":tin), el("td","dt",tout||"—"));
     t.append(tr);
   });
   g.append(t); pa.append(g);
 }
 function ck2PrintRoster(){
   if(!Object.keys(state.checkedIn||{}).length){ toast("아직 체크인 기록이 없습니다 — 인쇄할 명단이 없습니다.","info"); return; }
-  buildCkPrint(); openPrintPrev("체크인 완료 명단 · A4 세로");
+  buildCkPrint(); openPrintPrev("숙소 체크인 명단 · A4 세로");
 }
 
 /* ---------- wire up ---------- */
