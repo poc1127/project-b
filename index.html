@@ -1306,7 +1306,8 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
   #checkin .ck2pg .pages button:disabled{opacity:.4;cursor:default;}
   #checkin .ck2pg .gap{color:#9aa6b8;padding:0 2px;}
   #checkin .ck2rail{display:flex;flex-direction:column;gap:22px;}
-  #checkin .donut2wrap{display:flex;justify-content:center;margin:4px 0 16px;}
+  #checkin .donut2wrap{display:flex;flex-direction:column;align-items:center;margin:4px 0 16px;}
+  #checkin .ck2cap{font-size:12.5px;color:#7a879c;margin-top:8px;}
   #checkin .ck2donut{position:relative;width:188px;height:188px;}
   #checkin .ck2donut svg{transform:rotate(-90deg);}
   #checkin .ck2donut circle#ck2Donut{transition:stroke-dashoffset .5s ease;}
@@ -1374,9 +1375,30 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
   .vtab:hover{color:var(--ink);}
   .vtab.active{background:var(--primary);color:#fff;box-shadow:0 1px 3px rgba(0,102,153,.25);}
   .viewtabs.disabled .vtab.active{background:#dbe4ec;color:#8b98a7;}
-  /* 통계 바: 구분선 행 → 칩 행 (카드형 대시보드와 톤 일치) */
-  #statsbar{gap:8px;padding:9px 16px;}
-  #statsbar .stat{border-right:none;background:var(--bg);border-radius:9px;padding:4px 11px;}
+  /* 통계 바: 텍스트 칩 → 아이콘 타일 미니 카드 (숙소 체크인 뷰의 ck2stat 카드 언어를 그대로 차용) */
+  #statsbar{gap:9px;padding:9px 16px;}
+  #statsbar .stat{display:flex;align-items:center;gap:8px;border:1px solid var(--line);background:#fff;border-radius:12px;padding:5px 11px 5px 7px;box-shadow:0 1px 2px rgba(20,30,50,.04);transition:box-shadow .14s,border-color .14s,transform .14s;}
+  #statsbar .stat:hover{box-shadow:0 3px 12px rgba(20,30,50,.09);transform:translateY(-1px);}
+  #statsbar .sico{width:28px;height:28px;border-radius:9px;display:flex;align-items:center;justify-content:center;flex:none;}
+  #statsbar .sico .ico{width:15px;height:15px;}
+  #statsbar .sbody{display:flex;flex-direction:column;gap:2px;line-height:1.05;}
+  #statsbar .slab{font-size:10.5px;font-weight:600;color:#7a879c;white-space:nowrap;}
+  #statsbar .sval{font-size:15px;font-weight:800;color:#1f2733;display:flex;align-items:baseline;white-space:nowrap;}
+  #statsbar .sval b{font-size:16px;font-weight:800;}
+  /* 톤별 아이콘 타일 (ck2stat s1~s4 팔레트와 동일) */
+  #statsbar .stat[data-tone=blue]   .sico{background:#dff1fc;color:#0e86c4;}
+  #statsbar .stat[data-tone=green]  .sico{background:#dcfce7;color:#16a34a;}
+  #statsbar .stat[data-tone=indigo] .sico{background:#e0edff;color:#3b82f6;}
+  #statsbar .stat[data-tone=amber]  .sico{background:#fef3c7;color:#d97706;}
+  #statsbar .stat[data-tone=red]    .sico{background:#fee2e2;color:#dc2626;}
+  #statsbar .stat[data-tone=slate]  .sico{background:#eef2f7;color:#64748b;}
+  /* 강조: 미배정>0(빨강 카드)·완료(초록 카드) */
+  #statsbar .stat.alert{border-color:#f6c9c9;background:#fff6f6;}
+  #statsbar .stat.alert .sval b{color:#dc2626;font-size:16px;}
+  #statsbar .stat.clear{border-color:#bfe8cb;background:#f5fbf6;}
+  #statsbar .stat.clear .sval b{color:#16a34a;}
+  #statsbar .stat.warnjump{cursor:pointer;}
+  #statsbar .stat.warnjump:focus-visible{outline:2px solid var(--primary);outline-offset:1px;}
   /* 패널·카드: 흰 면 + 부드러운 그림자, 모서리 통일 */
   .venue,#pool,#sesspool,.legend,.sesssum{box-shadow:0 1px 3px rgba(20,30,50,.05);}
   .venue>h2{border-radius:14px 14px 0 0;}
@@ -1406,11 +1428,12 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
   /* [공통] 조건 불일치 경고: 두꺼운 진홍 외곽선 → 가는 외곽선 + ⚠ 마커 (강한 빨강은 정원 초과 전용) */
   .chip.badmatch{outline:1px solid rgba(207,70,49,.45);}
   .chip .wmk{flex:none;font-size:10px;line-height:1;color:#c2410c;cursor:help;}
-  /* [공통] 통계바: 분모 가독성 + 그룹 구분선 + 배정완료 진행바 */
-  #statsbar .stat .frac{color:var(--text2);}
-  #statsbar .statdiv{width:1px;align-self:stretch;background:var(--border);margin:0 4px;flex:none;padding:0;}
-  #statsbar .stat .statbar{display:inline-block;vertical-align:1px;width:52px;height:5px;border-radius:99px;background:#e3e9ef;overflow:hidden;margin-left:7px;}
-  #statsbar .stat .statbar i{display:block;height:100%;border-radius:99px;background:var(--success);}
+  /* [공통] 통계바: 분모/진행바 — 미니 카드 안에서 */
+  #statsbar .sval .frac{font-size:11.5px;font-weight:700;color:var(--text2);margin-left:1px;}
+  #statsbar .sval .frac.frac-amber{color:#d97706;} #statsbar .sval .frac.frac-red{color:#dc2626;}
+  #statsbar .statdiv{width:1px;align-self:center;height:26px;background:var(--border);margin:0 3px;flex:none;padding:0;}
+  #statsbar .sval .statbar{align-self:center;display:inline-block;width:46px;height:5px;border-radius:99px;background:#e3e9ef;overflow:hidden;margin-left:8px;}
+  #statsbar .sval .statbar i{display:block;height:100%;border-radius:99px;background:var(--success);}
   /* [숙소 배정] 층/타입 그룹 헤더: 밴드로 승격 (떠 있는 작은 텍스트 → 스캔 가능한 구분 띠) */
   .floorgrp h3{background:#edf3f9;border-bottom:none;border-radius:8px;padding:5px 10px;margin:10px 0 6px;color:var(--ink);font-size:12.5px;font-weight:700;display:flex;align-items:center;gap:7px;}
   .floorgrp h3 .fcount{margin-left:auto;font-weight:500;color:var(--text2);}
@@ -1636,16 +1659,18 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
   }
 
   /* ===== 초보자 도움말: 화면별 안내 배너(#viewhelp) + 전체 가이드 모달(#helpbg) ===== */
-  #viewhelp{display:flex;align-items:flex-start;gap:11px;margin:10px 12px 0;padding:11px 14px;background:#f1f6fc;border:1px solid #d6e4f5;border-radius:11px;color:#37475a;font-size:12.5px;line-height:1.55;}
+  #viewhelp{display:flex;align-items:flex-start;gap:11px;margin:10px 12px 0;padding:11px 14px;background:#f1f6fc;border:1px solid #d6e4f5;border-radius:11px;color:#37475a;font-size:12.5px;line-height:1.55;cursor:pointer;transition:background .12s,border-color .12s,box-shadow .12s;}
   #viewhelp[hidden]{display:none;}
+  #viewhelp:hover{background:#e9f1fb;border-color:#c4d8f1;}
   #viewhelp .vh-ic{flex:none;width:18px;height:18px;color:#3b82c4;margin-top:1px;}
   #viewhelp .vh-body{flex:1 1 auto;min-width:0;}
   #viewhelp .vh-title{font-weight:700;color:var(--ink);margin-bottom:2px;}
   #viewhelp .vh-text b{color:#2b3a4a;font-weight:700;}
+  /* the whole bar is the toggle; these inner buttons opt out of that click (handled in JS) */
   #viewhelp .vh-more{flex:none;font-size:11.5px;font-weight:600;color:#2f6fa8;background:#e4eefb;border:1px solid #cfe0f5;border-radius:7px;padding:5px 10px;cursor:pointer;white-space:nowrap;}
   #viewhelp .vh-more:hover{background:#d8e7fa;}
-  #viewhelp .vh-collapse{flex:none;width:26px;height:26px;border:1px solid #d6e4f5;background:#fff;border-radius:7px;color:#5b6b7d;cursor:pointer;font-size:12px;line-height:1;}
-  #viewhelp.collapsed{padding-top:8px;padding-bottom:8px;}
+  #viewhelp .vh-collapse{flex:none;display:flex;align-items:center;justify-content:center;width:26px;height:26px;border:1px solid #d6e4f5;background:#fff;border-radius:7px;color:#5b6b7d;cursor:pointer;font-size:12px;line-height:1;transition:transform .15s;pointer-events:none;}
+  #viewhelp.collapsed{align-items:center;padding-top:8px;padding-bottom:8px;}
   #viewhelp.collapsed .vh-text,#viewhelp.collapsed .vh-more{display:none;}
   #viewhelp.collapsed .vh-collapse{transform:rotate(180deg);}
   @media(max-width:640px){ #viewhelp{margin:8px;flex-wrap:wrap;} }
@@ -1793,14 +1818,14 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
 <div id="statsbarwrap" class="hscroll-wrap"><div id="statsbar"><span class="empty-hint" style="padding:4px;">마스터 .xlsx 파일을 열어 시작하세요. (참가자 · 객실 탭 필요)</span></div></div>
 
 <!-- 화면별 사용법 안내 배너 (파일 로드 후, 보기별로 내용 갱신; 접기 가능) -->
-<div id="viewhelp" hidden>
+<div id="viewhelp" hidden role="button" tabindex="0" aria-expanded="true" title="클릭하면 안내를 접거나 펼칩니다">
   <svg class="vh-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
   <div class="vh-body">
     <div class="vh-title">이 화면 사용법 — <span id="vhName"></span></div>
     <div class="vh-text" id="vhText"></div>
   </div>
   <button class="vh-more" id="vhMore" type="button">전체 도움말 ›</button>
-  <button class="vh-collapse" id="vhCollapse" type="button" aria-label="안내 접기/펼치기" title="접기/펼치기">▾</button>
+  <span class="vh-collapse" id="vhCollapse" aria-hidden="true">▾</span>
 </div>
 
 <!-- import / start screen: shown until a master file is loaded -->
@@ -1948,7 +1973,7 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
 "use strict";
 // ⚑ index.html build version — shown bottom-right on the start screen. BUMP ON EACH DEPLOY.
 //   Format: vYYYY.MM.DD-N  (N = same-day build counter; reset to 1 on a new date).
-const APP_VERSION = "v2026.06.13-14";
+const APP_VERSION = "v2026.06.13-15";
 // 세션 배정 기본 '세션 불필요'(면제) 분류 — 스태프/팀/특수 그룹은 세션 배정 대상이 아님. 저장된 (면제분류) 설정이 없을 때만 시드.
 const DEFAULT_SESS_EXEMPT = ["AFF","NOC 위원","미디어팀","자원봉사팀","찬양팀","협력팀"];
 /* ============================================================
@@ -2789,7 +2814,9 @@ function renderViewHelp(){
   const h = VIEW_HELP[state.view] || VIEW_HELP.rooms;
   $("#vhName").textContent=h.name;
   $("#vhText").innerHTML=h.text;
-  box.classList.toggle("collapsed", localStorage.getItem("icmda_vh")==="1");
+  const collapsed = localStorage.getItem("icmda_vh")==="1";
+  box.classList.toggle("collapsed", collapsed);
+  box.setAttribute("aria-expanded", collapsed?"false":"true");
   box.hidden=false;
 }
 // 도움말 단계별 데모 — 순수 CSS 미니 애니메이션으로 그 단계의 동작을 짧게 재연. 단계 배열의 3번째 값이 키.
@@ -3081,8 +3108,8 @@ function renderCheckin(){
           <h2>체크인 요약 <span class="en">Summary</span></h2>
           <div class="donut2wrap"><div class="ck2donut">
             <svg width="188" height="188" viewBox="0 0 188 188" aria-hidden="true"><circle cx="94" cy="94" r="78" fill="none" stroke="#eef1f6" stroke-width="20"/><circle id="ck2Donut" cx="94" cy="94" r="78" fill="none" stroke="#1f9d4e" stroke-width="20" stroke-linecap="round" stroke-dasharray="490" stroke-dashoffset="490"/></svg>
-            <div class="ctr"><b id="ck2Pct">0%</b><span class="cnt" id="ck2Cnt">0 / 0</span><span>체크인 완료 · Checked-in</span></div>
-          </div></div>
+            <div class="ctr"><b id="ck2Pct">0%</b><span class="cnt" id="ck2Cnt">0 / 0</span></div>
+          </div><div class="ck2cap">체크인 완료 · Checked-in</div></div>
           <div class="ck2legend">
             <div class="li g"><span class="k"></span><span class="nm">체크인 <small class="en2">Checked-in</small></span><span class="v" id="ck2LgIn">0</span></div>
             <div class="li bl"><span class="k"></span><span class="nm">체크아웃 <small class="en2">Checked-out</small></span><span class="v" id="ck2LgOut">0</span></div>
@@ -4641,29 +4668,31 @@ function renderStats(issues){
   });
   const pct=(u,c)=>c>0?Math.min(100,Math.round(u/c*100)):0;
   const lvl=(u,c)=> u>c?"red":(c>0&&u/c>=0.9)?"amber":"ok";          // green / amber(≥90%) / red(over)
-  const mk=(label,val,extra)=>{const d=el("span","stat"); d.innerHTML=`${label} <b>${val}</b>${extra||""}`; return d;};
+  // 미니 카드: 아이콘 타일 + 라벨/숫자 (숙소 체크인 ck2stat 카드와 동일 언어)
+  const mk=(label,val,extra,icon,tone)=>{const d=el("span","stat"); if(tone) d.dataset.tone=tone;
+    d.innerHTML=`<span class="sico">${ico(icon||'info')}</span><span class="sbody"><span class="slab">${label}</span><span class="sval"><b>${val}</b>${extra||""}</span></span>`; return d;};
   // venue stat: consistent used/cap fraction (color-coded by fullness)
   const venStat=(label,used,cap)=>mk(label,used,
-    `<span class="frac frac-${lvl(used,cap)}" title="${pct(used,cap)}% 사용">/${cap}</span>`);
+    `<span class="frac frac-${lvl(used,cap)}" title="${pct(used,cap)}% 사용">/${cap}</span>`,'building','indigo');
   // 미배정 is the number a coordinator acts on → emphasised block (red when >0, green ✓ when clear)
-  const un=el("span","stat "+(unassigned?"alert":"clear"));
-  un.innerHTML = unassigned ? `미배정 <b>${unassigned}</b>명` : `미배정 <b>0</b> ${ico('check')}`;
+  const un=el("span","stat "+(unassigned?"alert":"clear")); un.dataset.tone=unassigned?"red":"green";
+  un.innerHTML = `<span class="sico">${ico(unassigned?'alert':'checkCircle')}</span><span class="sbody"><span class="slab">미배정</span><span class="sval"><b>${unassigned}</b>${unassigned?'<span class="frac">명</span>':''}</span></span>`;
   sb.append(
-    mk("총 인원",total),
-    mk("방 필요",needP),
-    mk("배정완료",assignedP,`<span class="frac">/${needP}</span><span class="statbar" title="${pct(assignedP,needP)}% 완료" aria-hidden="true"><i style="width:${pct(assignedP,needP)}%"></i></span>`),   // consistent fraction vs 방 필요 + mini progress
+    mk("총 인원",total,"",'users','blue'),
+    mk("방 필요",needP,"",'building','slate'),
+    mk("배정완료",assignedP,`<span class="frac">/${needP}</span><span class="statbar" title="${pct(assignedP,needP)}% 완료" aria-hidden="true"><i style="width:${pct(assignedP,needP)}%"></i></span>`,'checkCircle','green'),   // consistent fraction vs 방 필요 + mini progress
     un,
-    mk("방 불필요",noRoom),
+    mk("방 불필요",noRoom,"",'x','slate'),
     el("span","statdiv"),                              // visual divider: 인원 stats | 숙소 stats
     ...hotels.map(h=>venStat(h===VEN.BYYTC?"부영수련원":venShort(h),byHotel[h],capHotel[h])),
-    ...(booyIsInv()?[]:[mk("부영호텔(NOC)",byBOOY)]),   // NOC chip only when 부영호텔 is off-inventory (else it's a normal venStat above)
-    ...(byTEMP?[mk("임시배치(재배정필요)",byTEMP)]:[]),   // holding-bucket chip, only when someone is parked there
+    ...(booyIsInv()?[]:[mk("부영호텔(NOC)",byBOOY,"",'building','slate')]),   // NOC chip only when 부영호텔 is off-inventory (else it's a normal venStat above)
+    ...(byTEMP?[mk("임시배치(재배정필요)",byTEMP,"",'alert','amber')]:[]),   // holding-bucket chip, only when someone is parked there
   );
   // surfaced warning badge → jumps to the detail warning panel (DESIGN-5)
   const issueN=issues.length;
-  const warn=el("span","stat warnjump"); warn.tabIndex=0; warn.setAttribute("role","button");
+  const warn=el("span","stat warnjump"); warn.tabIndex=0; warn.setAttribute("role","button"); warn.dataset.tone=issueN?"amber":"green";
   warn.setAttribute("aria-label",`경고 ${issueN}건 — 경고 패널로 이동`);
-  warn.innerHTML = issueN ? `<span class="pill warn">${ico('alert')} 경고 ${issueN}건</span>` : `<span class="pill ok">경고 0</span>`;
+  warn.innerHTML = `<span class="sico">${ico(issueN?'alert':'checkCircle')}</span><span class="sbody"><span class="slab">경고</span><span class="sval"><b>${issueN}</b>${issueN?'<span class="frac">건</span>':''}</span></span>`;
   warn.title="클릭하면 경고 패널로 이동합니다";
   warn.onclick=jumpToWarnings;
   warn.onkeydown=e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); jumpToWarnings(); } };
@@ -6786,9 +6815,14 @@ $("#shPrint").onclick=()=>{ closeSheet(); doPrint(); };
 $("#shHelp").onclick=()=>{ closeSheet(); openHelp(); };
 // 도움말 — 헤더 ? · 사이드바 버튼 · 배너 '전체 도움말'
 $("#helpBtn").onclick=openHelp;
-$("#vhMore").onclick=openHelp;
-$("#vhCollapse").onclick=()=>{ const box=$("#viewhelp"); const collapse=!box.classList.contains("collapsed");
-  box.classList.toggle("collapsed",collapse); if(collapse) localStorage.setItem("icmda_vh","1"); else localStorage.removeItem("icmda_vh"); };
+// 전체 도움말 버튼: 바 전체 토글로 클릭이 번지지 않게 막고 모달만 연다
+$("#vhMore").onclick=(e)=>{ e.stopPropagation(); openHelp(); };
+// 안내 바 어디를 눌러도 접기/펼치기 (키보드 Enter·Space 포함)
+function vhToggle(){ const box=$("#viewhelp"); const collapse=!box.classList.contains("collapsed");
+  box.classList.toggle("collapsed",collapse); box.setAttribute("aria-expanded",collapse?"false":"true");
+  if(collapse) localStorage.setItem("icmda_vh","1"); else localStorage.removeItem("icmda_vh"); }
+$("#viewhelp").onclick=vhToggle;
+$("#viewhelp").onkeydown=(e)=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); vhToggle(); } };
 
 // search: live filter + clear (×) button (shows when non-empty)
 function wireSearchClear(inputSel, clrSel, onChange){
