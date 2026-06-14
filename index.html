@@ -1663,6 +1663,8 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
   #helpmodal .hm-head h2{margin:0;font-size:17px;color:var(--ink);}
   #helpmodal .hm-head .hm-x{margin-left:auto;border:none;background:#f1f3f6;width:32px;height:32px;border-radius:8px;font-size:18px;cursor:pointer;color:#5b6b7d;line-height:1;}
   #helpmodal .hm-body{padding:6px 22px 20px;overflow:auto;}
+  #helpmodal .hm-intro{margin:10px 0 2px;font-size:12.5px;color:#46556a;line-height:1.55;}
+  #helpmodal .hm-intro b{color:#2b3a4a;}
   #helpmodal h3{font-size:13.5px;color:var(--ink);margin:18px 0 8px;display:flex;align-items:center;gap:7px;}
   #helpmodal h3::before{content:"";width:4px;height:15px;border-radius:2px;background:var(--primary);}
   #helpmodal .hm-steps{display:flex;flex-direction:column;gap:8px;}
@@ -1674,6 +1676,41 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
   #helpmodal dd{margin:2px 0 0;font-size:12.5px;color:#46556a;line-height:1.55;}
   #helpmodal dd b{color:#2b3a4a;}
   #helpmodal .key{display:inline-block;font-weight:700;color:#2b3a4a;background:#eef2f6;border:1px solid #e1e7ee;border-radius:5px;padding:0 6px;font-size:11.5px;}
+  /* 도움말 단계별 데모 미니 애니메이션 (각 단계 동작을 짧게 재연) */
+  #helpmodal .hm-stxt{flex:1 1 auto;min-width:0;}
+  #helpmodal .hm-demo{flex:0 0 132px;height:62px;position:relative;border-radius:9px;background:#eef3fb;border:1px solid #dfe7f3;overflow:hidden;}
+  #helpmodal .hm-demo>*{position:absolute;}
+  .d-chip{padding:2px 6px;background:#fff;border:1px solid #c7d3e6;border-radius:7px;font-size:9px;font-weight:700;color:#33425a;white-space:nowrap;box-shadow:0 1px 2px rgba(20,40,80,.12);}
+  .d-box{display:flex;align-items:center;justify-content:center;border:1.5px dashed #9db4d6;border-radius:8px;background:#fff;font-size:9px;font-weight:800;color:#5b6b85;}
+  .d-cur{font-size:12px;color:#1f3354;text-shadow:0 1px 1px #fff;}
+  .d-bar{height:9px;border-radius:3px;}
+  .d-pill{display:flex;align-items:center;justify-content:center;padding:2px 8px;border-radius:999px;font-size:9px;font-weight:800;background:#cbd5e6;color:#5b6b85;}
+  .d-key{padding:2px 6px;border-radius:6px;background:#e7eefb;border:1px solid #cdddf6;font-size:8.5px;font-weight:800;color:#2c4a86;}
+  .d-inp{display:flex;align-items:center;padding:0 6px;border:1px solid #c7d3e6;border-radius:6px;background:#fff;font-size:9px;font-weight:700;color:#33425a;overflow:hidden;}
+  .d-typed{display:inline-block;overflow:hidden;white-space:nowrap;}
+  .d-caret{width:1px;background:#1f3354;margin:3px 1px;animation:d-caret 1s steps(1) infinite;}
+  .d-cell{display:flex;align-items:center;justify-content:center;border-radius:4px;font-size:8px;font-weight:800;color:#fff;}
+  .d-lbl{font-size:8px;font-weight:800;color:#7a8aa6;}
+  .d-ico{font-size:24px;left:0;right:0;top:14px;text-align:center;}
+  .d-tab{padding:2px 5px;border-radius:6px;background:#eef2f8;font-size:8px;font-weight:800;color:#6b7a93;border:1px solid #dce4f0;}
+  .d-card{display:flex;align-items:center;justify-content:center;border:1px solid #c7d3e6;border-radius:8px;background:#fff;font-size:9px;font-weight:800;color:#33425a;box-shadow:0 3px 8px rgba(20,40,80,.16);}
+  @keyframes d-glide{0%{left:8px}40%{left:74px}60%{left:74px}100%{left:8px}}
+  @keyframes d-cursor{0%{left:24px;top:36px}40%{left:88px;top:26px}60%{left:88px;top:26px}100%{left:24px;top:36px}}
+  @keyframes d-grow{0%{width:24px}50%{width:100px}100%{width:24px}}
+  @keyframes d-slidex{0%{left:8px}50%{left:64px}100%{left:8px}}
+  @keyframes d-flip{0%,40%{background:#cbd5e6;color:#5b6b85}55%,100%{background:#16a34a;color:#fff}}
+  @keyframes d-flip2{0%,40%{background:#cbd5e6;color:#5b6b85}55%,100%{background:#2563eb;color:#fff}}
+  @keyframes d-caret{0%{opacity:1}50%{opacity:0}100%{opacity:1}}
+  @keyframes d-type{0%{width:0}55%,100%{width:46px}}
+  @keyframes d-pulse{0%,100%{box-shadow:0 0 0 0 rgba(37,99,235,0)}50%{box-shadow:0 0 0 3px rgba(37,99,235,.28)}}
+  @keyframes d-show{0%,45%{opacity:0}55%,100%{opacity:1}}
+  @keyframes d-hide{0%,45%{opacity:1}55%,100%{opacity:0}}
+  @keyframes d-fade{0%,35%{opacity:1}65%,100%{opacity:.12}}
+  @keyframes d-rowy{0%{top:8px}45%{top:34px}55%{top:34px}100%{top:8px}}
+  @keyframes d-pop{0%,40%{opacity:0;transform:scale(.5)}60%,100%{opacity:1;transform:scale(1)}}
+  @keyframes d-press{0%,100%{transform:scale(1);background:#e7eefb;color:#2c4a86}50%{transform:scale(.9);background:#16a34a;color:#fff}}
+  @media (prefers-reduced-motion:reduce){ #helpmodal .hm-demo *{animation:none!important;} }
+  @media (max-width:640px){ #helpmodal .hm-demo{display:none;} }
 </style>
 </head>
 <body>
@@ -1690,7 +1727,6 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
     <a data-view="schedule" role="button" tabindex="0"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> 일정</a>
     <a data-view="session" role="button" tabindex="0"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg> 세션 배정</a>
   </nav>
-  <button id="helpBtnSide" class="navhelp" type="button" title="전체 사용법 보기">ⓘ 도움말 · 사용법 보기</button>
   <div class="snote"><b>ICMDA 2026 운영 대시보드</b><br>숙소 · 일정 · 세션 · 체크인 통합 관리<span class="ver" id="snVer"></span></div>
 </aside>
 <header>
@@ -1885,7 +1921,7 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
 "use strict";
 // ⚑ index.html build version — shown bottom-right on the start screen. BUMP ON EACH DEPLOY.
 //   Format: vYYYY.MM.DD-N  (N = same-day build counter; reset to 1 on a new date).
-const APP_VERSION = "v2026.06.13-10";
+const APP_VERSION = "v2026.06.13-12";
 // 세션 배정 기본 '세션 불필요'(면제) 분류 — 스태프/팀/특수 그룹은 세션 배정 대상이 아님. 저장된 (면제분류) 설정이 없을 때만 시드.
 const DEFAULT_SESS_EXEMPT = ["AFF","NOC 위원","미디어팀","자원봉사팀","찬양팀","협력팀"];
 /* ============================================================
@@ -2645,6 +2681,81 @@ const VIEW_HELP = {
   schedule: { name:"일정 보기", text:"마스터 ‘일정’ 탭의 2026 프로그램 시간표입니다. 칸을 눌러 시간·내용을 고칠 수 있고, 칸 색은 프로그램 종류(학생·프리컨퍼런스·콩그레스)를 뜻합니다. 바꾼 내용은 <b>마스터 업데이트</b>로 저장돼요." },
   session:  { name:"세션 배정 보기", text:"참가자를 브레이크아웃·스트림 세션에 <b>정원</b>에 맞춰 배정하는 화면입니다. 왼쪽 풀에서 사람을 세션 카드로 보냅니다. 정원 초과·시간 겹침·중복 등록은 자동으로 표시돼요." },
 };
+// ? 버튼(전체 도움말) 내용 — 지금 보고 있는 화면에 특화된 상세 안내. VIEW_HELP(배너)는 한 줄 요약, 이쪽은 단계+기능 전체. {intro, steps:[[제목,설명]], feat:[[항목,설명]]}
+const VIEW_GUIDE = {
+  rooms: {
+    intro:"방마다 사람을 배치하는 기본 화면입니다. 왼쪽 <b>미배정</b> 목록의 사람을 방으로 보내거나, 규칙에 맞춰 한 번에 자동 배정합니다.",
+    steps:[
+      ["미배정 확인","아직 방이 없는 사람이 왼쪽 <b>미배정</b> 목록에 모입니다. 이름·ID로 검색할 수 있어요.","unassigned"],
+      ["자동 배정","위 <span class='key'>② 자동 배정</span>을 누르면 <b>성별·정원·온돌·묶음(가족/팀)</b> 규칙에 맞춰 미배정 인원을 한 번에 채웁니다. (잠긴 인원·방은 건드리지 않음)","autofill"],
+      ["손으로 조정","사람 칩을 방으로 <b>끌어다 놓아</b> 옮기고, 칩을 <b>클릭</b>하면 상세·수정 카드가 열립니다.","dragroom"],
+      ["잠그기","칩의 <b>자물쇠</b>로 사람을, 방 머리의 자물쇠로 방 전체를 자동배정에서 제외합니다.","lock"],
+    ],
+    feat:[
+      ["상단 통계","총 인원·방 필요·배정완료·미배정·방 불필요와 숙소별 정원, 경고 건수를 한눈에 요약합니다."],
+      ["검색 · 필터","검색·전체 숙소·전체 카테고리·날짜로 목록과 방 표시를 거릅니다."],
+      ["숙소·층으로 이동","큰 건물에서 특정 동/층 그룹으로 바로 점프합니다."],
+      ["경고 패널","남녀 혼숙·정원 초과·성별 미상 등 규칙 위반을 모아 보여줍니다."],
+      ["배정 초기화 / 결과 저장 / 인쇄·PDF","잠그지 않은 배정만 초기화, 보기용 Excel 내려받기, 방 배치표 인쇄/PDF."],
+    ],
+  },
+  timeline: {
+    intro:"사람별 <b>숙박 기간</b>을 막대(간트)로 보고 직접 조정하는 화면입니다. 한 행이 한 사람/팀, 가로 막대가 묵는 날짜 범위입니다.",
+    steps:[
+      ["막대 읽기","막대 <b>색은 분류</b>를 뜻하고, 회색은 그날 <b>숙박 없음</b>입니다.","bars"],
+      ["기간 조정","막대 <b>양끝</b>을 끌어 입실·퇴실일을 늘리거나 줄입니다.","stretch"],
+      ["날짜 이동","막대 <b>가운데</b>를 끌어 전체 기간을 통째로 옮깁니다.","slide"],
+      ["객실 변경","행 손잡이 <b>⠿</b>를 끌어 다른 객실로 옮깁니다.","rowmove"],
+      ["숙박 가능일","위 <span class='key'>날짜 +/−</span>로 타임라인 전체의 날짜 범위를 늘리거나 줄입니다(마스터 업데이트 시 참가자 탭에 열로 반영).","daterange"],
+    ],
+    feat:[
+      ["6/29 표시","6/29부터 공식 숙박 지원입니다. 그 이전 날은 옅게(공식지원 외) 보이고 6/29에 시작선이 그어집니다."],
+      ["검색 · 필터","검색·전체 숙소·전체 카테고리로 보이는 행을 거릅니다."],
+      ["범례","막대 위 ⓘ 사용법과 색상 범례로 표시 규칙을 확인할 수 있어요."],
+    ],
+  },
+  checkin: {
+    intro:"행사 현장에서 <b>도착(체크인)</b>·<b>퇴실(체크아웃)</b>을 기록하는 화면입니다. 명단은 ‘참가자’(숙소) 탭 기준입니다.",
+    steps:[
+      ["사람 찾기","이름·이메일·ID로 검색합니다. 정확히 1명만 매칭되면 <b>Enter</b>로 바로 체크인돼요(스캐너용).","search"],
+      ["체크인","표의 <b>체크인</b> 알약 버튼을 누르면 도착 시각이 자동으로 찍힙니다. 다시 누르면 해제.","pillin"],
+      ["체크아웃","체크인한 사람만 가능합니다. 퇴실 시 <b>체크아웃</b> 버튼을 누릅니다.","pillout"],
+      ["시각 수정","행을 눌러 상세 모달을 열면 체크인·체크아웃 시각을 직접 고칠 수 있습니다.","timeedit"],
+    ],
+    feat:[
+      ["상단 카드 4개","총 인원·체크인·체크아웃·미도착. 각 카드를 누르면 그 상태인 사람만 거릅니다."],
+      ["유형 필터 · 검색","참가 유형으로 좁히거나 이름·이메일·ID로 찾습니다."],
+      ["도넛 · 최근 체크인","전체 대비 체크인 진행률과 가장 최근 도착자를 보여줍니다."],
+      ["배정 숙소","각 사람의 배정된 동/호실이 표시됩니다."],
+      ["명단 인쇄 / PDF","방 배치표와 같은 레이아웃에 <b>실제 체크인·체크아웃</b> 칸을 더해 출력합니다(현장 수기 체크용)."],
+    ],
+  },
+  schedule: {
+    intro:"마스터 ‘일정’ 탭의 2026 프로그램 시간표를 보고 편집하는 화면입니다.",
+    steps:[
+      ["시간표 보기","날짜별 세션·시간이 표로 나옵니다. 칸 <b>색은 프로그램 종류</b>(학생·프리컨퍼런스·콩그레스 등)를 뜻합니다.","grid"],
+      ["편집","칸을 눌러 시간·내용을 직접 고칩니다.","celledit"],
+      ["저장","바꾼 내용은 <span class='key'>마스터 업데이트</span>를 눌러야 ‘일정’ 탭에 기록됩니다.","save"],
+    ],
+    feat:[
+      ["색상 = 프로그램","칸 색으로 프로그램 갈래(학생·프리컨퍼런스·콩그레스 등)를 구분합니다."],
+    ],
+  },
+  session: {
+    intro:"참가자를 브레이크아웃·스트림 세션에 <b>정원</b>에 맞춰 배정하는 화면입니다. 풀(왼쪽)의 사람을 세션 카드로 보냅니다.",
+    steps:[
+      ["풀에서 보내기","왼쪽 풀의 사람을 세션 카드로 <b>끌어다</b> 배정합니다.","dragsess"],
+      ["그룹 보기","풀을 <b>분류·나이대·성별·참가유형·국가·확인필요</b> 중 하나로 묶어 봅니다(위 토글).","group"],
+      ["세션 불필요 표시","분류/참가유형 그룹 머리를 눌러 스태프·팀처럼 세션이 필요 없는 그룹을 풀에서 숨깁니다(다시 눌러 해제).","hidegroup"],
+      ["상세 · 삭제","풀의 사람을 <b>더블클릭</b>하면 상세 카드가 열리고, 거기서 <b>기록 삭제</b>로 세션 참가자 기록 자체를 지울 수 있습니다.","dblclick"],
+    ],
+    feat:[
+      ["세션 배정 상황(요약)","그룹별 배정/전체 인원과 진행률을 보여줍니다. 참가유형 모드에선 점을 눌러 면제할 수 있어요."],
+      ["자동 경고","정원 초과·시간 겹침·중복 등록(같은 사람 다른 ID)을 칩에 표시합니다."],
+      ["스트림 연동","같은 스트림 시리즈(PS_1_001…)는 한 번 배정/해제하면 시리즈 전체에 함께 반영됩니다."],
+    ],
+  },
+};
 function renderViewHelp(){
   const box=$("#viewhelp"); if(!box) return;
   if(!state.masterBuf){ box.hidden=true; return; }
@@ -2654,40 +2765,49 @@ function renderViewHelp(){
   box.classList.toggle("collapsed", localStorage.getItem("icmda_vh")==="1");
   box.hidden=false;
 }
-// 전체 사용법 가이드 모달 — 정적 내용(참가자 데이터 없음).
+// 도움말 단계별 데모 — 순수 CSS 미니 애니메이션으로 그 단계의 동작을 짧게 재연. 단계 배열의 3번째 값이 키.
+const HM_DEMO = {
+  unassigned:`<div class="d-lbl" style="left:8px;top:6px">미배정</div><div class="d-chip" style="left:8px;top:20px;animation:d-pulse 2s infinite">김OO</div><div class="d-chip" style="left:8px;top:38px">이OO</div>`,
+  autofill:`<div class="d-box" style="right:10px;top:16px;width:42px;height:30px">방</div><div class="d-chip" style="top:24px;animation:d-glide 2.4s infinite">김OO</div>`,
+  dragroom:`<div class="d-box" style="right:10px;top:16px;width:42px;height:30px">방</div><div class="d-chip" style="top:24px;animation:d-glide 2.4s infinite">김OO</div><div class="d-cur" style="animation:d-cursor 2.4s infinite">➤</div>`,
+  dragsess:`<div class="d-box" style="right:8px;top:14px;width:48px;height:32px">세션</div><div class="d-chip" style="top:24px;animation:d-glide 2.4s infinite">김OO</div><div class="d-cur" style="animation:d-cursor 2.4s infinite">➤</div>`,
+  lock:`<div class="d-ico" style="animation:d-hide 2s infinite">🔓</div><div class="d-ico" style="animation:d-show 2s infinite">🔒</div>`,
+  bars:`<div class="d-bar" style="left:10px;top:11px;width:64px;background:#60a5fa"></div><div class="d-bar" style="left:10px;top:27px;width:44px;background:#f59e0b"></div><div class="d-bar" style="left:58px;top:27px;width:16px;background:#cbd5e1"></div><div class="d-bar" style="left:10px;top:43px;width:54px;background:#34d399"></div>`,
+  stretch:`<div class="d-bar" style="left:12px;top:27px;background:#60a5fa;animation:d-grow 2.2s infinite"></div><div class="d-cur" style="left:100px;top:21px;animation:d-pulse 2.2s infinite">↔</div>`,
+  slide:`<div class="d-bar" style="top:27px;width:46px;background:#60a5fa;animation:d-slidex 2.2s infinite"></div>`,
+  rowmove:`<div class="d-chip" style="left:14px;animation:d-rowy 2.2s infinite">⠿ 객실</div>`,
+  daterange:`<div class="d-key" style="left:10px;top:8px">날짜 +/−</div><div class="d-bar" style="left:14px;top:38px;background:#60a5fa;animation:d-grow 2.2s infinite"></div>`,
+  search:`<div class="d-inp" style="left:10px;top:14px;width:98px;height:20px"><span class="d-typed" style="animation:d-type 2.4s infinite">김OO</span><span class="d-caret"></span></div><div class="d-key" style="right:10px;top:38px;animation:d-pulse 2.4s infinite">Enter ↵</div>`,
+  pillin:`<div class="d-pill" style="left:40px;top:22px;animation:d-flip 2s infinite">체크인</div>`,
+  pillout:`<div class="d-pill" style="left:34px;top:22px;animation:d-flip2 2s infinite">체크아웃</div>`,
+  timeedit:`<div class="d-inp" style="left:8px;top:20px;width:112px;height:20px">06-30&nbsp;<span class="d-typed" style="animation:d-type 2.4s infinite">14:30</span><span class="d-caret"></span></div>`,
+  grid:`<div class="d-cell" style="left:8px;top:12px;width:30px;height:16px;background:#60a5fa">학생</div><div class="d-cell" style="left:42px;top:12px;width:34px;height:16px;background:#a78bfa">프리</div><div class="d-cell" style="left:8px;top:34px;width:34px;height:16px;background:#f59e0b">콩그</div><div class="d-cell" style="left:46px;top:34px;width:30px;height:16px;background:#34d399">기타</div>`,
+  celledit:`<div class="d-cell" style="left:34px;top:22px;width:58px;height:20px;background:#60a5fa;animation:d-pulse 2s infinite">세션<span class="d-caret" style="background:#fff"></span></div>`,
+  save:`<div class="d-key" style="left:14px;top:22px;padding:4px 8px;animation:d-press 1.8s infinite">마스터 업데이트</div>`,
+  group:`<div class="d-tab" style="left:8px;top:10px">분류</div><div class="d-tab" style="left:40px;top:10px">나이대</div><div class="d-tab" style="left:86px;top:10px">성별</div><div class="d-bar" style="top:34px;width:30px;background:#2563eb;animation:d-slidex 2.4s infinite"></div>`,
+  hidegroup:`<div class="d-chip" style="left:14px;top:22px;width:96px;text-align:center;animation:d-fade 2.2s infinite">스태프 그룹 ▾</div>`,
+  dblclick:`<div class="d-chip" style="left:12px;top:24px;animation:d-pulse 2.2s infinite">김OO</div><div class="d-card" style="right:8px;top:13px;width:48px;height:36px;animation:d-pop 2.2s infinite">상세</div>`,
+};
+// 도움말 모달 — 지금 보고 있는 화면(state.view)에 특화된 상세 안내 + 공통 저장 흐름.
 function openHelp(){
-  const step=(n,t,d)=>`<div class="hm-step"><span class="n">${n}</span><div><b>${t}</b> — ${d}</div></div>`;
+  const step=(n,t,d,demo)=>`<div class="hm-step"><span class="n">${n}</span><div class="hm-stxt"><b>${t}</b> — ${d}</div>${demo?`<div class="hm-demo">${HM_DEMO[demo]||""}</div>`:""}</div>`;
   const dd=(t,d)=>`<dt>${t}</dt><dd>${d}</dd>`;
+  const name=(VIEW_HELP[state.view]||VIEW_HELP.rooms).name;
+  const g=VIEW_GUIDE[state.view]||VIEW_GUIDE.rooms;
+  const stepsHtml=g.steps.map((s,i)=>step(i+1,s[0],s[1],s[2])).join("");
+  const featHtml=g.feat.map(f=>dd(f[0],f[1])).join("");
   $("#helpmodal").innerHTML=
-    `<div class="hm-head"><h2 id="hmTitle">도움말 · 대시보드 사용법</h2><button class="hm-x" id="hmX" aria-label="닫기">×</button></div>
+    `<div class="hm-head"><h2 id="hmTitle">도움말 · ${name}</h2><button class="hm-x" id="hmX" aria-label="닫기">×</button></div>
      <div class="hm-body">
-       <h3>처음 시작하기 (3단계)</h3>
-       <div class="hm-steps">
-         ${step(1,"마스터 파일 열기","참가자·객실 탭이 든 .xlsx를 <span class='key'>① 마스터 열기</span>로 불러옵니다. (화면에 끌어다 놓아도 됩니다.)")}
-         ${step(2,"배정 · 편집","자동으로 배정하거나, 사람을 끌어 배치하고, 카드를 눌러 정보를 수정합니다.")}
-         ${step(3,"마스터 업데이트","<span class='key'>마스터 업데이트 (v+1)</span>를 누르면 변경 내용이 새 버전 파일로 저장됩니다. 이 버튼을 눌러야 파일에 기록돼요.")}
-       </div>
-       <h3>화면별 안내</h3>
+       <p class="hm-intro">${g.intro}</p>
+       <h3>이 화면에서 할 일</h3>
+       <div class="hm-steps">${stepsHtml}</div>
+       <h3>기능 · 버튼</h3>
+       <dl>${featHtml}</dl>
+       <h3>저장 흐름 (모든 화면 공통)</h3>
        <dl>
-         ${dd("숙소 배정 보기","방 단위로 사람을 배치합니다. 끌어 놓기 또는 ② 자동 배정. 칩 클릭 = 상세·수정, 자물쇠 = 자동배정 제외.")}
-         ${dd("숙소 타임라인 보기","사람별 숙박 기간을 막대로 조정합니다. 양끝=기간, 가운데=이동, ⠿=객실 변경, 날짜 +/− = 숙박일 추가/삭제.")}
-         ${dd("숙소 체크인","현장용. 이름·이메일로 찾아 도착(체크인)·퇴실(체크아웃)을 기록합니다.")}
-         ${dd("일정 보기","‘일정’ 탭 시간표를 보고 편집합니다. 색 = 프로그램 종류.")}
-         ${dd("세션 배정 보기","참가자를 정원에 맞춰 세션에 배정합니다. 초과·겹침은 자동 표시.")}
-       </dl>
-       <h3>주요 버튼</h3>
-       <dl>
-         ${dd("② 자동 배정","성별·정원·온돌·묶음 규칙에 따라 <b>미배정 인원</b>을 방에 자동 배치합니다. (잠긴 인원은 제외)")}
-         ${dd("배정 초기화","잠그지 않은 배정을 모두 미배정으로 되돌립니다. 잠긴 인원·방·호텔은 유지.")}
-         ${dd("배정 결과 저장","현재 배정을 <b>보기용</b> Excel로 내려받습니다. (원본 마스터는 바뀌지 않음)")}
-         ${dd("인쇄 / PDF","방 배치표를 인쇄하거나 PDF로 저장합니다.")}
-         ${dd("마스터 업데이트 (v+1)","배정·수정·체크인을 모두 반영해 <b>새 버전 파일</b>로 내보냅니다. 최종 저장은 이 버튼으로.")}
-       </dl>
-       <h3>알아두면 편해요</h3>
-       <dl>
-         ${dd("카드 수정","사람 카드의 <span class='key'>수정</span>은 마스터 ‘참가자’ 탭을 바꿉니다. 도착·출발·숙박일수·총인원은 자동 계산이라 손대지 않아도 돼요.")}
-         ${dd("저장 vs 마스터 업데이트","카드의 <span class='key'>저장</span>은 화면에만 반영, <span class='key'>마스터 업데이트</span>를 눌러야 파일에 기록됩니다.")}
-         ${dd("데이터 출처","각 상세 모달의 섹션 제목 옆 회색 뱃지가 그 값이 어느 마스터 탭에서 온 것인지 알려줍니다.")}
+         ${dd("마스터 열기 / 업데이트","<span class='key'>① 마스터 열기</span>로 .xlsx를 불러오고, 모든 변경(배정·수정·체크인·세션·일정)은 <span class='key'>마스터 업데이트 (v+1)</span>를 눌러야 새 버전 파일로 저장됩니다.")}
+         ${dd("저장 vs 마스터 업데이트","상세 카드의 <span class='key'>저장</span>은 화면에만 반영, <span class='key'>마스터 업데이트</span>를 눌러야 파일에 기록됩니다.")}
        </dl>
      </div>`;
   const bg=$("#helpbg"); bg.classList.add("show");
@@ -3543,6 +3663,7 @@ function deriveSessions(){
         pcode:"", scode:s.code, location:sessLocLabel(s.loc) });
       state.sessionCapCat[s.code]=s.cap;
     });
+    deriveGroupDiscussions();   // 카탈로그엔 코드가 없어 빠지는 Group Discussion 슬롯을 일정에서 보충(배정 가능하게)
     return;
   }
   const aoa=state.schedule; if(!aoa||!aoa.length) return;
@@ -3579,6 +3700,39 @@ function deriveSessions(){
           kids=streams.map(s=>({key:slotKey+"::"+nz(s.code||s.session),name:nz(s.session),speaker:nz(s.speaker),pcode:"",scode:nz(s.code).toUpperCase()}));
         if(kids&&kids.length) kids.forEach(k=>state.sessionList.push({...base,parentName:line,key:k.key,name:k.name,speaker:k.speaker,pcode:k.pcode||"",scode:k.scode||"",sub:true}));
         else state.sessionList.push({...base,parentName:null,key:slotKey,name:line,speaker:"",pcode:code||"",scode:"",sub:false});   // no catalog → slot-level card (Group Discussion 등)
+      });
+    }
+}
+// 카탈로그('세션 배정' 탭)엔 세션 코드가 없어 빠지는 'Group Discussion' 슬롯을 '일정' 탭에서 직접 슬롯 카드로 보충한다.
+// 카탈로그 모드에서만 호출(비카탈로그 경로의 deriveSessions는 SESS_RX가 이미 'Group Dis'를 포함). 일정 날짜("7/2")를
+// 카탈로그 날짜 표기("2 July (Thu)")로 맞춰 같은 날짜 칼럼·시간대 블록에 자연스럽게 합쳐지게 한다(정원 없음=무제한).
+function deriveGroupDiscussions(){
+  const aoa=state.schedule; if(!aoa||!aoa.length) return;
+  const nz=s=>(s==null?"":String(s)).trim();
+  const ncol=aoa.reduce((m,r)=>Math.max(m,r?r.length:0),0);
+  const fills=state.scheduleFills||{};
+  const PROG={"#FFE14D":"student","#A9D08E":"grad","#BDD7EE":"congress","#D5C7EC":"sig","#F4A6D5":"children"};
+  const progOf=h=>h?(PROG[(h+"").toUpperCase()]||null):null;
+  let hi=aoa.findIndex(r=>r&&r.some(c=>nz(c)==="시간")); if(hi<0) hi=0;
+  const hrow=aoa[hi]||[]; let lastD=""; const dayDate={};
+  for(let c=1;c<ncol;c++){ const m=/(\d{1,2}\/\d{1,2})/.exec(nz(hrow[c])); if(m) lastD=m[1]; dayDate[c]=lastD||("열"+c); }
+  // 일정 날짜 → 카탈로그 날짜 문자열 매핑(월*100+일 키). 같은 날짜면 카탈로그 표기를 그대로 써서 동일 날짜 칼럼에 병합.
+  const dkey=d=>{ let m=/(\d{1,2})\/(\d{1,2})/.exec(d||""); if(m) return (+m[1])*100+(+m[2]);
+    m=/(\d{1,2})\s+([A-Za-z]{3})/.exec(d||""); const mo={jan:1,feb:2,mar:3,apr:4,may:5,jun:6,jul:7,aug:8,sep:9,oct:10,nov:11,dec:12}[m?m[2].toLowerCase():""];
+    return mo?mo*100+(+m[1]):9999; };
+  const catDay=new Map(); state.sessCatalog.forEach(s=>{ const k=dkey(s.day); if(k!==9999 && !catDay.has(k)) catDay.set(k,s.day); });
+  const startOf=t=>{ const m=/(\d{1,2}:\d{2})/.exec(t||""); return m?m[1]:(t||""); };
+  const seen=new Set();
+  for(let c=1;c<ncol;c++)
+    for(let i=hi+1;i<aoa.length;i++){
+      const cell=nz((aoa[i]||[])[c]); if(!cell) continue;
+      const rowTime=nz((aoa[i]||[])[0]); if(!/\d{1,2}:\d{2}/.test(rowTime)) continue;
+      cell.split("\n").map(nz).filter(Boolean).forEach(line=>{
+        if(!/^group dis/i.test(line)) return;
+        const day=catDay.get(dkey(dayDate[c]))||dayDate[c];
+        const key=day+" "+line; if(seen.has(key)) return; seen.add(key);
+        state.sessionList.push({ day, time:startOf(rowTime), trange:rowTime, prog:progForLine(line, progOf(fills[i+","+c])),
+          parentKey:key, parentName:null, sub:false, key, name:line, speaker:"", pcode:"", scode:"" });
       });
     }
 }
@@ -6605,7 +6759,6 @@ $("#shPrint").onclick=()=>{ closeSheet(); doPrint(); };
 $("#shHelp").onclick=()=>{ closeSheet(); openHelp(); };
 // 도움말 — 헤더 ? · 사이드바 버튼 · 배너 '전체 도움말'
 $("#helpBtn").onclick=openHelp;
-$("#helpBtnSide").onclick=openHelp;
 $("#vhMore").onclick=openHelp;
 $("#vhCollapse").onclick=()=>{ const box=$("#viewhelp"); const collapse=!box.classList.contains("collapsed");
   box.classList.toggle("collapsed",collapse); if(collapse) localStorage.setItem("icmda_vh","1"); else localStorage.removeItem("icmda_vh"); };
