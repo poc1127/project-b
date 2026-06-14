@@ -1653,8 +1653,9 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
   #sidenav .navhelp{margin:6px 10px 0;padding:9px 11px;display:flex;align-items:center;gap:8px;width:calc(100% - 20px);text-align:left;background:#eef4fb;border:1px solid #d6e4f5;border-radius:9px;color:#2f6fa8;font-size:12.5px;font-weight:600;cursor:pointer;}
   #sidenav .navhelp:hover{background:#e2edfa;}
   /* 헤더 ? 버튼 */
-  .helpbtn{flex:none;width:28px;height:28px;border-radius:50%;border:1px solid #cfd9e4;background:#fff;color:#2f6fa8;font-weight:700;font-size:14px;cursor:pointer;line-height:1;}
-  .helpbtn:hover{background:#eef4fb;}
+  .helpbtn{flex:none;width:32px;height:32px;border-radius:50%;border:1px solid var(--border);background:#fff;color:var(--primary);font-weight:800;font-size:15px;cursor:pointer;line-height:1;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 2px rgba(20,30,50,.05);transition:background .12s,border-color .12s,color .12s,box-shadow .12s;}
+  .helpbtn:hover{background:#f3f9fd;border-color:var(--primary);box-shadow:0 2px 8px rgba(0,102,153,.15);}
+  .helpbtn:active{transform:scale(.94);}
   /* 전체 가이드 모달 */
   #helpbg{position:fixed;inset:0;z-index:300;background:rgba(15,23,35,.5);display:none;align-items:center;justify-content:center;padding:20px;}
   #helpbg.show{display:flex;}
@@ -1694,20 +1695,46 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
   .d-ico{font-size:24px;left:0;right:0;top:14px;text-align:center;}
   .d-tab{padding:2px 5px;border-radius:6px;background:#eef2f8;font-size:8px;font-weight:800;color:#6b7a93;border:1px solid #dce4f0;}
   .d-card{display:flex;align-items:center;justify-content:center;border:1px solid #c7d3e6;border-radius:8px;background:#fff;font-size:9px;font-weight:800;color:#33425a;box-shadow:0 3px 8px rgba(20,40,80,.16);}
-  @keyframes d-glide{0%{left:8px}40%{left:74px}60%{left:74px}100%{left:8px}}
-  @keyframes d-cursor{0%{left:24px;top:36px}40%{left:88px;top:26px}60%{left:88px;top:26px}100%{left:24px;top:36px}}
+  /* 칩을 집어들어(살짝 떠오름) 방으로 옮기고 내려놓는 동작 — 스프링 이징 */
+  @keyframes d-glide{
+    0%{left:8px;transform:translateY(0) scale(1);box-shadow:0 1px 2px rgba(20,40,80,.12);animation-timing-function:ease-in}
+    14%{transform:translateY(-4px) scale(1.07);box-shadow:0 5px 10px rgba(20,40,80,.22)}
+    40%{left:72px;transform:translateY(-4px) scale(1.07);box-shadow:0 5px 10px rgba(20,40,80,.22);animation-timing-function:cubic-bezier(.34,1.4,.64,1)}
+    52%{left:72px;transform:translateY(0) scale(1);box-shadow:0 1px 2px rgba(20,40,80,.12)}
+    66%{left:72px;transform:translateY(0) scale(1)}
+    100%{left:8px;transform:translateY(0) scale(1);box-shadow:0 1px 2px rgba(20,40,80,.12);animation-timing-function:ease-in-out}
+  }
+  @keyframes d-cursor{
+    0%{left:24px;top:36px;transform:scale(1)}
+    12%{transform:scale(.82)}
+    18%{transform:scale(1)}
+    40%{left:86px;top:24px;transform:scale(1);animation-timing-function:ease-out}
+    52%{left:86px;top:24px;transform:scale(.82)}
+    60%{left:86px;top:24px;transform:scale(1)}
+    100%{left:24px;top:36px;transform:scale(1)}
+  }
+  /* 방(드롭 대상)이 칩이 도착하는 순간 초록으로 반짝 — '여기에 놓였다' */
+  @keyframes d-target{0%,34%{border-color:#9db4d6;background:#fff;box-shadow:none}
+    52%{border-color:#16a34a;background:#eafaf0;box-shadow:0 0 0 3px rgba(22,163,74,.20)}
+    70%,100%{border-color:#9db4d6;background:#fff;box-shadow:none}}
   @keyframes d-grow{0%{width:24px}50%{width:100px}100%{width:24px}}
   @keyframes d-slidex{0%{left:8px}50%{left:64px}100%{left:8px}}
-  @keyframes d-flip{0%,40%{background:#cbd5e6;color:#5b6b85}55%,100%{background:#16a34a;color:#fff}}
-  @keyframes d-flip2{0%,40%{background:#cbd5e6;color:#5b6b85}55%,100%{background:#2563eb;color:#fff}}
+  @keyframes d-flip{0%,38%{background:#cbd5e6;color:#5b6b85;transform:scale(1)}
+    50%{background:#16a34a;color:#fff;transform:scale(1.14);animation-timing-function:cubic-bezier(.34,1.5,.64,1)}
+    60%,100%{background:#16a34a;color:#fff;transform:scale(1)}}
+  @keyframes d-flip2{0%,38%{background:#cbd5e6;color:#5b6b85;transform:scale(1)}
+    50%{background:#2563eb;color:#fff;transform:scale(1.14);animation-timing-function:cubic-bezier(.34,1.5,.64,1)}
+    60%,100%{background:#2563eb;color:#fff;transform:scale(1)}}
   @keyframes d-caret{0%{opacity:1}50%{opacity:0}100%{opacity:1}}
   @keyframes d-type{0%{width:0}55%,100%{width:46px}}
   @keyframes d-pulse{0%,100%{box-shadow:0 0 0 0 rgba(37,99,235,0)}50%{box-shadow:0 0 0 3px rgba(37,99,235,.28)}}
   @keyframes d-show{0%,45%{opacity:0}55%,100%{opacity:1}}
   @keyframes d-hide{0%,45%{opacity:1}55%,100%{opacity:0}}
   @keyframes d-fade{0%,35%{opacity:1}65%,100%{opacity:.12}}
-  @keyframes d-rowy{0%{top:8px}45%{top:34px}55%{top:34px}100%{top:8px}}
-  @keyframes d-pop{0%,40%{opacity:0;transform:scale(.5)}60%,100%{opacity:1;transform:scale(1)}}
+  @keyframes d-rowy{0%{top:8px;animation-timing-function:cubic-bezier(.5,0,.5,1)}45%{top:34px}55%{top:34px}100%{top:8px}}
+  @keyframes d-pop{0%,38%{opacity:0;transform:scale(.4)}
+    58%{opacity:1;transform:scale(1.1);animation-timing-function:cubic-bezier(.34,1.5,.64,1)}
+    70%{transform:scale(1)}100%{opacity:1;transform:scale(1)}}
   @keyframes d-press{0%,100%{transform:scale(1);background:#e7eefb;color:#2c4a86}50%{transform:scale(.9);background:#16a34a;color:#fff}}
   @media (prefers-reduced-motion:reduce){ #helpmodal .hm-demo *{animation:none!important;} }
   @media (max-width:640px){ #helpmodal .hm-demo{display:none;} }
@@ -1921,7 +1948,7 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
 "use strict";
 // ⚑ index.html build version — shown bottom-right on the start screen. BUMP ON EACH DEPLOY.
 //   Format: vYYYY.MM.DD-N  (N = same-day build counter; reset to 1 on a new date).
-const APP_VERSION = "v2026.06.13-12";
+const APP_VERSION = "v2026.06.13-14";
 // 세션 배정 기본 '세션 불필요'(면제) 분류 — 스태프/팀/특수 그룹은 세션 배정 대상이 아님. 저장된 (면제분류) 설정이 없을 때만 시드.
 const DEFAULT_SESS_EXEMPT = ["AFF","NOC 위원","미디어팀","자원봉사팀","찬양팀","협력팀"];
 /* ============================================================
@@ -2768,9 +2795,9 @@ function renderViewHelp(){
 // 도움말 단계별 데모 — 순수 CSS 미니 애니메이션으로 그 단계의 동작을 짧게 재연. 단계 배열의 3번째 값이 키.
 const HM_DEMO = {
   unassigned:`<div class="d-lbl" style="left:8px;top:6px">미배정</div><div class="d-chip" style="left:8px;top:20px;animation:d-pulse 2s infinite">김OO</div><div class="d-chip" style="left:8px;top:38px">이OO</div>`,
-  autofill:`<div class="d-box" style="right:10px;top:16px;width:42px;height:30px">방</div><div class="d-chip" style="top:24px;animation:d-glide 2.4s infinite">김OO</div>`,
-  dragroom:`<div class="d-box" style="right:10px;top:16px;width:42px;height:30px">방</div><div class="d-chip" style="top:24px;animation:d-glide 2.4s infinite">김OO</div><div class="d-cur" style="animation:d-cursor 2.4s infinite">➤</div>`,
-  dragsess:`<div class="d-box" style="right:8px;top:14px;width:48px;height:32px">세션</div><div class="d-chip" style="top:24px;animation:d-glide 2.4s infinite">김OO</div><div class="d-cur" style="animation:d-cursor 2.4s infinite">➤</div>`,
+  autofill:`<div class="d-box" style="right:10px;top:16px;width:42px;height:30px;animation:d-target 2.4s infinite">방</div><div class="d-chip" style="top:24px;animation:d-glide 2.4s infinite">김OO</div>`,
+  dragroom:`<div class="d-box" style="right:10px;top:16px;width:42px;height:30px;animation:d-target 2.4s infinite">방</div><div class="d-chip" style="top:24px;animation:d-glide 2.4s infinite">김OO</div><div class="d-cur" style="animation:d-cursor 2.4s infinite">➤</div>`,
+  dragsess:`<div class="d-box" style="right:8px;top:14px;width:48px;height:32px;animation:d-target 2.4s infinite">세션</div><div class="d-chip" style="top:24px;animation:d-glide 2.4s infinite">김OO</div><div class="d-cur" style="animation:d-cursor 2.4s infinite">➤</div>`,
   lock:`<div class="d-ico" style="animation:d-hide 2s infinite">🔓</div><div class="d-ico" style="animation:d-show 2s infinite">🔒</div>`,
   bars:`<div class="d-bar" style="left:10px;top:11px;width:64px;background:#60a5fa"></div><div class="d-bar" style="left:10px;top:27px;width:44px;background:#f59e0b"></div><div class="d-bar" style="left:58px;top:27px;width:16px;background:#cbd5e1"></div><div class="d-bar" style="left:10px;top:43px;width:54px;background:#34d399"></div>`,
   stretch:`<div class="d-bar" style="left:12px;top:27px;background:#60a5fa;animation:d-grow 2.2s infinite"></div><div class="d-cur" style="left:100px;top:21px;animation:d-pulse 2.2s infinite">↔</div>`,
