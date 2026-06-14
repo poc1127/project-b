@@ -1657,6 +1657,12 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
   @media (max-width:480px){
     #checkin .ck2stats{grid-template-columns:repeat(2,1fr);}   /* 1열(카드 4장 세로 나열)은 스크롤 낭비 — 압축 패딩으로 390px에서도 2열이 충분 */
   }
+  /* [체크인] 통계 카드: 열 수를 뷰포트가 아니라 실제 콘텐츠 폭(#checkin) 기준으로 결정.
+     ≥841px에서 사이드바(228px)가 콘텐츠를 좁혀, 뷰포트 기준 4열이 태블릿·소형 데스크톱(콘텐츠 ~780px)에서
+     카드 라벨을 글자 단위로 세로로 쪼개던 문제(예: '총 인원'→'총/인/원'). 콘텐츠 ≤1000px면 2열로. */
+  #checkin{container-type:inline-size;}
+  @container (max-width:1000px){ #checkin .ck2stats{grid-template-columns:repeat(2,1fr);} }
+  #checkin .ck2stat .lbl{word-break:keep-all;}   /* 라벨이 글자 단위가 아니라 단어 단위로만 줄바꿈 */
 
   /* ===== 초보자 도움말: 화면별 안내 배너(#viewhelp) + 전체 가이드 모달(#helpbg) ===== */
   #viewhelp{display:flex;align-items:flex-start;gap:11px;margin:10px 12px 0;padding:11px 14px;background:#f1f6fc;border:1px solid #d6e4f5;border-radius:11px;color:#37475a;font-size:12.5px;line-height:1.55;cursor:pointer;transition:background .12s,border-color .12s,box-shadow .12s;}
@@ -1973,7 +1979,7 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
 "use strict";
 // ⚑ index.html build version — shown bottom-right on the start screen. BUMP ON EACH DEPLOY.
 //   Format: vYYYY.MM.DD-N  (N = same-day build counter; reset to 1 on a new date).
-const APP_VERSION = "v2026.06.13-15";
+const APP_VERSION = "v2026.06.13-16";
 // 세션 배정 기본 '세션 불필요'(면제) 분류 — 스태프/팀/특수 그룹은 세션 배정 대상이 아님. 저장된 (면제분류) 설정이 없을 때만 시드.
 const DEFAULT_SESS_EXEMPT = ["AFF","NOC 위원","미디어팀","자원봉사팀","찬양팀","협력팀"];
 /* ============================================================
