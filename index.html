@@ -1262,19 +1262,17 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
   #checkin table.ck2tbl{width:100%;border-collapse:collapse;}
   #checkin .ck2tbl thead th{text-align:left;font-size:11px;font-weight:700;letter-spacing:.05em;color:#9aa6b8;
     text-transform:uppercase;padding:16px 10px 10px;border-bottom:1px solid var(--line);}
-  #checkin .ck2tbl tbody td{padding:11px 10px;border-bottom:1px solid #f1f3f8;font-size:13.5px;color:#3a4658;vertical-align:middle;}
+  #checkin .ck2tbl tbody td{padding:3px 10px;border-bottom:1px solid #f1f3f8;font-size:13.5px;color:#3a4658;vertical-align:middle;}   /* 행 높이 압축: 한 화면에 더 많은 행 표시(사용자 요청) */
   #checkin .ck2tbl tbody tr{cursor:pointer;}
   #checkin .ck2tbl tbody tr:hover{background:#fafbff;}
-  #checkin .att{display:flex;align-items:center;gap:12px;min-width:0;}
+  #checkin .att{display:flex;align-items:center;gap:10px;min-width:0;}
   #checkin .att .av,#checkin .ri .av{border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;flex:none;}
-  #checkin .att .av{width:38px;height:38px;font-size:13px;}
-  #checkin .att .who2{min-width:0;display:flex;flex-direction:column;}
-  #checkin .att .nm{font-weight:700;color:#1f2733;font-size:14px;}
+  #checkin .att .av{width:26px;height:26px;font-size:11px;}
+  #checkin .att .who2{min-width:0;display:flex;flex-direction:column;line-height:1.2;}
+  #checkin .att .nm{font-weight:700;color:#1f2733;font-size:13px;}
   #checkin .att .kn{font-weight:500;color:#7a879c;font-size:12px;margin-left:5px;}
-  #checkin .att .em{font-size:12px;color:#7a879c;}
-  #checkin .att .em.none{color:#b3bdcb;}
   #checkin .tid{font-variant-numeric:tabular-nums;white-space:nowrap;}
-  #checkin .ckpill{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:999px;font-size:12.5px;
+  #checkin .ckpill{display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:999px;font-size:12.5px;
     font-weight:700;border:none;cursor:pointer;font-family:inherit;white-space:nowrap;min-height:0;}
   #checkin .ckpill .ico{width:13px;height:13px;}
   #checkin .ckpill.in{background:#dcfce7;color:#15803d;}
@@ -1286,8 +1284,10 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
   #checkin .ckpill.pend:hover{background:#e4e9f0;}
   #checkin .ckpill[disabled]{opacity:.45;cursor:not-allowed;}
   #checkin td.ckcell{white-space:nowrap;}
-  #checkin td.ckcell .ct{display:block;margin-top:3px;font-size:11.5px;color:#7a879c;font-variant-numeric:tabular-nums;}
+  #checkin td.ckcell .ct{display:inline;margin-left:8px;font-size:11.5px;color:#7a879c;font-variant-numeric:tabular-nums;white-space:nowrap;}   /* 시각을 알약 옆 같은 줄에(한 줄) */
   #checkin td.ckcell .ct .cd{color:#9aa6b8;}
+  #checkin .ck2tbl td.em2{font-size:12.5px;color:#7a879c;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:240px;}
+  #checkin .ck2tbl td.em2.none{color:#b3bdcb;}
   #checkin td.age{font-size:12.5px;color:#5a6675;white-space:nowrap;}
   #checkin .ck2legend .li.bl .k{background:#3b82f6;}
   #checkin .citime{font-variant-numeric:tabular-nums;white-space:nowrap;line-height:1.3;}
@@ -1434,10 +1434,19 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
   #statsbar .sval .frac{font-size:11.5px;font-weight:700;color:var(--text2);margin-left:1px;}
   #statsbar .sval .frac.frac-amber{color:#d97706;} #statsbar .sval .frac.frac-red{color:#dc2626;}
   #statsbar .statdiv{width:1px;align-self:center;height:26px;background:var(--border);margin:0 3px;flex:none;padding:0;}
-  /* 인원/숙소를 그룹 단위로 묶어 통째로 줄바꿈(중간에서 안 쪼개짐). 인원·숙소·경고 모두 왼쪽에 연달아 클러스터되어 좁아질수록 깔끔하게 아래로 흐름 */
+  /* .sgrp 기본값(폰 ≤640에서만 의미 — 폰은 별도 규칙에서 contents로 풀림). ≥641은 아래 그리드 블록에서 contents로 덮어씀 */
   #statsbar .sgrp{display:flex;align-items:center;gap:9px;flex-wrap:wrap;}
   #statsbar .sval .statbar{align-self:center;display:inline-block;width:46px;height:5px;border-radius:99px;background:#e3e9ef;overflow:hidden;margin-left:8px;}
   #statsbar .sval .statbar i{display:block;height:100%;border-radius:99px;background:var(--success);}
+  /* 통계 바: flex 줄바꿈은 칸 폭이 제각각(특히 진행바가 있는 '배정완료')이라 줄이 들쭉날쭉해짐.
+     ≥641에서는 균일 그리드로 바꿔 어느 폭에서도 열이 칼같이 정렬되게 한다. '배정완료'만 진행바 때문에 2칸 차지.
+     (≤640 폰은 기존 가로 스크롤 레인 유지 — 이 규칙은 건드리지 않음) */
+  @media(min-width:641px){
+    #statsbar{display:grid;grid-template-columns:repeat(auto-fit,minmax(132px,1fr));gap:9px 10px;align-items:stretch;}
+    #statsbar .sgrp{display:contents;}                 /* 그룹 래퍼 해제 → 카드가 그리드 셀로 직접 배치 */
+    #statsbar .statdiv{display:none;}                  /* 그리드에선 구분선 불필요(열 정렬이 그룹을 대신) */
+    #statsbar .stat:has(.statbar){grid-column:span 2;} /* 배정완료(진행바) = 2칸 */
+  }
   /* [숙소 배정] 층/타입 그룹 헤더: 밴드로 승격 (떠 있는 작은 텍스트 → 스캔 가능한 구분 띠) */
   .floorgrp h3{background:#edf3f9;border-bottom:none;border-radius:8px;padding:5px 10px;margin:10px 0 6px;color:var(--ink);font-size:12.5px;font-weight:700;display:flex;align-items:center;gap:7px;}
   .floorgrp h3 .fcount{margin-left:auto;font-weight:500;color:var(--text2);}
@@ -1523,28 +1532,29 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
   /* [체크인] 폰: 표 5칼럼 압착 → 참가 유형·참가자ID 칼럼은 숨김(행 탭 → 상세 모달에서 확인);
      카드·패널 여백 압축 */
   @media (max-width:760px){
-    #checkin .ck2panel{padding:16px 14px;}
-    #checkin .ck2panel h2{font-size:16px;margin-bottom:12px;}
-    #checkin .ck2stats{margin-bottom:14px;}
-    #checkin .ck2stat{padding:14px 16px;}
-    #checkin .ck2stat .num{font-size:24px;margin-top:8px;}
-    #checkin .ck2lower{gap:14px;}
-    /* 6칼럼 중 폰에선 참가자·배정 숙소·체크인·체크아웃만 — 유형/나이대는 행 탭 → 상세 모달에서 확인
+    #checkin .ck2panel{padding:10px 10px;}
+    #checkin .ck2panel h2{font-size:15px;margin-bottom:8px;}
+    #checkin .ck2stats{margin-bottom:9px;}
+    #checkin .ck2stat{padding:9px 11px;}
+    #checkin .ck2stat .num{font-size:19px;margin-top:4px;}
+    #checkin .ck2lower{gap:9px;}
+    /* 7칼럼 중 폰에선 참가자·배정 숙소·체크인·체크아웃만 — 이메일/유형/나이대는 행 탭 → 상세 모달에서 확인
        (숙소는 체크인 직후 현장 안내에 바로 필요해 유지) */
     #checkin .ck2tbl6 th:nth-child(2),#checkin .ck2tbl6 td:nth-child(2),
-    #checkin .ck2tbl6 th:nth-child(3),#checkin .ck2tbl6 td:nth-child(3){display:none;}
-    #checkin .ck2tbl thead th{padding:12px 7px 8px;word-break:keep-all;}   /* 머리글이 세로 한 글자씩 꺾이지 않게 (단어 단위로만 줄바꿈) */
-    #checkin .ck2tbl tbody td{padding:10px 7px;font-size:13px;}
+    #checkin .ck2tbl6 th:nth-child(3),#checkin .ck2tbl6 td:nth-child(3),
+    #checkin .ck2tbl6 th:nth-child(4),#checkin .ck2tbl6 td:nth-child(4){display:none;}
+    #checkin .ck2tbl thead th{padding:7px 7px 5px;word-break:keep-all;}   /* 머리글이 세로 한 글자씩 꺾이지 않게 (단어 단위로만 줄바꿈) */
+    #checkin .ck2tbl tbody td{padding:4px 7px;font-size:12.5px;}
     /* 표의 최소 내용폭(긴 이메일이 안 끊김 ≈ 400px)이 패널을 뷰포트 밖으로 밀어
        칼럼이 잘려 보이던 것 → 고정 레이아웃 + 숙소/체크인/체크아웃 폭 지정, 이름·이메일은 말줄임 */
     #checkin table.ck2tbl6{table-layout:fixed;}
-    #checkin .ck2tbl6 th:nth-child(4){width:80px;}    /* 배정 숙소 */
-    #checkin .ck2tbl6 th:nth-child(5){width:84px;}    /* 체크인 */
-    #checkin .ck2tbl6 th:nth-child(6){width:84px;}    /* 체크아웃 */
+    #checkin .ck2tbl6 th:nth-child(5){width:80px;}    /* 배정 숙소 */
+    #checkin .ck2tbl6 th:nth-child(6){width:84px;}    /* 체크인 */
+    #checkin .ck2tbl6 th:nth-child(7){width:84px;}    /* 체크아웃 */
     #checkin .att .who2{min-width:0;}
-    #checkin .att .nm,#checkin .att .em{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-    #checkin .att .av{width:32px;height:32px;font-size:12px;}
-    #checkin .ckpill{padding:9px 12px;}   /* 체크인 토글 = 행사장 핵심 탭 대상 → 터치 높이 확보(~36px) */
+    #checkin .att .nm{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    #checkin .att .av{width:26px;height:26px;font-size:11px;}
+    #checkin .ckpill{padding:6px 11px;font-size:12px;}   /* 체크인 토글: 터치 높이 확보하되 공간 절약 위해 압축 */
   }
   /* 폰(좁은 폭): 아바타 원이 이름 칸(~136px)의 40px을 먹어 이름이 5~6자에서 잘리던 것 → 숨겨서 이름에 양보 */
   @media (max-width:480px){
@@ -2008,7 +2018,7 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
 "use strict";
 // ⚑ index.html build version — shown bottom-right on the start screen. BUMP ON EACH DEPLOY.
 //   Format: vYYYY.MM.DD-N  (N = same-day build counter; reset to 1 on a new date).
-const APP_VERSION = "v2026.06.13-22";
+const APP_VERSION = "v2026.06.13-26";
 // 세션 배정 기본 '세션 불필요'(면제) 분류 — 스태프/팀/특수 그룹은 세션 배정 대상이 아님. 저장된 (면제분류) 설정이 없을 때만 시드.
 const DEFAULT_SESS_EXEMPT = ["AFF","NOC 위원","미디어팀","자원봉사팀","찬양팀","협력팀"];
 /* ============================================================
@@ -3134,7 +3144,7 @@ function renderCheckin(){
           <div class="ck2search"><span class="mag">${ico('search')}</span><input id="ck2Q" placeholder="${matchMedia("(max-width:640px)").matches?"이름·이메일·ID 검색":"이름, 이메일, 참가자ID로 검색 · Search name / email / ID…"}" autocomplete="off" aria-label="체크인 참가자 검색 · Search participants"><button type="button" class="clr2" id="ck2Clr" aria-label="검색어 지우기">×</button></div>
           <select id="ck2Cat" aria-label="참가 유형 필터 · Filter by type"><option value="">전체 유형 · All</option></select>
         </div>
-        <table class="ck2tbl ck2tbl6"><thead><tr><th>참가자<span class="en">Participant</span></th><th>유형<span class="en">Type</span></th><th>나이대<span class="en">Age</span></th><th>배정 숙소<span class="en">Room</span></th><th>체크인<span class="en">Check-in</span></th><th>체크아웃<span class="en">Check-out</span></th></tr></thead><tbody id="ck2Rows"></tbody></table>
+        <table class="ck2tbl ck2tbl6"><thead><tr><th>참가자<span class="en">Participant</span></th><th>이메일<span class="en">Email</span></th><th>유형<span class="en">Type</span></th><th>나이대<span class="en">Age</span></th><th>배정 숙소<span class="en">Room</span></th><th>체크인<span class="en">Check-in</span></th><th>체크아웃<span class="en">Check-out</span></th></tr></thead><tbody id="ck2Rows"></tbody></table>
         <div class="ck2nores" id="ck2NoRes" style="display:none">검색 결과가 없습니다 · No results</div>
         <div class="ck2pg"><span class="info" id="ck2Info"></span><span class="ck2perw"><label for="ck2Per" title="Per page">페이지당</label><select id="ck2Per"><option value="50">50명씩 보기</option><option value="100">100명씩 보기</option><option value="0">전체 보기</option></select></span><span class="pages" id="ck2Pages"></span></div>
       </div>
@@ -3255,8 +3265,8 @@ function ck2Refresh(){
     const tr=el("tr");
     tr.innerHTML=
       `<td><div class="att"><span class="av" style="background:${ck2Color(e.id||e.name)}">${esc(ck2Init(e.name))}</span>`+
-      `<span class="who2"><span class="nm">${esc(e.name||"(이름 없음)")}${e.kname?`<span class="kn">${esc(e.kname)}</span>`:""}</span>`+
-      `<span class="em${e.email?"":" none"}">${e.email?esc(e.email):"이메일 미등록"}</span></span></div></td>`+
+      `<span class="who2"><span class="nm">${esc(e.name||"(이름 없음)")}${e.kname?`<span class="kn">${esc(e.kname)}</span>`:""}</span></span></div></td>`+
+      `<td class="em2${e.email?"":" none"}">${e.email?esc(e.email):"미등록"}</td>`+
       `<td>${esc(cat)}</td>`+
       `<td class="age">${esc(band)}</td>`+
       `<td class="rm${(ri2&&ri2.ven)?"":" none"}">${esc(roomTxt)}</td>`+
