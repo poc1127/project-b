@@ -902,9 +902,11 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
     .ss-title{font-size:21px;}
     /* single horizontal scroll lane — fixed order, never reflows; .hscroll-wrap edge-fade hints "more →" (updateStatsFades runs after render + on resize) */
     #statsbarwrap{position:static;}   /* phones: stat bar scrolls with the page (bottom action bar handles fixed chrome) */
-    #statsbar{gap:8px;padding:4px 10px;flex-wrap:nowrap;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x proximity;align-items:center;scrollbar-width:none;}
+    /* #statsbarwrap 접두사(2 id)로 specificity↑ — 뒤쪽 폴리시-패스 #statsbar 규칙(space-between·sgrp flex)을 모바일에서 확실히 덮어씀 */
+    #statsbarwrap #statsbar{gap:8px;padding:4px 10px;flex-wrap:nowrap;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x proximity;align-items:center;scrollbar-width:none;justify-content:flex-start;}
     #statsbar::-webkit-scrollbar{display:none;}                              /* hide the bar — the edge-fade is the scroll affordance */
-    #statsbar .stat{flex:none;scroll-snap-align:start;border-right:none;padding:2px 9px;border-radius:8px;white-space:nowrap;}
+    #statsbarwrap #statsbar .sgrp{display:contents;}   /* 폰: 그룹 래퍼 해제 → 카드가 스크롤 레인에 직접 배치(스크롤 스냅 유지) */
+    #statsbarwrap #statsbar .stat{flex:none;scroll-snap-align:start;border-right:none;white-space:nowrap;}   /* 카드 축소 방지 + 스냅 */
     #statsbar .stat:not(.alert):not(.clear):not(.warnjump){background:var(--bg);}   /* plain stats → subtle chips; 미배정(red)/clear(green)/경고(badge) keep their own emphasis */
     #main{padding:8px;gap:8px;}
     #pool{max-height:38vh;}
@@ -1376,7 +1378,7 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
   .vtab.active{background:var(--primary);color:#fff;box-shadow:0 1px 3px rgba(0,102,153,.25);}
   .viewtabs.disabled .vtab.active{background:#dbe4ec;color:#8b98a7;}
   /* 통계 바: 텍스트 칩 → 아이콘 타일 미니 카드 (숙소 체크인 뷰의 ck2stat 카드 언어를 그대로 차용) */
-  #statsbar{gap:9px;padding:9px 16px;}
+  #statsbar{gap:9px 14px;padding:9px 16px;justify-content:space-between;}   /* 인원·숙소·경고 3블록을 가로 폭에 균등 분산 */
   #statsbar .stat{display:flex;align-items:center;gap:8px;border:1px solid var(--line);background:#fff;border-radius:12px;padding:5px 11px 5px 7px;box-shadow:0 1px 2px rgba(20,30,50,.04);transition:box-shadow .14s,border-color .14s,transform .14s;}
   #statsbar .stat:hover{box-shadow:0 3px 12px rgba(20,30,50,.09);transform:translateY(-1px);}
   #statsbar .sico{width:28px;height:28px;border-radius:9px;display:flex;align-items:center;justify-content:center;flex:none;}
@@ -1397,7 +1399,7 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
   #statsbar .stat.alert .sval b{color:#dc2626;font-size:16px;}
   #statsbar .stat.clear{border-color:#bfe8cb;background:#f5fbf6;}
   #statsbar .stat.clear .sval b{color:#16a34a;}
-  #statsbar .stat.warnjump{cursor:pointer;}
+  #statsbar .stat.warnjump{cursor:pointer;}   /* 경고 = 오른쪽 끝 (space-between으로 분산) */
   #statsbar .stat.warnjump:focus-visible{outline:2px solid var(--primary);outline-offset:1px;}
   /* 패널·카드: 흰 면 + 부드러운 그림자, 모서리 통일 */
   .venue,#pool,#sesspool,.legend,.sesssum{box-shadow:0 1px 3px rgba(20,30,50,.05);}
@@ -1432,6 +1434,8 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
   #statsbar .sval .frac{font-size:11.5px;font-weight:700;color:var(--text2);margin-left:1px;}
   #statsbar .sval .frac.frac-amber{color:#d97706;} #statsbar .sval .frac.frac-red{color:#dc2626;}
   #statsbar .statdiv{width:1px;align-self:center;height:26px;background:var(--border);margin:0 3px;flex:none;padding:0;}
+  /* 인원/숙소를 그룹 단위로 묶어 통째로 줄바꿈(중간에서 안 쪼개짐). 분산은 #statsbar의 space-between이 담당 */
+  #statsbar .sgrp{display:flex;align-items:center;gap:9px;flex-wrap:wrap;}
   #statsbar .sval .statbar{align-self:center;display:inline-block;width:46px;height:5px;border-radius:99px;background:#e3e9ef;overflow:hidden;margin-left:8px;}
   #statsbar .sval .statbar i{display:block;height:100%;border-radius:99px;background:var(--success);}
   /* [숙소 배정] 층/타입 그룹 헤더: 밴드로 승격 (떠 있는 작은 텍스트 → 스캔 가능한 구분 띠) */
@@ -1663,6 +1667,31 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
   #checkin{container-type:inline-size;}
   @container (max-width:1000px){ #checkin .ck2stats{grid-template-columns:repeat(2,1fr);} }
   #checkin .ck2stat .lbl{word-break:keep-all;}   /* 라벨이 글자 단위가 아니라 단어 단위로만 줄바꿈 */
+  /* 2열 카드(태블릿·소형 데스크톱)는 폭이 넓어 세로 레이아웃이 가운데를 비워둠 → 가로 타일로 압축:
+     [아이콘 라벨] ········ [숫자 %]. 카드 높이 ~128→81px로 줄어 명단이 더 많이 보임. */
+  @container (min-width:560px) and (max-width:1000px){
+    #checkin .ck2stat{display:flex;align-items:center;gap:14px;padding:16px 20px;}
+    #checkin .ck2stat .row1{flex:1 1 auto;min-width:0;}
+    #checkin .ck2stat .num{margin-top:0;flex:none;justify-content:flex-end;gap:9px;}
+  }
+  /* 폰(콘텐츠<560px): 작은 화면에 최대한 많이 담기 위해 카드를 더 압축. 가로 타일이되
+     숫자가 좁은 폭에서 %와 겹치므로 우측에 숫자/% 세로 적층. 아이콘·숫자·여백 축소로
+     카드 118→58px, 통계 묶음 246→127px (명단 ~2행 더 노출). */
+  @container (max-width:559px){
+    #checkin .ck2stat{display:flex;align-items:center;gap:10px;padding:11px 13px;}
+    #checkin .ck2stat .row1{flex:1 1 auto;min-width:0;gap:9px;}
+    #checkin .ck2stat .bico{width:34px;height:34px;border-radius:9px;}
+    #checkin .ck2stat .bico .ico{width:17px;height:17px;}
+    #checkin .ck2stat .lbl{font-size:12.5px;}
+    #checkin .ck2stat .num{margin-top:0;flex:none;flex-direction:column;align-items:flex-end;gap:0;font-size:19px;line-height:1.15;}
+    #checkin .ck2stat .num .pct{font-size:11.5px;}
+  }
+  /* 폰: 검색창 + 유형 필터를 두 줄 → 한 줄로 (바 99→49px). placeholder는 짧은 폭에 맞춰 축약(JS). */
+  @media (max-width:640px){
+    #checkin .ck2bar{flex-wrap:nowrap;gap:8px;}
+    #checkin .ck2bar .ck2search{flex:1 1 0;min-width:0;}
+    #checkin .ck2bar select{flex:0 0 auto;width:auto;max-width:42%;}
+  }
 
   /* ===== 초보자 도움말: 화면별 안내 배너(#viewhelp) + 전체 가이드 모달(#helpbg) ===== */
   #viewhelp{display:flex;align-items:flex-start;gap:11px;margin:10px 12px 0;padding:11px 14px;background:#f1f6fc;border:1px solid #d6e4f5;border-radius:11px;color:#37475a;font-size:12.5px;line-height:1.55;cursor:pointer;transition:background .12s,border-color .12s,box-shadow .12s;}
@@ -1979,7 +2008,7 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
 "use strict";
 // ⚑ index.html build version — shown bottom-right on the start screen. BUMP ON EACH DEPLOY.
 //   Format: vYYYY.MM.DD-N  (N = same-day build counter; reset to 1 on a new date).
-const APP_VERSION = "v2026.06.13-16";
+const APP_VERSION = "v2026.06.13-20";
 // 세션 배정 기본 '세션 불필요'(면제) 분류 — 스태프/팀/특수 그룹은 세션 배정 대상이 아님. 저장된 (면제분류) 설정이 없을 때만 시드.
 const DEFAULT_SESS_EXEMPT = ["AFF","NOC 위원","미디어팀","자원봉사팀","찬양팀","협력팀"];
 /* ============================================================
@@ -2820,7 +2849,7 @@ function renderViewHelp(){
   const h = VIEW_HELP[state.view] || VIEW_HELP.rooms;
   $("#vhName").textContent=h.name;
   $("#vhText").innerHTML=h.text;
-  const collapsed = localStorage.getItem("icmda_vh")==="1";
+  const collapsed = localStorage.getItem("icmda_vh")!=="0";   // 기본 접힘 — 사용자가 직접 펼친 경우("0")에만 펼침
   box.classList.toggle("collapsed", collapsed);
   box.setAttribute("aria-expanded", collapsed?"false":"true");
   box.hidden=false;
@@ -3102,7 +3131,7 @@ function renderCheckin(){
       <div class="ck2panel">
         <h2>체크인 참가자 <span class="en">Participants</span> <span class="fchip" id="ck2Chip" style="display:none"></span></h2>
         <div class="ck2bar">
-          <div class="ck2search"><span class="mag">${ico('search')}</span><input id="ck2Q" placeholder="${matchMedia("(max-width:640px)").matches?"이름·이메일·ID 검색 · Search…":"이름, 이메일, 참가자ID로 검색 · Search name / email / ID…"}" autocomplete="off" aria-label="체크인 참가자 검색 · Search participants"><button type="button" class="clr2" id="ck2Clr" aria-label="검색어 지우기">×</button></div>
+          <div class="ck2search"><span class="mag">${ico('search')}</span><input id="ck2Q" placeholder="${matchMedia("(max-width:640px)").matches?"이름·이메일·ID 검색":"이름, 이메일, 참가자ID로 검색 · Search name / email / ID…"}" autocomplete="off" aria-label="체크인 참가자 검색 · Search participants"><button type="button" class="clr2" id="ck2Clr" aria-label="검색어 지우기">×</button></div>
           <select id="ck2Cat" aria-label="참가 유형 필터 · Filter by type"><option value="">전체 유형 · All</option></select>
         </div>
         <table class="ck2tbl ck2tbl6"><thead><tr><th>참가자<span class="en">Participant</span></th><th>유형<span class="en">Type</span></th><th>나이대<span class="en">Age</span></th><th>배정 숙소<span class="en">Room</span></th><th>체크인<span class="en">Check-in</span></th><th>체크아웃<span class="en">Check-out</span></th></tr></thead><tbody id="ck2Rows"></tbody></table>
@@ -4683,17 +4712,24 @@ function renderStats(issues){
   // 미배정 is the number a coordinator acts on → emphasised block (red when >0, green ✓ when clear)
   const un=el("span","stat "+(unassigned?"alert":"clear")); un.dataset.tone=unassigned?"red":"green";
   un.innerHTML = `<span class="sico">${ico(unassigned?'alert':'checkCircle')}</span><span class="sbody"><span class="slab">미배정</span><span class="sval"><b>${unassigned}</b>${unassigned?'<span class="frac">명</span>':''}</span></span>`;
-  sb.append(
+  // 인원 그룹: 통째로 줄바꿈되도록 래퍼로 묶음
+  const peopleGrp=el("span","sgrp");
+  peopleGrp.append(
     mk("총 인원",total,"",'users','blue'),
     mk("방 필요",needP,"",'building','slate'),
     mk("배정완료",assignedP,`<span class="frac">/${needP}</span><span class="statbar" title="${pct(assignedP,needP)}% 완료" aria-hidden="true"><i style="width:${pct(assignedP,needP)}%"></i></span>`,'checkCircle','green'),   // consistent fraction vs 방 필요 + mini progress
     un,
     mk("방 불필요",noRoom,"",'x','slate'),
+  );
+  // 숙소 그룹: 구분선 + 숙소 카드들 — margin-left:auto로 오른쪽 분산, 좁아지면 그룹째 줄바꿈
+  const venGrp=el("span","sgrp venues");
+  venGrp.append(
     el("span","statdiv"),                              // visual divider: 인원 stats | 숙소 stats
     ...hotels.map(h=>venStat(h===VEN.BYYTC?"부영수련원":venShort(h),byHotel[h],capHotel[h])),
     ...(booyIsInv()?[]:[mk("부영호텔(NOC)",byBOOY,"",'building','slate')]),   // NOC chip only when 부영호텔 is off-inventory (else it's a normal venStat above)
     ...(byTEMP?[mk("임시배치(재배정필요)",byTEMP,"",'alert','amber')]:[]),   // holding-bucket chip, only when someone is parked there
   );
+  sb.append(peopleGrp, venGrp);
   // surfaced warning badge → jumps to the detail warning panel (DESIGN-5)
   const issueN=issues.length;
   const warn=el("span","stat warnjump"); warn.tabIndex=0; warn.setAttribute("role","button"); warn.dataset.tone=issueN?"amber":"green";
@@ -6826,7 +6862,7 @@ $("#vhMore").onclick=(e)=>{ e.stopPropagation(); openHelp(); };
 // 안내 바 어디를 눌러도 접기/펼치기 (키보드 Enter·Space 포함)
 function vhToggle(){ const box=$("#viewhelp"); const collapse=!box.classList.contains("collapsed");
   box.classList.toggle("collapsed",collapse); box.setAttribute("aria-expanded",collapse?"false":"true");
-  if(collapse) localStorage.setItem("icmda_vh","1"); else localStorage.removeItem("icmda_vh"); }
+  if(collapse) localStorage.removeItem("icmda_vh"); else localStorage.setItem("icmda_vh","0"); }   // 펼침만 명시 저장("0"); 접힘=기본
 $("#viewhelp").onclick=vhToggle;
 $("#viewhelp").onkeydown=(e)=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); vhToggle(); } };
 
